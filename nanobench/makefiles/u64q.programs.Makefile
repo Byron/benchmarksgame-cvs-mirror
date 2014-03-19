@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.4 2013/05/14 06:22:01 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.5 2014/03/19 16:05:50 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
