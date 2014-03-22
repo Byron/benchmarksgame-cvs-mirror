@@ -40,4 +40,4 @@ function print_seq(){
     }
     $seq = '';
 }
-?>
+

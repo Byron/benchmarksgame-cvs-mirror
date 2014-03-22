@@ -62,4 +62,4 @@ print "\n" .
       $initialLength . "\n" .
       $codeLength . "\n" .
       strlen($contents) . "\n" ;
-?>
+

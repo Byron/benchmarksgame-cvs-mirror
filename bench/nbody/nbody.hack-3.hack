@@ -98,4 +98,3 @@ do {
 
 printf("%0.9f\n", energy($bodies));
 
-?>

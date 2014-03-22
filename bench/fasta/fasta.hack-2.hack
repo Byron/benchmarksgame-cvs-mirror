@@ -121,4 +121,4 @@ if ($_SERVER['argc'] > 1) $n = $_SERVER['argv'][1];
    makeRepeatFasta('ONE', 'Homo sapiens alu', $alu, $n*2);
    makeRandomFasta('TWO', 'IUB ambiguity codes', $iub, $n*3);
    makeRandomFasta('THREE', 'Homo sapiens frequency', $homosapiens, $n*5);
-?>
+
