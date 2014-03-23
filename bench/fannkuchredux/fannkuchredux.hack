@@ -1,14 +1,22 @@
-<?hh /* The Computer Language Benchmarks Game
+<?hh // strict
+/* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
    
    contributed by Isaac Gouy, transliterated from Mike Pall's Lua program 
-   PHP as HHVM/Hack by Isaac Gouy
 */
 
-function Fannkuch($n){
-   $p = $q = $s = array(); 
-   $sign = 1; $maxflips = $sum = 0; $m = $n-1;
-   for ($i=0; $i<$n; $i++){ $p[$i] = $i; $q[$i] = $i; $s[$i] = $i; }      
+function initialized_vector(int $n): Vector<int> {
+   $v = Vector {};
+   for ($i=0; $i<$n; $i++){ $v[] = $i; }
+   return $v;
+}
+
+function Fannkuch(int $n) {
+   $p = initialized_vector($n); 
+   $q = initialized_vector($n); 
+   $s = initialized_vector($n); 
+
+   $sign = 1; $maxflips = $sum = 0; $m = $n-1;  
    do {
       // Copy and flip.
       $q0 = $p[0];                                          // Cache 0th element.
@@ -47,7 +55,7 @@ function Fannkuch($n){
    } while (true);
 }
 
-$n = $argv[1];
+$n = (int)$argv[1];
 list($checksum,$pf) = Fannkuch($n);
 printf("%d\nPfannkuchen(%d) = %d\n", $checksum, $n, $pf);
 
