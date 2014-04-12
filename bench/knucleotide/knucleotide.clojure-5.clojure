@@ -7,7 +7,8 @@
 (ns knucleotide
   (:gen-class)
   (:require [clojure.string :as s])
-  (:import [java.util.concurrent Executors]
+  (:import [java.util.concurrent Executors Future]
+           [java.io InputStream]
            [clojure.lang Numbers]
            [java.nio.channels Channels ReadableByteChannel]
            [java.nio ByteBuffer]))
@@ -15,10 +16,15 @@
 (set! *warn-on-reflection* true)
 (set! *unchecked-math* true)
 
+(definterface IDnaHash
+  (add [^long key ^long count])
+  (^long get [^long key])
+  (^void printSorted []))
+
 (definterface IBits
   (add2 [^long b])
   (addLots [bs])
-  (scan [^long n ^long offset])
+  (addToHash [h ^long n ^long offset])
   (^long getSize []))
 
 (deftype Bits [^ints data ;; array of ints, each of which has 16 2-bit slots
@@ -67,37 +73,28 @@
               (recur (long (- n 2))
                      (long (Numbers/unsignedShiftRightInt i 2)))))))
       nil))
-  (scan [_ n offset]
+  (addToHash [_ h n offset]
     (let [data ^ints data
-          mask (dec (bit-shift-left 1 (* n 2)))
-          scanned (long-array (quot size n))]
+          mask (dec (bit-shift-left 1 (* n 2)))]
       (loop [i (rem offset 16)
              j (quot offset 16)
-             scan-index 0]
+             h ^IDnaHash h]
         (if (<= (+ (* j 16) i n) size)
           (if (<= (+ i n) 16)
             (let [l (bit-and (unsigned-bit-shift-right (aget data j) (* 2 i)) mask)
                   newi (+ i n)]
-              (aset scanned scan-index l)
               (if (>= newi 16)
-                (recur (- newi 16) (inc j) (inc scan-index))
-                (recur newi j (inc scan-index))))
-            ;;(bit-and (aget data j) 0xFFFFFFFF)
+                (recur (- newi 16) (inc j) (.add h l 1))
+                (recur newi j (.add h l 1))))
             (let [l (bit-and (bit-or (Numbers/unsignedShiftRightInt (aget data j) (int (* 2 i)))
                                      (bit-shift-left (aget data (inc j)) (* 2 (- 16 i))))
                              mask)
                   newj (inc j)
                   newi (+ i (- n 16))]
-              (aset scanned scan-index l)
               (if (>= newi 16)
-                (recur (- newi 16) (inc newj) (inc scan-index))
-                (recur newi newj (inc scan-index)))))
-          (do
-            (loop [pad-index scan-index]
-              (if (< pad-index (alength scanned))
-                (do (aset scanned scan-index -1)
-                    (recur (inc pad-index)))
-                scanned)))))))
+                (recur (- newi 16) (inc newj) (.add h l 1))
+                (recur newi newj (.add h l 1)))))
+          h))))
   (getSize [_] size))
 
 (def table (let [arr (long-array 256)]
@@ -174,11 +171,6 @@
             (skip ch data (r ch data) 0)
             (skip ch data n i)))
         (recur 0 need match (r ch data))))))
-
-(definterface IDnaHash
-  (^knucleotide.IDnaHash add [^long key ^long count])
-  (^long get [^long key])
-  (^void printSorted []))
 
 (defmacro hc [l size]
   `(bit-and (+ ~l (bit-shift-right ~l 17)) (dec ~size)))
@@ -276,32 +268,21 @@
         k (reduce (fn [^long acc ^long b] (+ (* 4 acc) b)) 0 (reverse mapped))]
     (format "%d\t%s" (.get d k) s)))
 
-(defn addToHash [^IBits data ^IDnaHash h ^long n ^long offset]
-  (let [s ^longs (.scan data n offset)
-        c (alength s)]
-    (loop [h h i 0]
-      (if (< i c)
-        (let [si (aget s i)]
-          (if (< si 0)
-            h
-            (recur (.add h si 1) (inc i))))
-        h))))
-
 (defn -main [& args]
   (let [sizes [1 2 3 4 6 12 18]
         sequence "GGTATTTTAATTTATAGT"
-        data (loadf ">THREE")
+        data ^IBits (loadf ">THREE")
         tasks (doall
                (map (fn [^long n]
                       (fn []
                         (loop [h (DnaHash. n 512 0 (long-array 512) (long-array 512))
                                i 0]
                           (if (< i n)
-                            (recur (addToHash data h n i) (inc i))
+                            (recur (.addToHash data h n i) (inc i))
                             h))))
                     sizes))        
         processors (.. Runtime getRuntime availableProcessors)
-        pool (Executors/newFixedThreadPool processors)        
+        pool (Executors/newFixedThreadPool processors)
         [f1 f2 :as futures] (.invokeAll pool tasks)]
     (.printSorted ^DnaHash @f1)
     (.printSorted ^DnaHash @f2)
