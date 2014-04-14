@@ -80,7 +80,7 @@ run n cpu cs = do
     fs    <- replicateM (length cs) newEmptyMVar
     mpv   <- newMVar (Nobody n)
     withArrayLen cs $ \ n cols -> do
-        zipWithM_ ((forkOnIO cpu .) . arrive mpv) fs (take n (iterate (`advancePtr` 1) cols))
+        zipWithM_ ((forkOn cpu .) . arrive mpv) fs (take n (iterate (`advancePtr` 1) cols))
 
         return $ do
           putStrLn . map toLower . unwords . ([]:) . map show $ cs
