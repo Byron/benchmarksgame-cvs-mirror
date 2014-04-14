@@ -5,6 +5,7 @@
 -- Contributed by Sterling Clover
 -- Heavily inspired by contribution from Don Stewart
 -- Inlining improvements by Don Stewart.
+-- GHC 7.8.1 fix by Ersin Er
 --
 
 import qualified Data.ByteString.Char8 as S
@@ -62,12 +63,12 @@ revcomp (PS fp s (I# l)) = withForeignPtr fp $ \p -> rc (p `plusPtr` s) 0# (l -#
     rc p i j  = rc' i j
         where
           rc' i j
-              | i <# j = do
+              | isTrue# (i <# j) = do
                           let x = rw8 p i
                           ww8 p i (comp (rw8 p j))
                           ww8 p j (comp x)
                           rc' (i +# 1#) (j -# 1#)
-              | i ==# j = ww8 p i (comp (rw8 p i))
+              | isTrue# (i ==# j) = ww8 p i (comp (rw8 p i))
               | otherwise =  return ()
 
 rw8 :: Ptr Word8 -> Int# -> Word#
