@@ -3,6 +3,7 @@
 -- http://benchmarksgame.alioth.debian.org/
 --
 -- Contributed by Olof Kraigher and Don Stewart.
+-- GHC 7.8.1 fix by Ersin Er
 --
 -- To be compiled with:
 --
@@ -18,6 +19,7 @@ import Data.IORef
 import Control.Monad
 import System.Environment
 import Text.Printf
+import System.IO.Unsafe
 
 main = do
     n <- getArgs >>= readIO.head
