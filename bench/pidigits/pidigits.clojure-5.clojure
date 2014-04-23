@@ -234,7 +234,7 @@
         (.append strbuf (apply str (repeat (- 10 (mod i 10)) " "))))
       (.append strbuf "\t:")
       (.append strbuf i)
-      (println strbuf)
+      (println (.toString strbuf))
       (.setLength strbuf 0))
     (= i n)))
 
