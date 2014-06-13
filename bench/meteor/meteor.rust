@@ -1,0 +1,424 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+   contributed by Olof Kraigher
+
+   Compile with: rustc --opt-level 3 meteor.rs -o meteor
+*/
+
+extern crate sync;
+use std::num::Bitwise;
+
+fn main () {
+    let args = std::os::args();
+    if args.len() != 2 {
+        println!("Usage: {} num_solutions", args[0]);
+        return;
+
+    }
+    let maybe_int : Option<uint> = from_str(args[1]);
+    if maybe_int.is_none() {
+        println!("Invalid argument '{}' cannot parse as unsigned integer", args[1])
+        return;
+    }
+
+    let num_solutions = maybe_int.unwrap();
+    let solutions : Vec<~str> = solve().move_iter().take(num_solutions).collect();
+    let max_solution = solutions.iter().max().unwrap();
+    let min_solution = solutions.iter().min().unwrap();
+    println!("{} solutions found\n", solutions.len());
+    pretty_print(min_solution);
+    pretty_print(max_solution);
+
+}
+
+static num_pieces : uint = 10;
+static width : uint = 5;
+static height : uint = 10;
+static full_mask : u64 = (1u64 << width*height) - 1u64;
+static piece_not_fully_rotated : uint = 3;
+
+fn solve() -> Vec<~str> {
+    let pieces = create_pieces();
+    let solver = sync::Arc::new(Solver::new(pieces));
+    let mut futures = Vec::new();
+    let mut solutions = Vec::new();
+
+    for piece in range(0, num_pieces) {
+        let my_solver = solver.clone();
+        futures.push(sync::Future::spawn(proc() {
+            my_solver.solve(piece)
+        }));
+    }
+
+    for piece in range(0, num_pieces) {
+        let future = futures.get_mut(piece);
+        let partial : Vec<~str> = future.get();
+        solutions.push_all_move(partial);
+    }
+    solutions
+}
+
+fn create_pieces() -> [Piece, ..num_pieces] {
+    let np = Piece::from_array;
+    [
+        np(0, [E, E, E, SE]),
+        np(1, [SE, SW, W, SW]),
+        np(2, [W, W, SW, SE]),
+        np(3, [E, E, SW, SE]),
+        np(4, [NW, W, NW, SE, SW]),
+        np(5, [E, E,  NE, W]),
+        np(6, [NW, NE, NE, W]),
+        np(7, [NE, SE, E, NE]),
+        np(8, [SE, SE, E, SE]),
+        np(9, [E, NW, NW, NW])
+    ]
+}
+
+fn pretty_print(string : &~str) {
+    for (idx, char) in string.as_slice().chars().enumerate() {
+        print!("{}", char);
+        print!(" ");
+
+        let x = idx % width;
+        let y = idx / width;
+
+        if x == width-1 {
+            if y%2 == 0 {
+                print!("\n ");
+            } else {
+                print!("\n");
+            }
+        }
+    }
+    print!("\n");
+}
+
+struct Solver {
+    masks_by_piece_by_position: Vec<Vec<Vec<u64>>>,
+}
+
+impl Solver {
+    fn new(pieces : &[Piece]) -> Solver {
+        Solver {
+            masks_by_piece_by_position: Vec::from_fn(
+                num_pieces, 
+                |idx| pieces[idx].all_masks_by_position())
+        }
+    }
+
+    fn place_and_search(&self, 
+                        piece : uint,
+                        position : uint,
+                        solution: &mut Solution) {
+        let masks = self.masks_by_piece_by_position.get(piece).get(position);
+        for &mask in masks.iter() {
+            if solution.fits(mask) {
+                solution.place(piece, mask);
+                self.recursive_search(solution);
+                solution.remove(piece, mask);
+            }            
+        }
+    }
+
+    fn recursive_search(&self, solution: &mut Solution) {
+        if solution.done() {
+            solution.populate();
+            return;
+        } else if solution.impossible() {
+            return;
+        }
+
+        let position = solution.first_free_position();
+        for piece in range(0, num_pieces) {
+            if solution.is_not_placed(piece) {
+                self.place_and_search(piece, position, solution);
+            }
+        }
+    }
+
+    fn solve(&self, first_piece : uint) -> Vec<~str> {
+        let mut solution = Solution::new();
+        self.place_and_search(first_piece, width*height-1, &mut solution);
+        solution.solutions
+    }
+}
+
+struct Solution {
+    masks: [u64, ..num_pieces],
+    mask : u64,
+    used_pieces: uint,
+    solutions: Vec<~str>        
+}
+
+impl Solution {
+    fn new() -> Solution {
+        Solution {
+            masks: [0, ..num_pieces],
+            mask: 0,
+            used_pieces: 0,
+            solutions: Vec::new()
+        }
+    }
+
+    fn done(&self) -> bool {
+        self.used_pieces == (1 << num_pieces) - 1
+    }
+    
+    fn impossible(&self) -> bool {
+        has_islands(self.mask)
+    }
+
+    fn first_free_position(&self) -> uint {
+        find_first_one(!self.mask & full_mask)
+    }
+
+    fn is_not_placed(&self, piece : uint) -> bool {
+        self.used_pieces & (1 << piece) == 0
+    }    
+
+    fn fits(&self, mask : u64) -> bool {
+        self.mask & mask == 0u64
+    }
+
+    fn place(&mut self, piece : uint, mask : u64) -> bool {        
+        self.mask ^= mask;
+        self.used_pieces ^= 1 << piece;
+        self.masks[piece] = mask;
+        return true;
+    }
+
+    fn remove(&mut self, piece : uint, mask : u64) {
+        self.mask ^= mask;
+        self.used_pieces ^= 1 << piece;
+    }
+
+    fn populate(&mut self) { 
+        let string = self.to_string();
+        self.solutions.push(string.as_slice().chars().rev().collect());
+        self.solutions.push(string);
+    }
+
+    fn to_string(&self) -> ~str {
+        let mut string = ~"";
+        for position in range(0, height*width) {
+            string.push_char(self.char_at_position(position));
+        }
+        string
+    }
+
+    fn char_at_position(&self, position : uint) -> char {
+        let position_mask = 1 << position;
+        for piece in range(0, num_pieces) {
+            let mask = self.masks[piece];
+            let uses_piece = (self.used_pieces >> piece) & 1 == 1;
+            let occupies_position = overlaps(mask, position_mask);
+            if uses_piece && occupies_position {
+                return (('0' as u8) + (piece as u8)) as char;
+            }
+        }
+        return '_';        
+    }
+}
+
+#[deriving(Clone)]
+struct Piece {
+    piece_idx: uint,
+    directions: Vec<Direction>
+}
+
+impl Piece {
+    fn from_array(piece_idx : uint, directions : &[Direction]) -> Piece {
+        Piece {
+            piece_idx: piece_idx,
+            directions: Vec::from_fn(directions.len(), |i|directions[i])
+        }
+    }
+
+    fn modified(&self, fun : |&Direction| -> Direction) -> Piece {
+        Piece {
+            piece_idx: self.piece_idx,
+            directions: self.directions.iter().map(fun).collect()
+        }
+    }
+
+    fn flip(&self) -> Piece {
+        self.modified(|x| x.flip())
+    }
+
+    fn rotate(&self) -> Piece {
+        self.modified(|x| x.rotate())
+    }
+
+    fn prune(mask : u64) -> Option<u64> {
+        let border = 0b11111_10001_10001_10001_10001_10001_10001_10001_10001_11111;
+        if mask & border == 0 || !has_islands(mask) {
+            Some(mask)
+        } else {
+            None
+        }
+    }
+
+    fn to_mask(&self, position : Position) -> Option<u64> {
+        let mut mask = position.to_mask();
+        let mut current_position = position;
+
+        for direction in self.directions.iter() {
+            match current_position.in_direction(direction) {
+                Some(position) => {
+                    current_position = position;
+                    mask |= current_position.to_mask();
+                },
+                None => return None
+            }
+        }
+        return Piece::prune(mask);
+    }
+
+    fn all_masks(&self) -> Vec<u64> {
+        let mut piece : Piece = self.clone();
+        let num_orientations = 2;
+        let num_rotations = if self.piece_idx == piece_not_fully_rotated {3} else {6};
+        let mut masks : Vec<u64> = Vec::with_capacity(width*height*num_rotations*num_orientations);
+
+        for _ in range(0, num_orientations) {
+            for _ in range(0, num_rotations) {
+                for x in range(0, width as int) {
+                    for y in range(0, height as int) {
+                        let position = Position::new(x,y);
+                        let maybe_mask = piece.to_mask(position);
+                        if maybe_mask.is_some() {
+                            masks.push(maybe_mask.unwrap());
+                        }
+                    }
+                }
+                piece = piece.rotate();
+            }
+            piece = piece.flip();
+        }
+        masks
+    }
+
+    fn all_masks_by_position(&self) -> Vec<Vec<u64>> {
+        let masks = self.all_masks();
+        let mut masks_by_position : Vec<Vec<u64>> = 
+            Vec::from_fn(width*height, |_| Vec::with_capacity(masks.len()));
+
+        for &mask in masks.iter() {
+            let idx = find_first_one(mask);
+            let masks_at_position = masks_by_position.get_mut(idx);
+            masks_at_position.push(mask);
+        }
+        masks_by_position
+    }    
+}
+
+struct Position {
+    x: int,
+    y: int
+}
+
+impl Position {
+    fn new(x : int, y : int) -> Position {
+        Position {x:x as int, y:y as int}
+    }
+
+    fn is_valid(Position{x,y} : Position) -> bool {
+        0 <= x && x < width as int && 0 <= y && y < height as int
+    }
+
+    fn in_2d_direction(&self, dx : int, dy : int) -> Position {
+        Position {
+            x: self.x + dx,
+            y: self.y + dy
+        }                  
+    }
+
+    fn in_direction(&self, direction : &Direction) -> Option<Position> {
+
+        let (dx, dy) =
+            match direction {
+                &E => (-1, 0),
+                &W => ( 1, 0),
+                &NE => (self.y%2 - 1,  1),
+                &NW => (self.y%2    ,  1),
+                &SE => (self.y%2 - 1, -1),
+                &SW => (self.y%2    , -1)
+            };
+
+        let new_position = self.in_2d_direction(dx, dy);
+
+        if Position::is_valid(new_position) {
+            Some(new_position)
+        } else {
+            None
+        }
+    }
+
+    fn to_mask(&self) -> u64 {
+        1u64 << (self.y * width as int + self.x)
+    }
+}
+
+#[deriving(Clone, FromPrimitive)]
+enum Direction {
+    E=0, SE=1, SW=2, W=3, NW=4, NE=5
+}
+
+impl Direction {
+    fn modified(&self, modifier : |int| -> int) -> Direction {
+        FromPrimitive::from_int(modifier(*self as int)).unwrap()
+    }
+    fn rotate(&self) -> Direction {
+        self.modified(|x| (x + 1)%6)
+    }
+
+    fn flip(&self) -> Direction {
+        self.modified(|x| (9 - x)%6)
+    }
+}
+
+fn has_islands(mask : u64) -> bool {
+    let allowed = !mask & full_mask;
+    let seed = (1 << mask.trailing_zeros()) - 1;
+    let filled = flood_fill(seed, allowed);
+    filled.count_ones() % 5 != 0
+}
+
+fn flood_fill(seed : u64, allowed : u64) -> u64 {
+    let mut filled = seed;
+
+    loop {
+        let new_filled = grow(filled) & allowed;
+        if new_filled == filled {
+            return filled;
+        }        
+        filled = new_filled;
+    }
+}
+
+fn find_first_one(mask : u64) -> uint {
+    63 - mask.leading_zeros() as uint
+}
+
+fn overlaps(m1 : u64, m2 : u64) -> bool {
+    return m1 & m2 != 0u64;
+}
+
+fn grow(mask : u64) -> u64 {
+    let right = !0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001u64;
+    let left = !0b10000_10000_10000_10000_10000_10000_10000_10000_10000_10000u64;
+    let even = 0b00000_11111_00000_11111_00000_11111_00000_11111_00000_11111u64>>1;
+    let odd = 0b11111_00000_11111_00000_11111_00000_11111_00000_11111_00000u64<<1;
+
+    let mut grown_mask = mask;
+    let not_right = mask & right;
+    let not_left = mask & left;
+
+    let east = not_right>>1;
+    let west = not_left<<1;
+    let body = mask | (east & even) | (west & odd);
+
+    grown_mask |= west | (body << width);
+    grown_mask |= east | (body >> width);
+    grown_mask
+}
