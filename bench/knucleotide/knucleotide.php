@@ -5,9 +5,8 @@
 
    contributed by Damien Bonvillain
    fixed by Isaac Gouy
-   improved by Levi Cameron
-   made about 8 times faster by Ludovic Urbain
-   pcntl has a flat overhead of about 40ms on my VM, read_sequence takes about 10%
+   modified by Levi Cameron
+   modified by Ludovic Urbain
 */
 
 
