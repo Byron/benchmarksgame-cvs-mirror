@@ -3,7 +3,7 @@
  * http://benchmarksgame.alioth.debian.org/
  * 
  * contributed by Isaac Gouy, transliterated from Oleg Mazurov's Java program
- * modified by kasthack
+ * modified by Konstantin Safonov
 */
 using System;
 internal static class FannkuchRedux {
