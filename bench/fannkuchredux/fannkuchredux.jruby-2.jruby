@@ -170,28 +170,48 @@ abort "Usage: #{__FILE__} n\n(n > 6)" if (n = ARGV[0].to_i) < 6
 core_count = MiniParallel.core_count
 chunk_size = (1..n).reduce(:*) / core_count
 
-# adjust job sizes to even out workload
-weights = if core_count > 1
-              weights = []
-              (core_count/2).times do |i|
-                  weights << i * 0.1 + 0.05
-              end
-              weights = weights.reverse + weights.map{|i|-i}
-          else
-              [0]
-          end
+sum, flips =
+    if core_count > 1
+        # adjust job sizes to even out workload
+        weights = if core_count > 1
+                      weights = []
+                      (core_count/2).times do |i|
+                          weights << i * 0.1 + 0.05
+                      end
+                      weights = weights.reverse + weights.map{|i|-i}
+                  else
+                      [0]
+                  end
 
-# Generate start position for each chunk
-chunks = core_count.times.zip(weights).map do |count, weight|
-    [count * chunk_size +
-     (count > 0 ? (weights[0,count].reduce(:+) * chunk_size).round : 0),
-     chunk_size + (weight * chunk_size).round]
-end
+        # Generate start position for each chunk
+        chunks = core_count.times.zip(weights).map do |count, weight|
+            [count * chunk_size +
+             (count > 0 ? (weights[0,count].reduce(:+) * chunk_size).round : 0),
+             chunk_size + (weight * chunk_size).round]
+        end
 
-sum, flips = MiniParallel.map(chunks) do |start, weighted_size|
-    Fannkuch.new(n,start,weighted_size).flip
-end.reduce do |memo, (cksum, fmax)|
-    [memo[0] + cksum, [memo[1], fmax].max]
-end
+        chunk_results =
+            if RUBY_PLATFORM == 'java'
+                chunk_collector = []
+                threads = []
+                chunks.each.with_index do |(start,weighted_size),i|
+                    threads << Thread.new do
+                        chunk_collector[i] = Fannkuch.new(n,start,weighted_size).flip
+                    end
+                end
+                threads.all?(&:join)
+                chunk_collector
+            else
+                MiniParallel.map(chunks) do |start, weighted_size|
+                    Fannkuch.new(n,start,weighted_size).flip
+                end
+            end
+
+        chunk_results.reduce do |memo, (cksum, fmax)|
+            [memo[0] + cksum, [memo[1], fmax].max]
+        end
+    else
+        Fannkuch.new(n,0,chunk_size).flip
+    end
 
 printf "%d\nPfannkuchen(%d) = %d\n", sum, n, flips

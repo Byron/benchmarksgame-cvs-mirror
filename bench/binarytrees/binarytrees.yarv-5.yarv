@@ -128,17 +128,53 @@ stretch_tree = nil
 
 long_lived_tree = bottom_up_tree(0, max_depth)
 
-MiniParallel.map(min_depth.step(max_depth + 1, 2).to_a) do |depth|
-    iterations = 2**(max_depth - depth + min_depth)
+if MiniParallel.core_count > 1
+    if RUBY_PLATFORM == 'java'
+        output = []
+        threads = []
+        min_depth.step(max_depth + 1, 2).to_a.each.with_index do |depth,j|
+            threads << Thread.new do
+                iterations = 2**(max_depth - depth + min_depth)
 
-    check = 0
+                check = 0
 
-    (1..iterations).each do |i|
-        check += item_check(*bottom_up_tree(i, depth)) +
-            item_check(*bottom_up_tree(-i, depth))
+                (1..iterations).each do |i|
+                    check += item_check(*bottom_up_tree(i, depth)) +
+                        item_check(*bottom_up_tree(-i, depth))
+                end
+
+                output[j] = "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
+            end
+        end
+        threads.all?(&:join)
+        output.each{|l| puts l}
+    else
+        MiniParallel.map(min_depth.step(max_depth + 1, 2).to_a) do |depth|
+            iterations = 2**(max_depth - depth + min_depth)
+
+            check = 0
+
+            (1..iterations).each do |i|
+                check += item_check(*bottom_up_tree(i, depth)) +
+                    item_check(*bottom_up_tree(-i, depth))
+            end
+
+            "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
+        end.each{|l| puts l}
     end
+else
+    min_depth.step(max_depth + 1, 2).each do |depth|
+        iterations = 2**(max_depth - depth + min_depth)
 
-    "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
-end.each{|l| puts l}
+        check = 0
+
+        (1..iterations).each do |i|
+            check += item_check(*bottom_up_tree(i, depth)) +
+                item_check(*bottom_up_tree(-i, depth))
+        end
+
+        puts "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
+    end
+end
 
 puts "long lived tree of depth #{max_depth}\t check: #{item_check(*long_lived_tree)}"
