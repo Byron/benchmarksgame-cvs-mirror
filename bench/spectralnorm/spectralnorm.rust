@@ -1,0 +1,52 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by Mikhail Ivko
+// algorithm is a copy from Ledrug's et C code
+
+use std::from_str::FromStr;
+use std::iter::AdditiveIterator;
+
+fn a_elem(i: uint, j: uint) -> f64 {
+    1.0 / (((i+j) * (i+j+1) / 2 + i + 1) as f64)
+}
+
+fn dot(v: &[f64], u: &[f64]) -> f64 {
+    v.iter().zip(u.iter()).map(|(&a, &b)| a*b).sum()
+}
+
+fn mult_av(v: &[f64]) -> Vec<f64> {
+    Vec::from_fn(v.len(), |i|
+        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(i, j)*vval).sum())
+}
+
+fn mult_atv(v: &[f64]) -> Vec<f64> {
+    Vec::from_fn(v.len(), |i|
+        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(j, i)*vval).sum())
+}
+
+fn mult_atav(v: &[f64]) -> Vec<f64> {
+    mult_atv(mult_av(v).as_slice())
+}
+
+fn main() {
+    let args = std::os::args();
+    let n = if args.len() < 2 {
+        2000
+    } else {
+        FromStr::from_str(args[1].as_slice()).unwrap()
+    };
+    let n = if n % 2 != 0 { n + 1 } else { n };
+
+    let (u, v) = range(0, 10u)
+        .fold((Vec::from_elem(n, 1.0), Vec::new()), |(u, _), _| {
+            let tmp = mult_atav(u.as_slice());
+            (mult_atav(tmp.as_slice()), tmp)
+        });
+
+    println!("{:.9}",
+        (dot(u.as_slice(), v.as_slice())/dot(v.as_slice(), v.as_slice()))
+            .sqrt());
+}

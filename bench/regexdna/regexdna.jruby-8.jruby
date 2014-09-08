@@ -26,7 +26,7 @@ def count_pattern_matches(seq, matchers)
   results
 end
 
-seq = STDIN.read.b
+seq = STDIN.read
 origin_len = seq.size
 
 seq.gsub!(/>[^\n]+\n|\n/,'')
@@ -65,4 +65,4 @@ seq.gsub!(/[BDHKMNRSVWY]/, replacements)
 matchers.each do |matcher|
   print "#{matcher} #{match_counts[matcher]}\n"
 end
-print "\n#{origin_len}\n#{clean_len}\n#{seq.size}"
+print "\n#{origin_len}\n#{clean_len}\n#{seq.size}\n"

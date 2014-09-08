@@ -22,7 +22,7 @@ fn main() {
               let outc = key.find(c);
               match outc {
                 Some(i) => {
-                    buff.push_str(cmp.char_at(i).to_string().as_slice())
+                    buff.push_str(String::from_char(1, cmp.char_at(i)).as_slice())
                 },
                 None => ()
               };
