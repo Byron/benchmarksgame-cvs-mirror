@@ -33,6 +33,7 @@ fn mult_atav(v: &[f64]) -> Vec<f64> {
 
 fn main() {
     let args = std::os::args();
+    let args = args.as_slice();
     let n = if args.len() < 2 {
         2000
     } else {
@@ -41,7 +42,7 @@ fn main() {
     let n = if n % 2 != 0 { n + 1 } else { n };
 
     let (u, v) = range(0, 10u)
-        .fold((Vec::from_elem(n, 1.0), Vec::new()), |(u, _), _| {
+        .fold((Vec::from_elem(n, 1f64), Vec::new()), |(u, _), _| {
             let tmp = mult_atav(u.as_slice());
             (mult_atav(tmp.as_slice()), tmp)
         });

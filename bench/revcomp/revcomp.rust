@@ -43,5 +43,7 @@ fn print_buffer(temp: &str)
             println!("");
         }
     }
-    println!("");
+    if counter != 0 {
+        println!("");
+    }
 }
