@@ -1,0 +1,61 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by Mikhail Ivko
+// algorithm is a copy from Ledrug's C code
+
+use std::from_str::FromStr;
+use std::iter::AdditiveIterator;
+
+fn a_elem(i: uint, j: uint) -> f64 {
+    1.0 / (((i+j) * (i+j+1) / 2 + i + 1) as f64)
+}
+
+fn dot(v: &[f64], u: &[f64]) -> f64 {
+    v.iter().zip(u.iter()).map(|(&a, &b)| a*b).sum()
+}
+
+fn mult_av(v: &[f64], out: &mut [f64]) {
+    for (i, res) in range(0, out.len()).zip(out.mut_iter()) {
+        *res = range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(i, j)*vval).sum()
+    }
+}
+
+fn mult_atv(v: &[f64], out: &mut [f64]) {
+    for (i, res) in range(0, out.len()).zip(out.mut_iter()) {
+        *res = range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(j, i)*vval).sum()
+    }
+        
+}
+
+fn mult_atav(v: &[f64], out: &mut [f64], tmp: &mut [f64]) {
+    mult_av(v, tmp);
+    mult_atv(tmp, out);
+}
+
+fn main() {
+    let args = std::os::args();
+    let args = args.as_slice();
+    let n = if args.len() < 2 {
+        2000
+    } else {
+        FromStr::from_str(args[1].as_slice()).unwrap()
+    };
+    let n = if n % 2 != 0 { n + 1 } else { n };
+
+    let mut u = Vec::from_elem(n, 1f64);
+    let u = u.as_mut_slice();
+    let mut v = Vec::from_elem(n, 0f64);
+    let v = v.as_mut_slice();
+    let mut tmp = Vec::from_elem(n, 0f64);
+    let tmp = tmp.as_mut_slice();
+
+    for _ in range(0, 10u) {
+        mult_atav(u, v, tmp);
+        mult_atav(v, u, tmp);
+    }
+
+    println!("{:.9}", (dot(u, v)/dot(v, v)).sqrt());
+}
