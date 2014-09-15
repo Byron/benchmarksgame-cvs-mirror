@@ -2,7 +2,6 @@
    http://benchmarksgame.alioth.debian.org/
 
    contributed by lucki
-   fixed by Isaac Gouy
 */
 
 import java.io.FileDescriptor;
@@ -43,7 +42,8 @@ final class ByteWrapper implements CharSequence {
 public final class regexdna {
    
    private static Pattern comments = Pattern.compile(">.*\n|\n");
-   
+   public static String newline = System.getProperty("line.separator");
+
    private static String[][] codes =
       {{"B", "(c|g|t)"},
       {"D", "(a|g|t)"},
@@ -128,7 +128,7 @@ public final class regexdna {
          sb.append(strs[i]);
          sb.append(" ");
          sb.append(c);
-         sb.append("\n");
+         sb.append(newline);
 //         System.out.println( strs[i] + ' ' + c );
       }
       System.out.print( sb.toString());
@@ -175,9 +175,9 @@ public final class regexdna {
 //      System.out.println( t.backing.length );
 //      System.out.println( t.length() );
 //      System.out.println( w.length() );
-      System.out.println(new StringBuilder().append("\n").append(t.backing.length)
-      .append("\n").append(t.length)
-      .append("\n").append(w.length).toString());
+      System.out.println(new StringBuilder().append(newline).append(t.backing.length)
+      .append(newline).append(t.length)
+      .append(newline).append(w.length).toString());
 //      long e = System.currentTimeMillis();
 //      System.out.println("t"+(e-s));
    }
