@@ -1,0 +1,152 @@
+-- The Computer Language Benchmarks Game
+-- http://benchmarksgame.alioth.debian.org/
+--
+--  Contributed by Brad Moore (28 Sep 2014)
+--
+-- The Ada standard does not provide a direct mapping from Tasks to
+-- OS threads. In the GNAT compiler implementation, tasks happen to
+-- correspond to OS threads. This approach creates an abstraction of an
+-- array of lighweight threads, which are executed by a pool of Ada tasks.
+-- Transfer of control is via an Ada protected entry call which passes
+-- the token to the next waiting Ada task. The token is protected inside
+-- the protected object, which guarantees that only one thread at a time
+-- updates it. Note that this version is compiled with full Ada checks
+-- enabled, and optimization turned off.
+--
+--  compile with:
+--    gnatchop threadring.gnat
+--    gnatmake -march=native threadring.adb
+-----------------------------------------------------------------------------
+
+with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Text_IO; use Ada.Text_IO;
+with Execute_Threadring;
+
+procedure Threadring is
+   package Natural_IO is new Integer_IO (Num => Natural);
+
+   function Get_Token_Count return Positive
+   is
+      Default_Token_Count : constant := 500;
+   begin
+      if Argument_Count > 0 then
+         return Positive'Value (Argument (1));
+      else
+         return Default_Token_Count;
+      end if;
+   end Get_Token_Count;
+
+   Token_Count : constant Positive := Get_Token_Count;
+begin
+
+   Natural_IO.Put(Item => Execute_Threadring (Token_Count),
+                  Width => 0);
+   New_Line;
+
+end Threadring;
+
+function Execute_Threadring
+  (Number_Of_Tokens : Positive) return Positive
+is
+
+   subtype Token_Type is Natural range 0 .. Number_Of_Tokens;
+
+   Threadring_Size : constant := 503;
+
+   type Thread_Index is mod Threadring_Size;
+   type Thread_Id is range 1 .. Threadring_Size;
+
+   Next_Name : Thread_Id'Base := 1;
+
+   type Lightweight_Thread
+     (Name : Thread_Id := Thread_Id'First;
+      Index : Thread_Index := Thread_Index'First) is null record;
+
+   function Create_Lightweight_Thread return Lightweight_Thread;
+
+   Lightweight_Threads : array (Thread_Index) of aliased Lightweight_Thread :=
+     (others => Create_Lightweight_Thread);
+
+   protected Token_Passer is
+      procedure Start (Thread : access Lightweight_Thread);
+      entry Wait_For_Baton (Done : in out Boolean);
+      function Get_Result return Thread_Id;
+   private
+      Token : Token_Type := Number_Of_Tokens;
+      Has_Baton : Boolean := False;
+      Current_Thread : access Lightweight_Thread;
+      Result : Thread_Id;
+   end Token_Passer;
+
+   protected body Token_Passer is
+
+      function Get_Result return Thread_Id is
+      begin
+         return Result;
+      end Get_Result;
+
+      procedure Start (Thread : access Lightweight_Thread) is
+      begin
+         Current_Thread := Thread;
+         Has_Baton := True;
+      end Start;
+
+      entry Wait_For_Baton (Done : in out Boolean) when Has_Baton is
+      begin
+
+         if Token = 0 then
+            Result := Current_Thread.Name;
+            Done := True;
+         else
+            Token := Token - 1;
+            Current_Thread :=
+              Lightweight_Threads (Current_Thread.Index + 1)'Access;
+         end if;
+
+      end Wait_For_Baton;
+
+   end Token_Passer;
+
+   function Create_Lightweight_Thread return Lightweight_Thread is
+   begin
+      return New_Thread : constant Lightweight_Thread :=
+        (Name => Next_Name,
+         Index => Thread_Index (Next_Name - 1))
+      do
+         Next_Name := Next_Name + 1;
+      end return;
+   end Create_Lightweight_Thread;
+
+   task type OS_Thread;
+
+   task body OS_Thread
+   is
+      All_Done : Boolean := False;
+   begin
+      Task_Loop :
+      loop
+         Token_Passer.Wait_For_Baton (All_Done);
+         exit Task_Loop when All_Done;
+      end loop Task_Loop;
+   end OS_Thread;
+
+begin
+
+   Token_Passer.Start
+     (Thread => Lightweight_Threads (Lightweight_Threads'First)'Access);
+
+   -- Wait for workers to complete before returning result
+   declare
+      Number_Of_Workers : constant := 503;
+
+      pragma Warnings (Off, "*Worker_Pool* is not referenced");
+
+      Worker_Pool : array (1 .. Number_Of_Workers) of OS_Thread;
+
+      pragma Warnings (On, "*Worker_Pool* is not referenced");
+   begin
+      null;
+   end;
+
+   return Positive (Token_Passer.Get_Result);
+end Execute_Threadring;
