@@ -2,7 +2,7 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // contributed by Mikhail Ivko
-// algorithm is a copy from Ledrug's C code
+// algorithm is a copy from Ledrug's et C code
 
 use std::from_str::FromStr;
 use std::iter::AdditiveIterator;
@@ -15,29 +15,24 @@ fn dot(v: &[f64], u: &[f64]) -> f64 {
     v.iter().zip(u.iter()).map(|(&a, &b)| a*b).sum()
 }
 
-fn mult_av(v: &[f64], out: &mut [f64]) {
-    for (i, res) in range(0, out.len()).zip(out.mut_iter()) {
-        *res = range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
-            a_elem(i, j)*vval).sum()
-    }
+fn mult_av(v: &[f64]) -> Vec<f64> {
+    Vec::from_fn(v.len(), |i|
+        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(i, j)*vval).sum())
 }
 
-fn mult_atv(v: &[f64], out: &mut [f64]) {
-    for (i, res) in range(0, out.len()).zip(out.mut_iter()) {
-        *res = range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
-            a_elem(j, i)*vval).sum()
-    }
-        
+fn mult_atv(v: &[f64]) -> Vec<f64> {
+    Vec::from_fn(v.len(), |i|
+        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
+            a_elem(j, i)*vval).sum())
 }
 
-fn mult_atav(v: &[f64], out: &mut [f64], tmp: &mut [f64]) {
-    mult_av(v, tmp);
-    mult_atv(tmp, out);
+fn mult_atav(v: &[f64]) -> Vec<f64> {
+    mult_atv(mult_av(v).as_slice())
 }
 
 fn main() {
     let args = std::os::args();
-    let args = args.as_slice();
     let n = if args.len() < 2 {
         2000
     } else {
@@ -45,17 +40,13 @@ fn main() {
     };
     let n = if n % 2 != 0 { n + 1 } else { n };
 
-    let mut u = Vec::from_elem(n, 1f64);
-    let u = u.as_mut_slice();
-    let mut v = Vec::from_elem(n, 0f64);
-    let v = v.as_mut_slice();
-    let mut tmp = Vec::from_elem(n, 0f64);
-    let tmp = tmp.as_mut_slice();
+    let (u, v) = range(0, 10u)
+        .fold((Vec::from_elem(n, 1.0), Vec::new()), |(u, _), _| {
+            let tmp = mult_atav(u.as_slice());
+            (mult_atav(tmp.as_slice()), tmp)
+        });
 
-    for _ in range(0, 10u) {
-        mult_atav(u, v, tmp);
-        mult_atav(v, u, tmp);
-    }
-
-    println!("{:.9}", (dot(u, v)/dot(v, v)).sqrt());
+    println!("{:.9}",
+        (dot(u.as_slice(), v.as_slice())/dot(v.as_slice(), v.as_slice()))
+            .sqrt());
 }
