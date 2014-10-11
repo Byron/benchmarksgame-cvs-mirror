@@ -1,14 +1,10 @@
 // The Computer Language Benchmarks Game
 // http://benchmarksgame.alioth.debian.org/
 //
+// contributed by the Rust Project Developers
 // contributed by TeXitoi 
 
-// FIXME(#13725) windows needs fixing.
-// ignore-win32
-// ignore-stage1
-// ignore-cross-compile #12102
-
-#![feature(macro_rules, phase)]
+#![feature(macro_rules, phase, slicing_syntax)]
 
 extern crate regex;
 #[phase(plugin)]extern crate regex_macros;
@@ -26,13 +22,8 @@ fn count_matches(seq: &str, variant: &Regex) -> int {
 }
 
 fn main() {
-    let mut rdr = if std::os::getenv("RUST_BENCH").is_some() {
-        let fd = io::File::open(&Path::new("shootout-k-nucleotide.data"));
-        box io::BufferedReader::new(fd) as Box<io::Reader>
-    } else {
-        box io::stdin() as Box<io::Reader>
-    };
-    let mut seq = rdr.read_to_str().unwrap();
+    let mut rdr = io::stdin();
+    let mut seq = rdr.read_to_string().unwrap();
     let ilen = seq.len();
 
     seq = regex!(">[^\n]*\n|\n").replace_all(seq.as_slice(), NoExpand(""));
@@ -54,7 +45,7 @@ fn main() {
             (regex!("Y"), "(c|t)"),
         ];
         let mut seq = seq;
-        for (re, replacement) in substs.move_iter() {
+        for (re, replacement) in substs.into_iter() {
             seq = re.replace_all(seq.as_slice(), NoExpand(replacement));
         }
         seq.len()
@@ -72,9 +63,9 @@ fn main() {
         regex!("agggtaa[cgt]|[acg]ttaccct"),
     ];
     let (mut variant_strs, mut counts) = (vec!(), vec!());
-    for variant in variants.move_iter() {
+    for variant in variants.into_iter() {
         let seq_arc_copy = seq_arc.clone();
-        variant_strs.push(variant.to_str().to_owned());
+        variant_strs.push(variant.to_string());
         counts.push(Future::spawn(proc() {
             count_matches(seq_arc_copy.as_slice(), &variant)
         }));

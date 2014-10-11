@@ -1,53 +1,107 @@
 // The Computer Language Benchmarks Game
 // http://benchmarksgame.alioth.debian.org/
 //
-// contributed by Mikhail Ivko
-// algorithm is a copy from Ledrug's et C code
+// contributed by the Rust Project Developers
+// contributed by TeXitoi
+
+#![allow(non_snake_case)]
 
 use std::from_str::FromStr;
-use std::iter::AdditiveIterator;
+use std::iter::count;
+use std::cmp::min;
+use std::os;
+use std::sync::{Arc, RWLock};
 
-fn a_elem(i: uint, j: uint) -> f64 {
-    1.0 / (((i+j) * (i+j+1) / 2 + i + 1) as f64)
+fn A(i: uint, j: uint) -> f64 {
+    ((i + j) * (i + j + 1) / 2 + i + 1) as f64
 }
 
 fn dot(v: &[f64], u: &[f64]) -> f64 {
-    v.iter().zip(u.iter()).map(|(&a, &b)| a*b).sum()
+    let mut sum = 0.0;
+    for (&v_i, &u_i) in v.iter().zip(u.iter()) {
+        sum += v_i * u_i;
+    }
+    sum
 }
 
-fn mult_av(v: &[f64]) -> Vec<f64> {
-    Vec::from_fn(v.len(), |i|
-        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
-            a_elem(i, j)*vval).sum())
+fn mult(v: Arc<RWLock<Vec<f64>>>, out: Arc<RWLock<Vec<f64>>>,
+        f: fn(&Vec<f64>, uint) -> f64) {
+    // We launch in different tasks the work to be done.  To finish
+    // this function, we need to wait for the completion of every
+    // tasks.  To do that, we give to each tasks a wait_chan that we
+    // drop at the end of the work.  At the end of this function, we
+    // wait until the channel hang up.
+    let (tx, rx) = channel();
+
+    let len = out.read().len();
+    let chunk = len / 20 + 1;
+    for chk in count(0, chunk) {
+        if chk >= len {break;}
+        let tx = tx.clone();
+        let v = v.clone();
+        let out = out.clone();
+        spawn(proc() {
+            for i in range(chk, min(len, chk + chunk)) {
+                let val = f(&*v.read(), i);
+                *out.write().get_mut(i) = val;
+            }
+            drop(tx)
+        });
+    }
+
+    // wait until the channel hang up (every task finished)
+    drop(tx);
+    for () in rx.iter() {}
 }
 
-fn mult_atv(v: &[f64]) -> Vec<f64> {
-    Vec::from_fn(v.len(), |i|
-        range(0, v.len()).zip(v.iter()).map(|(j, &vval)|
-            a_elem(j, i)*vval).sum())
+fn mult_Av_impl(v: &Vec<f64> , i: uint) -> f64 {
+    let mut sum = 0.;
+    for (j, &v_j) in v.iter().enumerate() {
+        sum += v_j / A(i, j);
+    }
+    sum
 }
 
-fn mult_atav(v: &[f64]) -> Vec<f64> {
-    mult_atv(mult_av(v).as_slice())
+fn mult_Av(v: Arc<RWLock<Vec<f64>>>, out: Arc<RWLock<Vec<f64>>>) {
+    mult(v, out, mult_Av_impl);
+}
+
+fn mult_Atv_impl(v: &Vec<f64> , i: uint) -> f64 {
+    let mut sum = 0.;
+    for (j, &v_j) in v.iter().enumerate() {
+        sum += v_j / A(j, i);
+    }
+    sum
+}
+
+fn mult_Atv(v: Arc<RWLock<Vec<f64>>>, out: Arc<RWLock<Vec<f64>>>) {
+    mult(v, out, mult_Atv_impl);
+}
+
+fn mult_AtAv(v: Arc<RWLock<Vec<f64>>>, out: Arc<RWLock<Vec<f64>>>,
+             tmp: Arc<RWLock<Vec<f64>>>) {
+    mult_Av(v, tmp.clone());
+    mult_Atv(tmp, out);
 }
 
 fn main() {
-    let args = std::os::args();
+    let args = os::args();
     let args = args.as_slice();
     let n = if args.len() < 2 {
         2000
     } else {
         FromStr::from_str(args[1].as_slice()).unwrap()
     };
-    let n = if n % 2 != 0 { n + 1 } else { n };
+    let u = Arc::new(RWLock::new(Vec::from_elem(n, 1f64)));
+    let v = Arc::new(RWLock::new(Vec::from_elem(n, 1f64)));
+    let tmp = Arc::new(RWLock::new(Vec::from_elem(n, 1f64)));
+    for _ in range(0u8, 10) {
+        mult_AtAv(u.clone(), v.clone(), tmp.clone());
+        mult_AtAv(v.clone(), u.clone(), tmp.clone());
+    }
 
-    let (u, v) = range(0, 10u)
-        .fold((Vec::from_elem(n, 1f64), Vec::new()), |(u, _), _| {
-            let tmp = mult_atav(u.as_slice());
-            (mult_atav(tmp.as_slice()), tmp)
-        });
-
-    println!("{:.9}",
-        (dot(u.as_slice(), v.as_slice())/dot(v.as_slice(), v.as_slice()))
-            .sqrt());
+    let u = u.read();
+    let v = v.read();
+    println!("{:.9f}", (dot(u.as_slice(), v.as_slice()) /
+                        dot(v.as_slice(), v.as_slice())).sqrt());
 }

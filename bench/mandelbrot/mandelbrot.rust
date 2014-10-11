@@ -1,13 +1,12 @@
 // The Computer Language Benchmarks Game
 // http://benchmarksgame.alioth.debian.org/
 //
-// contributed by TeXitoi 
+// contributed by the Rust Project Developers
+// contributed by TeXitoi (remove rust test suite specific code)
 
 #![feature(macro_rules)]
 #![feature(simd)]
 #![allow(experimental)]
-
-// ignore-pretty very bad with line comments
 
 use std::io;
 use std::os;
@@ -29,7 +28,7 @@ fn mandelbrot<W: io::Writer>(w: uint, mut out: W) -> io::IoResult<()> {
     let chunk_size = h / WORKERS;
 
     // Account for remainders in workload division, e.g. 1000 / 16 = 62.5
-    let first_chunk_size = if h % WORKERS != 0 {
+    let last_chunk_size = if h % WORKERS != 0 {
         chunk_size + h % WORKERS
     } else {
         chunk_size
@@ -52,8 +51,8 @@ fn mandelbrot<W: io::Writer>(w: uint, mut out: W) -> io::IoResult<()> {
             let mut is = Vec::with_capacity(w / WORKERS);
 
             let start = i * chunk_size;
-            let end = if i == 0 {
-                first_chunk_size
+            let end = if i == (WORKERS - 1) {
+                start + last_chunk_size
             } else {
                 (i + 1) * chunk_size
             };
@@ -72,10 +71,10 @@ fn mandelbrot<W: io::Writer>(w: uint, mut out: W) -> io::IoResult<()> {
         })
     });
 
-    for res in precalc_futures.move_iter() {
+    for res in precalc_futures.into_iter() {
         let (rs, is) = res.unwrap();
-        precalc_r.push_all_move(rs);
-        precalc_i.push_all_move(is);
+        precalc_r.extend(rs.into_iter());
+        precalc_i.extend(is.into_iter());
     }
 
     assert_eq!(precalc_r.len(), w);
@@ -100,7 +99,7 @@ fn mandelbrot<W: io::Writer>(w: uint, mut out: W) -> io::IoResult<()> {
     });
 
     try!(writeln!(&mut out as &mut Writer, "P4\n{} {}", w, h));
-    for res in data.move_iter() {
+    for res in data.into_iter() {
         try!(out.write(res.unwrap().as_slice()));
     }
     out.flush()
@@ -157,12 +156,5 @@ fn write_line(init_i: f64, vec_init_r: &[f64], res: &mut Vec<u8>) {
 fn main() {
     let args = os::args();
     let args = args.as_slice();
-    let res = if args.len() < 2 {
-        println!("Test mode: do not dump the image because it's not utf8, \
-                  which interferes with the test runner.");
-        mandelbrot(1000, io::util::NullWriter)
-    } else {
-        mandelbrot(from_str(args[1].as_slice()).unwrap(), io::stdout())
-    };
-    res.unwrap();
+    mandelbrot(from_str(args[1].as_slice()).unwrap(), io::stdout()).unwrap();
 }

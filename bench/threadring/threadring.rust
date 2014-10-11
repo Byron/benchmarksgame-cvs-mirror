@@ -1,0 +1,39 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by the Rust Project Developers
+// contributed by TeXitoi
+
+fn start(n_tasks: int, token: int) {
+    let (tx, mut rx) = channel();
+    tx.send(token);
+    for i in range(2, n_tasks + 1) {
+        let (tx, next_rx) = channel();
+        spawn(proc() roundtrip(i, tx, rx));
+        rx = next_rx;
+    }
+    spawn(proc() roundtrip(1, tx, rx));
+}
+
+fn roundtrip(id: int, tx: Sender<int>, rx: Receiver<int>) {
+    for token in rx.iter() {
+        if token == 1 {
+            println!("{}", id);
+            break;
+        }
+        tx.send(token - 1);
+    }
+}
+
+fn main() {
+    let args = std::os::args();
+    let args = args.as_slice();
+    let token = args.get(1)
+        .and_then(|arg| from_str(arg.as_slice()))
+        .unwrap_or(1000);
+    let n_tasks = args.get(2)
+        .and_then(|arg| from_str(arg.as_slice()))
+        .unwrap_or(503);
+
+    start(n_tasks, token);
+}
