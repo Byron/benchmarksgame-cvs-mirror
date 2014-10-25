@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64.programs.Makefile,v 1.8 2014/10/12 23:24:53 igouy-guest Exp $
+# $Id: u64.programs.Makefile,v 1.9 2014/10/25 06:12:47 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -617,4 +617,10 @@ SBCL_TRACE :=
 	-$(RUST) --opt-level=3 -C target-cpu=core2 -C lto $(TEST).rs -o $@
 
 
+########################################
+# Hack
+########################################
+
+%.hack_run: %.hack $(HHVM)
+	-/usr/bin/hh_client
 
