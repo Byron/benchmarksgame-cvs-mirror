@@ -30,21 +30,21 @@ fn read_args() -> Result<uint, String> {
     if args.len() != 2 {
         return Err(format!(
             "Usage: {} num_solutions", 
-            args.get(0)));
+            args[0]));
     }
 
-    let maybe_int : Option<uint> = from_str(args.get(1).as_slice());
+    let maybe_int : Option<uint> = from_str(args[1].as_slice());
     if maybe_int.is_none() {
         return Err(format!(
             "Invalid argument '{}' cannot parse as unsigned integer", 
-            args.get(1)));
+            args[1]));
     }
 
     let num_solutions = maybe_int.unwrap();
     if num_solutions == 0 {
         return Err(format!(
             "Invalid argument '{}' must be greather than 0", 
-            args.get(1)));
+            args[1]));
     }
 
     return Ok(num_solutions);
@@ -76,8 +76,8 @@ fn spawn_solvers() -> Receiver<Solution> {
 
     let (solution_sender, solution_receiver) = channel();
 
-    for first_piece in range(0, num_pieces) {
-        let num_masks = mask_lookup.get(first_piece, last_position).len();
+    for first_piece in range(0, NUM_PIECES) {
+        let num_masks = mask_lookup.get(first_piece, LAST_POSITION).len();
 
         for mask_idx in range(0, num_masks) {
             let my_solution_sender = solution_sender.clone();
@@ -88,7 +88,7 @@ fn spawn_solvers() -> Receiver<Solution> {
                     my_mask_lookup.deref(), 
                     &my_solution_sender);
                 solver.place_piece(first_piece, 
-                                   last_position, 
+                                   LAST_POSITION, 
                                    mask_idx, 
                                    num_masks);
             });
@@ -99,7 +99,7 @@ fn spawn_solvers() -> Receiver<Solution> {
 
 struct Solver<'a> {
     mask_lookup: &'a MaskLookup,
-    masks: [u64, ..num_pieces],
+    masks: [u64, ..NUM_PIECES],
     mask : u64,
     used_pieces: uint,
     solution_sender : &'a Sender<Solution>,
@@ -112,7 +112,7 @@ impl<'a> Solver<'a> {
            solution_sender : &'a Sender<Solution>) -> Solver<'a> {
         Solver {
             mask_lookup: mask_lookup,
-            masks: [0, ..num_pieces],
+            masks: [0, ..NUM_PIECES],
             mask: 0,
             used_pieces: 0,
             solution_sender: solution_sender,
@@ -151,7 +151,7 @@ impl<'a> Solver<'a> {
     fn choose_piece(&mut self) {
         let position = self.first_free_position();
         let mut piece = 0;
-        while piece < num_pieces {
+        while piece < NUM_PIECES {
             if self.is_not_placed(piece) {
                 self.place_piece(piece, position, 0, 1);
             }
@@ -173,7 +173,7 @@ impl<'a> Solver<'a> {
     }
 
     fn done(&self) -> bool {
-        self.used_pieces == (1 << num_pieces) - 1
+        self.used_pieces == (1 << NUM_PIECES) - 1
     }
     
     fn still_possible(&self) -> bool {
@@ -181,7 +181,7 @@ impl<'a> Solver<'a> {
     }
 
     fn first_free_position(&self) -> uint {
-        find_first_one(!self.mask & full_mask)
+        find_first_one(!self.mask & FULL_MASK)
     }
 
     fn is_not_placed(&self, piece : uint) -> bool {
@@ -199,17 +199,17 @@ impl<'a> Solver<'a> {
     }
 
     fn fill_solutions(&mut self) {
-        for position in range(0, num_positions) {
+        for position in range(0, NUM_POSITIONS) {
             let piece = self.piece_at_position(position);          
             self.solution.pieces[position] = piece;
-            let reversed_position = last_position - position;
+            let reversed_position = LAST_POSITION - position;
             self.reversed_solution.pieces[reversed_position] = piece;
         }
     }
 
     fn piece_at_position(&self, position : uint) -> u8 {
         let position_mask = 1 << position;
-        for piece in range(0, num_pieces) {
+        for piece in range(0, NUM_PIECES) {
             let mask = self.masks[piece];
             let uses_piece = (self.used_pieces >> piece) & 1 == 1;
             let occupies_position = overlaps(mask, position_mask);
@@ -222,13 +222,13 @@ impl<'a> Solver<'a> {
 }
 
 struct Solution {
-    pieces: [u8, ..num_positions]
+    pieces: [u8, ..NUM_POSITIONS]
 }
 
 impl Solution {
     fn default() -> Solution {
         Solution {
-            pieces: [0, ..num_positions]
+            pieces: [0, ..NUM_POSITIONS]
         }
     }
 }
@@ -242,8 +242,14 @@ impl Clone for Solution {
 }
 
 impl PartialOrd for Solution {
-    fn lt(&self, other : &Solution) -> bool {
-        self.pieces < other.pieces
+    fn partial_cmp(&self, other : &Solution) -> Option<Ordering> {
+        if self.pieces < other.pieces {
+            Some(Less)
+        } else if self.pieces > other.pieces {
+            Some(Greater)
+        } else {
+            Some(Equal)
+        }
     }
 }
 
@@ -260,10 +266,10 @@ impl Solution {
             print!("{}", glyph);
             print!(" ");
 
-            let x = idx % width;
-            let y = idx / width;
+            let x = idx % WIDTH;
+            let y = idx / WIDTH;
 
-            if x == width-1 {
+            if x == WIDTH-1 {
                 if y%2 == 0 {
                     print!("\n ");
                 } else {
@@ -298,7 +304,7 @@ impl MaskLookup {
     fn default() -> MaskLookup {
         MaskLookup {
             masks_by_piece_and_position: 
-                Vec::from_fn(num_pieces * num_positions, 
+                Vec::from_fn(NUM_PIECES * NUM_POSITIONS, 
                              |_| Vec::with_capacity(2*6))
         }
     }
@@ -313,8 +319,8 @@ impl MaskLookup {
 
         for _ in range(0, num_orientations) {
             for _ in range(0, num_rotations) {
-                for x in range(0, width as int) {
-                    for y in range(0, height as int) {
+                for x in range(0, WIDTH as int) {
+                    for y in range(0, HEIGHT as int) {
                         let position = Position::new(x,y);
                         self.add_piece_at_position(index,
                                                    &piece,
@@ -335,7 +341,7 @@ impl MaskLookup {
         match piece.to_mask(position) {
             Some(mask) => {
                 let last = find_first_one(mask);
-                let idx = index*num_positions + last;
+                let idx = index*NUM_POSITIONS + last;
                 self.masks_by_piece_and_position.get_mut(idx).push(mask);
             }
             None => ()
@@ -343,8 +349,8 @@ impl MaskLookup {
     }
 
     fn get<'a>(&'a self, index : uint, position : uint) -> &'a [u64] {
-        let idx = index*num_positions + position;
-        self.masks_by_piece_and_position.get(idx).as_slice()
+        let idx = index*NUM_POSITIONS + position;
+        self.masks_by_piece_and_position[idx].as_slice()
     }
 }
 
@@ -439,11 +445,11 @@ impl Position {
     }
 
     fn is_valid(Position{x,y} : Position) -> bool {
-        0 <= x && x < width as int && 0 <= y && y < height as int
+        0 <= x && x < WIDTH as int && 0 <= y && y < HEIGHT as int
     }
 
     fn to_mask(&self) -> u64 {
-        1u64 << (self.y * width as int + self.x) as uint
+        1u64 << (self.y * WIDTH as int + self.x) as uint
     }
 }
 
@@ -467,7 +473,7 @@ impl Direction {
 }
 
 fn no_islands(mask : u64) -> bool {
-    let allowed = !mask & full_mask;
+    let allowed = !mask & FULL_MASK;
     let seed = (1 << mask.trailing_zeros() as uint) - 1;
     let filled = flood_fill(seed, allowed);
     filled.count_ones() % 5 == 0
@@ -505,13 +511,13 @@ fn grow(mask : u64) -> u64 {
     let west = not_left<<1;
     let body = mask | (east & (even>>1)) | (west & (odd<<1));
 
-    mask | west | (body << width) | east | (body >> width)
+    mask | west | (body << WIDTH) | east | (body >> WIDTH)
 }
 
 
-static num_pieces : uint = 10;
-static width : uint = 5;
-static height : uint = 10;
-static num_positions : uint = width*height;
-static last_position : uint = num_positions-1;
-static full_mask : u64 = (1 << num_positions) - 1;
+static NUM_PIECES : uint = 10;
+static WIDTH : uint = 5;
+static HEIGHT : uint = 10;
+static NUM_POSITIONS : uint = WIDTH*HEIGHT;
+static LAST_POSITION : uint = NUM_POSITIONS-1;
+static FULL_MASK : u64 = (1 << NUM_POSITIONS) - 1;
