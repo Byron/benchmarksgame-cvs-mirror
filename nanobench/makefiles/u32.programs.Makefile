@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.7 2014/10/12 23:24:53 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.8 2014/11/19 11:22:31 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -596,7 +596,7 @@ SBCL_TRACE :=
 
 %.scala_run: %.scala $(SCALAC)
 	-mv $< $(TEST).scala
-	-$(SCALAC) -optimise -target:jvm-1.7 $(TEST).scala
+	-$(SCALAC) -optimise -target:jvm-1.8 $(TEST).scala
 
 
 ########################################
