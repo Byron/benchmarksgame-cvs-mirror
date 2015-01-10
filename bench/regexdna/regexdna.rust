@@ -2,18 +2,19 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // contributed by the Rust Project Developers
-// contributed by TeXitoi 
-
-#![feature(macro_rules, phase, slicing_syntax)]
+// contributed by TeXitoi
 
 extern crate regex;
-#[phase(plugin)]extern crate regex_macros;
 
 use std::io;
 use regex::{NoExpand, Regex};
 use std::sync::{Arc, Future};
 
-fn count_matches(seq: &str, variant: &Regex) -> int {
+macro_rules! regex {
+    ($e:expr) => (Regex::new($e).unwrap())
+}
+
+fn count_matches(seq: &str, variant: &Regex) -> i32 {
     let mut n = 0;
     for _ in variant.find_iter(seq) {
         n += 1;
@@ -26,11 +27,11 @@ fn main() {
     let mut seq = rdr.read_to_string().unwrap();
     let ilen = seq.len();
 
-    seq = regex!(">[^\n]*\n|\n").replace_all(seq.as_slice(), NoExpand(""));
+    seq = regex!(">[^\n]*\n|\n").replace_all(&*seq, NoExpand(""));
     let seq_arc = Arc::new(seq.clone()); // copy before it moves
     let clen = seq.len();
 
-    let mut seqlen = Future::spawn(proc() {
+    let mut seqlen = Future::spawn(move|| {
         let substs = vec![
             (regex!("B"), "(c|g|t)"),
             (regex!("D"), "(a|g|t)"),
@@ -46,7 +47,7 @@ fn main() {
         ];
         let mut seq = seq;
         for (re, replacement) in substs.into_iter() {
-            seq = re.replace_all(seq.as_slice(), NoExpand(replacement));
+            seq = re.replace_all(&*seq, NoExpand(replacement));
         }
         seq.len()
     });
@@ -66,13 +67,13 @@ fn main() {
     for variant in variants.into_iter() {
         let seq_arc_copy = seq_arc.clone();
         variant_strs.push(variant.to_string());
-        counts.push(Future::spawn(proc() {
-            count_matches(seq_arc_copy.as_slice(), &variant)
+        counts.push(Future::spawn(move|| {
+            count_matches(&**seq_arc_copy, &variant)
         }));
     }
 
     for (i, variant) in variant_strs.iter().enumerate() {
-        println!("{} {}", variant, counts.get_mut(i).get());
+        println!("{} {}", variant, counts[i].get());
     }
     println!("");
     println!("{}", ilen);
