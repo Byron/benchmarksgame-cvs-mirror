@@ -2,16 +2,16 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // contributed by the Rust Project Developers
-// contributed by TeXitoi (remove rust test suite specific code)
+// contributed by TeXitoi
 
-#![feature(slicing_syntax)]
-
-use std::io;
 use std::cmp::min;
+use std::io::{BufferedWriter, File};
+use std::io;
+use std::num::Float;
 use std::os;
 
-static LINE_LENGTH: uint = 60;
-static IM: u32 = 139968;
+const LINE_LENGTH: usize = 60;
+const IM: u32 = 139968;
 
 struct MyRandom {
     last: u32
@@ -38,42 +38,38 @@ impl<'a> AAGen<'a> {
         AAGen { rng: rng, data: data }
     }
 }
-impl<'a> Iterator<u8> for AAGen<'a> {
+impl<'a> Iterator for AAGen<'a> {
+    type Item = u8;
+
     fn next(&mut self) -> Option<u8> {
         let r = self.rng.gen();
         self.data.iter()
-            .skip_while(|pc| pc.val0() < r)
+            .skip_while(|pc| pc.0 < r)
             .map(|&(_, c)| c)
             .next()
     }
 }
 
-fn make_fasta<W: Writer, I: Iterator<u8>>(
-    wr: &mut W, header: &str, mut it: I, mut n: uint)
+fn make_fasta<W: Writer, I: Iterator<Item=u8>>(
+    wr: &mut W, header: &str, mut it: I, mut n: usize)
     -> std::io::IoResult<()>
 {
     try!(wr.write(header.as_bytes()));
-    let mut line = [0u8, .. LINE_LENGTH + 1];
+    let mut line = [0u8; LINE_LENGTH + 1];
     while n > 0 {
         let nb = min(LINE_LENGTH, n);
-        for i in range(0, nb) {
+        for i in (0..nb) {
             line[i] = it.next().unwrap();
         }
         n -= nb;
         line[nb] = '\n' as u8;
-        try!(wr.write(line[..nb+1]));
+        try!(wr.write(&line[..(nb+1)]));
     }
     Ok(())
 }
 
 fn run<W: Writer>(writer: &mut W) -> std::io::IoResult<()> {
-    let args = os::args();
-    let args = args.as_slice();
-    let n = if args.len() <= 1u {
-        1000
-    } else {
-        from_str(args[1].as_slice()).unwrap()
-    };
+    let n = std::os::args().get(1).and_then(|n| n.parse()).unwrap_or(1000);
 
     let rng = &mut MyRandom::new();
     let alu =
@@ -105,5 +101,5 @@ fn run<W: Writer>(writer: &mut W) -> std::io::IoResult<()> {
 }
 
 fn main() {
-    run(&mut io::stdout()).unwrap();
+    run(&mut io::stdout()).unwrap()
 }
