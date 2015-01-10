@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32q.programs.Makefile,v 1.7 2014/11/19 22:53:21 igouy-guest Exp $
+# $Id: u32q.programs.Makefile,v 1.8 2015/01/10 05:59:34 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -613,6 +613,6 @@ SBCL_TRACE :=
 	-@mv $< $(TEST).rs
 
 %.rust_run: %.rs $(RUST)
-	-$(RUST) --opt-level=3 -C target-cpu=core2 -C lto $(TEST).rs -o $@
+	-$(RUST) -C opt-level=3 -C target-cpu=core2 -C lto $(TEST).rs -o $@
 
 
