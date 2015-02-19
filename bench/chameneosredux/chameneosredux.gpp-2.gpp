@@ -1,0 +1,252 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   based on Java by Tomas Dzetkulic
+
+   compiles with g++ chameneos.cpp -std=c++11 -O2 -pthread
+*/
+
+#include <atomic>
+#include <cstdint>
+#include <cstdio>
+#include <functional>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+void PrintLnNum(int num) {
+  char x[16];
+  const char digits[10][16] = {
+    "zero", "one", "two", "three", "four", 
+    "five", "six", "seven", "eight", "nine"
+  };
+  sprintf(x, "%d", num);
+  for (int i = 0; x[i]; ++i) {
+    printf(" %s", digits[x[i]-'0']);
+  }
+  printf("\n");
+}
+
+struct ColorHelper {
+  enum Color { blue = 0, red, yellow };
+  inline static Color AddColors(Color c1, Color c2) {
+    switch ( c1 ) {
+      case blue: switch ( c2 ) {
+        case blue:   return blue;
+        case red:    return yellow;
+        case yellow: return red;
+      }
+      case red: switch ( c2 ) {
+        case blue:   return yellow;
+        case red:    return red;
+        case yellow: return blue;
+      }
+      case yellow: switch ( c2 ) {
+        case blue:   return red;
+        case red:    return blue;
+        case yellow: return yellow;
+      }
+    }
+  }
+  static inline const char* GetColorString(Color c) {
+    switch (c) {
+      case blue:   return "blue";
+      case red:    return "red";
+      case yellow: return "yellow";
+    }
+  }
+};
+
+struct Chameneos {
+  Chameneos(int name, ColorHelper::Color init_color) :
+      name_(name), num_meetings_(0), num_met_self_(0), color_(init_color) {
+  }
+  inline void NotifyMeeting(int name, ColorHelper::Color new_color) {
+    // Yay, I have met someone!
+    ++num_meetings_;
+    // Is it myself?
+    if (name == name_) {
+      // Oh noh, I met myself!
+      ++num_met_self_;
+    }
+    color_ = new_color;
+  }
+  inline int GetName() const {
+    return name_;
+  }
+  inline ColorHelper::Color GetColor() const {
+    return color_;
+  }
+  inline int GetNumMeetings() const {
+    return num_meetings_;
+  }
+  inline void PrintStats() const {
+    printf("%d", num_meetings_);
+    PrintLnNum(num_met_self_);
+  }
+  int name_ __attribute__((aligned(64)));
+  int num_meetings_;
+  int num_met_self_;
+  ColorHelper::Color color_;
+};
+
+template<typename Queue>
+class Mall {
+public:
+  Mall(std::int_fast32_t max_num_meetings, 
+       std::function<void()> finish_callback)
+      : waiting_chameneos_(nullptr), num_meetings_(0), 
+        max_num_meetings_(max_num_meetings), 
+        finish_callback_(finish_callback) {}
+  // Returns true iff the current thread can continue running the
+  // current chameneos. Otherwise chameneos is waiting and the thread is
+  // free to work on another one.
+  inline bool Meet(Chameneos* chameneos, Queue* queue);
+  inline std::int_fast32_t NumMeetings() {
+    return num_meetings_.load(std::memory_order_relaxed);
+  }
+private:
+  std::atomic<Chameneos*> waiting_chameneos_ __attribute__((aligned(64)));
+  std::atomic<std::int_fast32_t> num_meetings_ __attribute__((aligned(64)));
+  const std::int_fast32_t max_num_meetings_ __attribute__((aligned(64)));
+  const std::function<void()> finish_callback_;
+};
+
+template<size_t num_chameneoses>
+class Queue {
+public:
+  Queue(Chameneos* chameneoses) 
+      : waiting_bitmask_((1<<num_chameneoses)-1), chameneoses_(chameneoses) {}
+  // Add chameneos to the waiting queue.
+  void Add(Chameneos* chameneos) {
+    const int index = chameneos - chameneoses_;
+    // Add it's index to the waiting bitmask.
+    waiting_bitmask_.fetch_add(1 << index, std::memory_order_release);
+  }
+  void Run(Mall<Queue>* mall, int primary_index, std::atomic<bool>* finished) {
+    int next_index[1<<num_chameneoses];
+    for (int i = 1; i < (1<<num_chameneoses); ++i) {
+      int j = primary_index;
+      while ((i & (1<<j)) == 0) {
+        j = (j + 1) % num_chameneoses;
+      }
+      next_index[i] = j;
+    }
+    while (!finished->load(std::memory_order_relaxed)) {
+      std::int_fast32_t current_mask = 
+          waiting_bitmask_.load(std::memory_order_relaxed);
+      if (current_mask == 0) {
+        std::this_thread::yield();
+      } else {
+        int const index = next_index[current_mask];
+        if (waiting_bitmask_.compare_exchange_weak(
+            current_mask, current_mask - (1<<index),
+            std::memory_order_consume, std::memory_order_relaxed)) {
+          // Continue meeting until not queued.
+          while (mall->Meet(chameneoses_ + index, this)) ;
+        }
+      }
+    }
+  }
+private:
+  std::atomic<std::int_fast32_t> waiting_bitmask_ __attribute__((aligned(64)));
+  Chameneos* const chameneoses_ __attribute__((aligned(64)));
+};
+
+template<typename Queue>
+inline bool Mall<Queue>::Meet(Chameneos* chameneos, Queue* queue) {
+  Chameneos* other = nullptr;
+  while (1) {
+    if (waiting_chameneos_.compare_exchange_weak(
+          other, chameneos, 
+          std::memory_order_relaxed, std::memory_order_relaxed)) {
+      // We're waiting.
+      return false;
+    }
+    do {
+      if (waiting_chameneos_.compare_exchange_weak(
+            other, nullptr, 
+            std::memory_order_consume, std::memory_order_relaxed)) {
+        const int num_meetings = 
+            num_meetings_.fetch_add(1, std::memory_order_relaxed);
+        if (num_meetings < max_num_meetings_) {
+          if (num_meetings + 1 == max_num_meetings_) {
+            finish_callback_();
+          }
+          ColorHelper::Color const new_color =
+              ColorHelper::AddColors(chameneos->GetColor(), other->GetColor());
+          other->NotifyMeeting(chameneos->GetName(), new_color);
+          chameneos->NotifyMeeting(other->GetName(), new_color);
+          queue->Add(other);
+          // We can continue meeting.
+          return true;
+        } else {
+          num_meetings_.fetch_sub(1, std::memory_order_release);
+          // We are done.
+          return false;
+        }
+      }
+    } while (other != nullptr);
+  }
+}
+
+template<size_t num_chameneoses>
+void RunChameneos(
+    const std::array<ColorHelper::Color, num_chameneoses>& colors, 
+    int num_meetings) {
+  std::vector<Chameneos> chameneoses;
+  for (int i = 0; i < num_chameneoses; ++i) {
+    chameneoses.emplace_back(/*name=*/i + 1, colors[i]);
+  }
+  Queue<num_chameneoses> queue(chameneoses.data());
+  std::atomic<bool> finished(false);
+  auto finish_callback = [&finished]() {
+    finished.store(true, std::memory_order_relaxed);
+  };
+  Mall<Queue<num_chameneoses>> mall(num_meetings, finish_callback);
+  std::vector<std::thread> threads(num_chameneoses);
+  for (int i = 0; i < num_chameneoses; ++i) {
+    threads[i] = std::thread(
+        &Queue<num_chameneoses>::Run, &queue, &mall, i, &finished);
+  }
+  for (ColorHelper::Color i : colors) {
+    printf(" %s", ColorHelper::GetColorString(i));
+  }
+  printf("\n");
+  for (int i = 0; i < num_chameneoses; ++i) {
+    threads[i].join();
+  }
+  int num_meetings_sum = 0;
+  for (int i = 0; i < num_chameneoses; ++i) {
+    chameneoses[i].PrintStats();
+    num_meetings_sum += chameneoses[i].GetNumMeetings();
+  }
+  PrintLnNum(num_meetings_sum);
+  printf("\n");
+}
+
+int main(int argc, char *argv[]) {
+  int n = 6000;
+  if (argc == 2) {
+    n = std::atoi(argv[1]);
+  }
+  for (ColorHelper::Color i : 
+       {ColorHelper::blue, ColorHelper::red, ColorHelper::yellow}) {
+    for (ColorHelper::Color j : 
+         {ColorHelper::blue, ColorHelper::red, ColorHelper::yellow}) {
+      printf("%s + %s -> %s\n", 
+             ColorHelper::GetColorString(i), 
+             ColorHelper::GetColorString(j), 
+             ColorHelper::GetColorString(ColorHelper::AddColors(i, j)));
+    }
+  }
+  printf("\n");
+  RunChameneos(std::array<ColorHelper::Color, 3>{ 
+    ColorHelper::blue, ColorHelper::red, ColorHelper::yellow }, n);
+  RunChameneos(std::array<ColorHelper::Color, 10>{ 
+    ColorHelper::blue, ColorHelper::red, ColorHelper::yellow,
+    ColorHelper::red, ColorHelper::yellow, ColorHelper::blue,
+    ColorHelper::red, ColorHelper::yellow, ColorHelper::red,
+    ColorHelper::blue }, n);
+  return 0;
+}
