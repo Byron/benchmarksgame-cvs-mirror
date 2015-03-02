@@ -1,0 +1,44 @@
+# The Computer Language Benchmarks Game
+# http://benchmarksgame.alioth.debian.org
+#
+# contributed by Aaron Tavistock
+# optimised by Scott Leggett
+
+def frequency(seq, keys)
+    keys.map! do |key|
+        if key.size == 1
+            [seq.count(key), key.upcase]
+        else
+            index = count = 0
+            while index = seq.index(key, index+1)
+                count += 1
+            end
+            [count, key.upcase]
+        end
+    end
+end
+
+def percentage(seq, keys)
+    frequency(seq, keys).sort!.reverse!.map! do |value, key|
+        "%s %.3f" % [ key, ((value*100).to_f / seq.size) ]
+    end
+end
+
+def count(seq, keys)
+    frequency(seq, keys).map! do |value, key|
+        [value, key].join("\t")
+    end
+end
+
+seq = STDIN.map do |line|
+    line.chomp! if line.include?('>TH') .. false
+end.compact[1..-1].join
+
+singles = ['a', 't', 'c', 'g']
+doubles = ['aa', 'at', 'ac', 'ag', 'ta', 'tt', 'tc', 'tg', 'ca', 'ct', 'cc',
+           'cg', 'ga', 'gt', 'gc', 'gg']
+chains  = ['ggt', 'ggta', 'ggtatt', 'ggtattttaatt', 'ggtattttaatttatagt']
+
+puts percentage(seq, singles).join("\n"), "\n"
+puts percentage(seq, doubles).join("\n"), "\n"
+puts count(seq, chains).join("\n")
