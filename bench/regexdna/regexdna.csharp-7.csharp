@@ -1,0 +1,92 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+ *
+ * contributed by Jimmy Tang
+ * modified by Josh Goldfoot
+ */
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+class regexdna
+{
+    static string readStdIn(out int seqLength, out int inputLength)
+    {
+        StringBuilder sb = new StringBuilder(10000000);
+        int commentLength = 0;
+        String line;
+        using (var r = new StreamReader(Console.OpenStandardInput()))
+        {
+            while ((line = r.ReadLine()) != null)
+            {
+                if (line[0] == '>')
+                    commentLength += line.Length + 1;
+                else
+                {
+                    sb.Append(line);
+                    commentLength += 1;
+                }
+            }
+        }
+        seqLength = sb.Length;
+        inputLength = seqLength + commentLength;
+        return sb.ToString();
+    }
+
+    static void Main()
+    {
+        int seqLength, initialLength;
+        var sequence = readStdIn(out seqLength, out initialLength);
+
+        string[] variants = {
+           "agggtaaa|tttaccct"
+          ,"[cgt]gggtaaa|tttaccc[acg]"
+          ,"a[act]ggtaaa|tttacc[agt]t"
+          ,"ag[act]gtaaa|tttac[agt]ct"
+          ,"agg[act]taaa|ttta[agt]cct"
+          ,"aggg[acg]aaa|ttt[cgt]ccct"
+          ,"agggt[cgt]aa|tt[acg]accct"
+          ,"agggta[cgt]a|t[acg]taccct"
+          ,"agggtaa[cgt]|[acg]ttaccct"
+        };
+
+        var flags = variants.Select((v, i) =>
+        {
+            var flag = new ManualResetEvent(false);
+            ThreadPool.QueueUserWorkItem(x =>
+            {
+                Regex r = new Regex(v);
+                int count = 0;
+                for (Match m = r.Match(sequence); m.Success; m = m.NextMatch()) count++;
+                variants[i] += " " + count;
+                flag.Set();
+            });
+            return flag;
+        });
+        var newSequenceFlag = new ManualResetEvent(false);
+        string newSequence = "";
+        ThreadPool.QueueUserWorkItem(x =>
+        {
+            var dict = new Dictionary<string, string> {
+                {"B", "(c|g|t)"}, {"D", "(a|g|t)"},   {"H", "(a|c|t)"}, {"K", "(g|t)"},
+                {"M", "(a|c)"},   {"N", "(a|c|g|t)"}, {"R", "(a|g)"},   {"S", "(c|g)"},
+                {"V", "(a|c|g)"}, {"W", "(a|t)"},     {"Y", "(c|t)"} 
+            };
+            newSequence = new Regex("[WYKMSRBDVHN]").Replace(sequence, m => dict[m.Value]);
+            newSequenceFlag.Set();
+        });
+        WaitHandle.WaitAll(flags.ToArray());
+        newSequenceFlag.WaitOne();
+
+        Console.WriteLine(string.Join("\n", variants));
+        Console.WriteLine("\n{0}\n{1}\n{2}", initialLength, seqLength, newSequence.Length);
+
+    }
+
+
+}
