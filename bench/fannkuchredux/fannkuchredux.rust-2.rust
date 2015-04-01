@@ -1,0 +1,142 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by the Rust Project Developers
+// contributed by TeXitoi
+// modified by tafia
+
+
+#![feature(step_by, os)]
+
+use std::{cmp, mem};
+use std::thread::scoped;
+
+type P = [i32; 16];
+
+struct Perm {
+    cnt: [i32; 16],
+    perm: P,
+}
+
+fn rotate(x: &mut [i32]) {
+    let mut prev = x[0];
+    for place in x.iter_mut().rev() {
+        prev = mem::replace(place, prev)
+    }
+}
+
+impl Perm {
+
+    fn new(n: i32, mut idx: i32, fact: &[u32; 16]) -> Perm {
+		let mut perm = Perm {
+            cnt: [0; 16],
+            perm: [0; 16],
+        };
+        for (i, place) in perm.perm.iter_mut().enumerate() {
+            *place = i as i32 + 1;
+        }
+
+        let mut pp = [0u8; 16];
+        for i in (1 .. n as usize).rev() {
+            let d = idx / fact[i] as i32;
+            perm.cnt[i] = d;
+            idx %= fact[i] as i32;
+            for (place, val) in pp.iter_mut().zip(perm.perm[..(i+1)].iter()) {
+                *place = (*val) as u8
+            }
+
+            let d = d as usize;
+            for j in 0 .. i + 1 {
+                perm.perm[j] = if j + d <= i {pp[j + d]} else {pp[j+d-i-1]} as i32;
+            }
+        }
+		perm
+    }
+
+	fn flip(&mut self) -> i32 {
+        let mut flips = 0;
+		let mut p = self.perm;
+		let mut k = p[0] as usize;
+        while k != 1 {
+    		p[..k].reverse();
+            flips += 1;
+            k = p[0] as usize;
+        }
+		flips
+	}	
+
+    fn next(&mut self) {
+    	for i in 1..self.perm.len() {
+        	rotate(&mut self.perm[..i+1]);
+        	let count_i = &mut self.cnt[i];
+	        if *count_i >= i as i32 {
+	            *count_i = 0;
+	        } else {
+	            *count_i += 1;
+	            break
+	        }
+	    }
+    }
+}
+
+fn work(n: i32, idx: usize, max: usize, fact: &[u32; 16]) -> (i32, i32) {
+    
+	let mut checksum = 0;
+    let mut maxflips = 0;
+
+	let mut perm = Perm::new(n, idx as i32, &fact);
+
+	for i in idx..max {    
+
+		let flips = perm.flip();
+
+        checksum += if i % 2 == 0 {flips} else {-flips};
+        maxflips = cmp::max(maxflips, flips);
+
+        perm.next();
+    }
+
+    (checksum, maxflips)
+}
+
+fn fannkuch(n: i32, cpus: usize) -> (i32, i32) {
+
+	let mut fact = [1u32; 16];
+    for i in 1 .. n as usize + 1 {
+        fact[i] = fact[i - 1] * i as u32;
+    }
+
+	let maxperm = fact[n as usize];
+
+	if cpus == 1 {
+		
+		// one work for the entire n! permutations
+		work(n, 0, maxperm as usize, &fact)
+
+	} else {
+		
+		let k = maxperm / (cpus as u32);
+
+		// launch scoped threads
+		let futures: Vec<_> = (0..).step_by(k).take(cpus).map(|j| {
+			let max = cmp::min(j+k, maxperm);
+			scoped(move|| work(n, j as usize, max as usize, &fact))
+		}).collect();
+
+		// fold results
+		futures.into_iter().map(|f| f.join()).fold((0, 0),
+			|(cstot, mfmax), (cs, mf)| (cstot+cs, cmp::max(mfmax, mf)))
+
+	}
+}
+
+fn main() {
+    let n = std::env::args_os().nth(1)
+        .and_then(|s| s.into_string().ok())
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(7);
+
+	let cpus = std::os::num_cpus();
+    let (checksum, maxflips) = fannkuch(n, cpus);
+    println!("{}\nPfannkuchen({}) = {}, {}", checksum, n, maxflips, cpus);
+}
