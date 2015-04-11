@@ -1,0 +1,545 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+   contributed by Olof Kraigher
+
+   Tested with rust 1.0.0-beta
+   Compile with: rustc -C opt-level=3 meteor.rs -o meteor
+*/
+
+use std::sync::Arc;
+use std::sync::mpsc::{Sender, Receiver, channel};
+use std::thread::spawn;
+use std::cmp::Ordering;
+
+
+fn main () {
+    match read_args() {
+        Ok(num_solutions) => {
+            solve(num_solutions);
+        }
+        Err(message) => {
+            println!("{}", message);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn solve(num_solutions : usize) {
+    let (min, max, num_found) = read_solutions(spawn_solvers(), num_solutions);
+    println!("{} solutions found\n", num_found);
+    min.pretty_print();
+    max.pretty_print();
+}
+
+fn read_args() -> Result<usize, String> {
+    let args : Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        return Err(format!(
+            "Usage: {} num_solutions",
+            args[0]));
+    }
+
+    let maybe_int : Result<usize, _> = args[1].parse();
+    if !maybe_int.is_ok() {
+        return Err(format!(
+            "Invalid argument '{}' cannot parse as unsigned integer",
+            args[1]));
+    }
+
+    let num_solutions = maybe_int.unwrap();
+    if num_solutions == 0 {
+        return Err(format!(
+            "Invalid argument '{}' must be greather than 0",
+            args[1]));
+    }
+
+    return Ok(num_solutions);
+}
+
+fn read_solutions(solution_receiver : Receiver<Solution>,
+                  num_solutions : usize)  -> (Solution, Solution, usize) {
+    let first = solution_receiver.recv().unwrap();
+    let mut num_found = 1;
+    let mut min = first.clone();
+    let mut max = first;
+    for solution in solution_receiver.iter() {
+        if num_found == num_solutions {
+            break;
+        }
+        if solution < min {
+            min = solution;
+        } else if solution > max {
+            max = solution;
+        }
+        num_found += 1;
+    }
+
+    (min, max, num_found)
+}
+
+fn spawn_solvers() -> Receiver<Solution> {
+    let mask_lookup = Arc::new(MaskLookup::new());
+
+    let (solution_sender, solution_receiver) = channel();
+
+    for first_piece in (0..NUM_PIECES) {
+        let num_masks = mask_lookup.get(first_piece, LAST_POSITION).len();
+
+        for mask_idx in (0..num_masks) {
+            let my_solution_sender = solution_sender.clone();
+            let my_mask_lookup = mask_lookup.clone();
+
+            spawn(move || {
+                let mut solver = Solver::new(
+                    &*my_mask_lookup,
+                    &my_solution_sender);
+                solver.place_piece(first_piece,
+                                   LAST_POSITION,
+                                   mask_idx,
+                                   num_masks);
+            });
+        }
+    }
+    solution_receiver
+}
+
+struct Solver<'a> {
+    mask_lookup: &'a MaskLookup,
+    masks: [u64; NUM_PIECES],
+    mask : u64,
+    used_pieces: usize,
+    solution_sender : &'a Sender<Solution>,
+    solution: Solution,
+    reversed_solution: Solution
+}
+
+impl<'a> Solver<'a> {
+    fn new(mask_lookup : &'a MaskLookup,
+           solution_sender : &'a Sender<Solution>) -> Solver<'a> {
+        Solver {
+            mask_lookup: mask_lookup,
+            masks: [0; NUM_PIECES],
+            mask: 0,
+            used_pieces: 0,
+            solution_sender: solution_sender,
+            solution: Solution::default(),
+            reversed_solution: Solution::default()
+        }
+    }
+
+    fn place_piece(&mut self,
+                   piece : usize,
+                   position : usize,
+                   start : usize,
+                   step : usize) {
+        self.toggle_piece(piece);
+        let masks = self.mask_lookup.get(piece, position);
+        let mut idx = start;
+        while idx < masks.len() {
+            self.evaluate(piece, masks[idx]);
+            idx += step;
+        }
+        self.toggle_piece(piece);
+    }
+
+    fn evaluate(&mut self, piece : usize, mask : u64) {
+        if self.fits(mask) {
+            self.place_mask(piece, mask);
+            if self.done() {
+                self.send_solution();
+            } else if self.still_possible() {
+                self.choose_piece();
+            }
+            self.unplace_mask(mask);
+        }
+    }
+
+    fn choose_piece(&mut self) {
+        let position = self.first_free_position();
+        let mut piece = 0;
+        while piece < NUM_PIECES {
+            if self.is_not_placed(piece) {
+                self.place_piece(piece, position, 0, 1);
+            }
+            piece += 1;
+        }
+    }
+
+    fn toggle_piece(&mut self, piece : usize) {
+        self.used_pieces ^= 1 << piece;
+    }
+
+    fn place_mask(&mut self, piece: usize, mask : u64) {
+        self.mask ^= mask;
+        self.masks[piece] = mask;
+    }
+
+    fn unplace_mask(&mut self, mask : u64) {
+        self.mask ^= mask;
+    }
+
+    fn done(&self) -> bool {
+        self.used_pieces == (1 << NUM_PIECES) - 1
+    }
+
+    fn still_possible(&self) -> bool {
+        no_islands(self.mask)
+    }
+
+    fn first_free_position(&self) -> usize {
+        find_first_one(!self.mask & FULL_MASK)
+    }
+
+    fn is_not_placed(&self, piece : usize) -> bool {
+        self.used_pieces & (1 << piece) == 0
+    }
+
+    fn fits(&self, mask : u64) -> bool {
+        self.mask & mask == 0
+    }
+
+    fn send_solution(&mut self) {
+        self.fill_solutions();
+        let _ = self.solution_sender.send(self.solution.clone());
+        let _ = self.solution_sender.send(self.reversed_solution.clone());
+    }
+
+    fn fill_solutions(&mut self) {
+        for position in (0..NUM_POSITIONS) {
+            let piece = self.piece_at_position(position);
+            self.solution.pieces[position] = piece;
+            let reversed_position = LAST_POSITION - position;
+            self.reversed_solution.pieces[reversed_position] = piece;
+        }
+    }
+
+    fn piece_at_position(&self, position : usize) -> u8 {
+        let position_mask = 1 << position;
+        for piece in (0..NUM_PIECES) {
+            let mask = self.masks[piece];
+            let uses_piece = (self.used_pieces >> piece) & 1 == 1;
+            let occupies_position = overlaps(mask, position_mask);
+            if uses_piece && occupies_position {
+                return piece as u8;
+            }
+        }
+        return 0;
+    }
+}
+
+
+struct Solution {
+    pieces: [u8; NUM_POSITIONS]
+}
+
+impl Solution {
+    fn default() -> Solution {
+        Solution {
+            pieces: [0; NUM_POSITIONS]
+        }
+    }
+}
+
+impl Clone for Solution {
+    fn clone(&self) -> Solution {
+        Solution {
+            pieces: self.pieces
+        }
+    }
+}
+
+impl PartialOrd for Solution {
+    fn partial_cmp(&self, other : &Solution) -> Option<Ordering> {
+        for i in (0..NUM_POSITIONS) {
+            if self.pieces[i] < other.pieces[i] {
+                return Some(Ordering::Less)
+            } else if self.pieces[i] > other.pieces[i] {
+                return Some(Ordering::Greater)
+            }
+        }
+        Some(Ordering::Equal)
+    }
+}
+
+impl PartialEq for Solution {
+    fn eq(&self, other : &Solution) -> bool {
+        self.pieces.partial_cmp(other.pieces.as_ref()) == Some(Ordering::Equal)
+    }
+}
+
+impl Solution {
+    fn pretty_print(&self) {
+        for (idx, &piece) in self.pieces.iter().enumerate() {
+            let glyph = (('0' as u8) + piece) as char;
+            print!("{}", glyph);
+            print!(" ");
+
+            let x = idx % WIDTH;
+            let y = idx / WIDTH;
+
+            if x == WIDTH-1 {
+                if y%2 == 0 {
+                    print!("\n ");
+                } else {
+                    print!("\n");
+                }
+            }
+        }
+        print!("\n");
+    }
+}
+
+struct MaskLookup {
+    masks_by_piece_and_position: Vec<Vec<u64>>
+}
+
+impl MaskLookup {
+    fn new() -> MaskLookup {
+        let mut ml = MaskLookup::default();
+        ml.add_piece(false, 0, &[E, E, E, SE]);
+        ml.add_piece(false, 1, &[SE, SW, W, SW]);
+        ml.add_piece(false, 2, &[W, W, SW, SE]);
+        ml.add_piece(true,  3, &[E, E, SW, SE]);
+        ml.add_piece(false, 4, &[NW, W, NW, SE, SW]);
+        ml.add_piece(false, 5, &[E, E,  NE, W]);
+        ml.add_piece(false, 6, &[NW, NE, NE, W]);
+        ml.add_piece(false, 7, &[NE, SE, E, NE]);
+        ml.add_piece(false, 8, &[SE, SE, E, SE]);
+        ml.add_piece(false, 9, &[E, NW, NW, NW]);
+        ml
+    }
+
+    fn default() -> MaskLookup {
+        MaskLookup {
+            masks_by_piece_and_position:
+            (0..NUM_PIECES * NUM_POSITIONS).map(|_| Vec::with_capacity(2*6)).collect()
+        }
+    }
+
+    fn add_piece(&mut self,
+                 fully_rotated : bool,
+                 index : usize,
+                 directions : &[Direction]) {
+        let mut piece : Piece = Piece::new(directions);
+        let num_orientations : usize = 2;
+        let num_rotations : usize = if fully_rotated {3} else {6};
+
+        for _ in (0..num_orientations) {
+            for _ in (0..num_rotations) {
+                for x in (0..WIDTH as isize) {
+                    for y in (0..HEIGHT as isize) {
+                        let position = Position::new(x,y);
+                        self.add_piece_at_position(index,
+                                                   &piece,
+                                                   position);
+                    }
+                }
+                piece = piece.rotate();
+            }
+            piece = piece.flip();
+        }
+    }
+
+    fn add_piece_at_position(&mut self,
+                             index : usize,
+                             piece : &Piece,
+                             position : Position) {
+
+        match piece.to_mask(position) {
+            Some(mask) => {
+                let last = find_first_one(mask);
+                let idx = index*NUM_POSITIONS + last;
+                self.masks_by_piece_and_position.get_mut(idx).unwrap().push(mask);
+            }
+            None => ()
+        }
+    }
+
+    fn get<'a>(&'a self, index : usize, position : usize) -> &'a [u64] {
+        let idx = index*NUM_POSITIONS + position;
+        self.masks_by_piece_and_position[idx].as_ref()
+    }
+}
+
+#[derive(Clone)]
+struct Piece {
+    directions: Vec<Direction>
+}
+
+impl Piece {
+    fn new(directions : &[Direction]) -> Piece {
+        Piece {
+            directions: (0..directions.len()).map(|i| directions[i].clone()).collect()
+        }
+    }
+
+    fn to_mask(&self, position : Position) -> Option<u64> {
+        let mut mask = position.to_mask();
+        let mut current_position = position;
+
+        for direction in self.directions.iter() {
+            match current_position.in_direction(direction) {
+                Some(position) => {
+                    current_position = position;
+                    mask |= current_position.to_mask();
+                },
+                None => return None
+            }
+        }
+        return Piece::prune(mask);
+    }
+
+    fn prune(mask : u64) -> Option<u64> {
+        let border = 0b11111_10001_10001_10001_10001_10001_10001_10001_10001_11111;
+        if mask & border == 0 || no_islands(mask) {
+            Some(mask)
+        } else {
+            None
+        }
+    }
+
+    fn flip(&self) -> Piece {
+        self.as_modified(|x| x.flip())
+    }
+
+    fn rotate(&self) -> Piece {
+        self.as_modified(|x| x.rotate())
+    }
+
+    fn as_modified<F : Fn(&Direction) -> Direction>(&self, fun : F) -> Piece {
+        Piece {
+            directions: self.directions.iter().map(fun).collect()
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Position {
+    x: isize,
+    y: isize
+}
+
+impl Position {
+    fn new(x : isize, y : isize) -> Position {
+        Position {x:x, y:y}
+    }
+
+    fn in_direction(&self, direction : &Direction) -> Option<Position> {
+
+        let (dx, dy) =
+            match direction {
+                &E => (-1, 0),
+                &W => ( 1, 0),
+                &NE => (self.y%2 - 1,  1),
+                &NW => (self.y%2    ,  1),
+                &SE => (self.y%2 - 1, -1),
+                &SW => (self.y%2    , -1)
+            };
+
+        let new_position = self.in_2d_direction(dx, dy);
+
+        if Position::is_valid(&new_position) {
+            Some(new_position.clone())
+        } else {
+            None
+        }
+    }
+
+    fn in_2d_direction(&self, dx : isize, dy : isize) -> Position {
+        Position {
+            x: self.x + dx,
+            y: self.y + dy
+        }
+    }
+
+    fn is_valid(&Position{x,y} : &Position) -> bool {
+        0 <= x && x < WIDTH as isize && 0 <= y && y < HEIGHT as isize
+    }
+
+    fn to_mask(&self) -> u64 {
+        1u64 << (self.y * WIDTH as isize + self.x) as usize
+    }
+}
+
+use Direction::*;
+
+#[derive(Clone)]
+enum Direction {
+    E=0, SE=1, SW=2, W=3, NW=4, NE=5
+}
+
+impl Direction {
+    fn rotate(&self) -> Direction {
+        self.as_modified(|x| (x + 1)%6)
+    }
+
+    fn flip(&self) -> Direction {
+        self.as_modified(|x| (9 - x)%6)
+    }
+
+    fn from_int(value : isize) -> Option<Direction> {
+        match value {
+            0 => Some(E),
+            1 => Some(SE),
+            2 => Some(SW),
+            3 => Some(W),
+            4 => Some(NW),
+            5 => Some(NE),
+            _ => None,
+        }
+    }
+
+    fn as_modified<F : Fn(isize) -> isize>(&self, modifier : F) -> Direction {
+        Direction::from_int(modifier(self.clone() as isize)).unwrap()
+    }
+}
+
+fn no_islands(mask : u64) -> bool {
+    let allowed = !mask & FULL_MASK;
+    let seed = (1 << mask.trailing_zeros() as usize) - 1;
+    let filled = flood_fill(seed, allowed);
+    filled.count_ones() % 5 == 0
+}
+
+fn flood_fill(seed : u64, allowed : u64) -> u64 {
+    let mut filled = seed;
+
+    loop {
+        let new_filled = grow(filled) & allowed;
+        if new_filled == filled {
+            return filled;
+        }
+        filled = new_filled;
+    }
+}
+
+fn find_first_one(mask : u64) -> usize {
+    63 - mask.leading_zeros() as usize
+}
+
+fn overlaps(m1 : u64, m2 : u64) -> bool {
+    return m1 & m2 != 0u64;
+}
+
+fn grow(mask : u64) -> u64 {
+    let even = 0b00000_11111_00000_11111_00000_11111_00000_11111_00000_11111;
+    let odd = 0b11111_00000_11111_00000_11111_00000_11111_00000_11111_00000;
+    let right = 0b00001_00001_00001_00001_00001_00001_00001_00001_00001_00001;
+    let left = 0b10000_10000_10000_10000_10000_10000_10000_10000_10000_10000;
+
+    let not_right = mask & !right;
+    let not_left = mask & !left;
+    let east = not_right>>1;
+    let west = not_left<<1;
+    let body = mask | (east & (even>>1)) | (west & (odd<<1));
+
+    mask | west | (body << WIDTH) | east | (body >> WIDTH)
+}
+
+
+const NUM_PIECES : usize = 10;
+const WIDTH : usize = 5;
+const HEIGHT : usize = 10;
+const NUM_POSITIONS : usize = WIDTH*HEIGHT;
+const LAST_POSITION : usize = NUM_POSITIONS-1;
+const FULL_MASK : u64 = (1 << NUM_POSITIONS) - 1;
