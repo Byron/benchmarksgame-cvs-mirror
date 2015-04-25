@@ -1,0 +1,76 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// Based on C version by Ledrug and F# version by Don Syme
+// Contributed by Simon Dickson
+
+open System
+open System.Threading
+
+let nthread = Environment.ProcessorCount
+
+let inline A i j = 1. / float((i + j) * (i + j + 1) / 2 + i + 1)
+
+let inline dot (v : float array) (u : float array) n =
+   let mutable sum = 0.
+   for i = 0 to n - 1 do
+      sum <- sum + v.[i] * u.[i]
+   sum
+
+let inline multiplyAv (v : double[]) (Av : double[]) r1 r2 =
+    for i = r1 to r2 - 1 do 
+        let mutable sum = 0.
+        for j = 0 to v.Length - 1 do 
+            sum <- sum + A i j * v.[j]
+        Av.[i] <- sum
+
+let inline multiplyAtv (v : double[]) (atv : double[]) r1 r2 =
+    for i = r1 to r2 - 1 do
+        let mutable sum = 0.
+        for j = 0 to v.Length - 1 do 
+            sum <- sum + A j i * v.[j]
+        atv.[i] <- sum
+
+let current = ref nthread
+let mutable handle = new ManualResetEvent (false)
+let inline barrierHandle () =
+    let h = handle
+    if Interlocked.Decrement current > 0 then
+        h.WaitOne() |> ignore
+    else
+        handle <- new ManualResetEvent (false)
+        Interlocked.Exchange (current, nthread) |> ignore
+        h.Set () |> ignore
+        h.Close ()
+
+let mutable tmp = null
+let inline multiplyAtAv (v : double[]) (out : double[]) r1 r2 =
+    multiplyAv v tmp r1 r2
+    barrierHandle ()
+    multiplyAtv tmp out r1 r2
+    barrierHandle ()
+
+[<EntryPoint>]
+let main args =
+    let n = if args.Length >= 1 then int args.[0] else 5500
+    let u = Array.create n 1.0
+    tmp <- Array.zeroCreate n 
+    let v = Array.zeroCreate n
+    let chunk = n / nthread
+
+    [for i in 0 .. nthread - 1 do
+        let r1 = i * chunk
+        let r2 = if (i < (nthread - 1)) then r1 + chunk else n
+        yield async {
+            for i = 0 to 10 do
+                multiplyAtAv u v r1 r2
+                multiplyAtAv v u r1 r2
+        }]
+    |> Async.Parallel
+    |> Async.Ignore
+    |> Async.RunSynchronously
+
+    let result = Math.Sqrt(dot u v n / dot v v n)
+
+    Console.WriteLine("{0:f9}", result);
+    0
