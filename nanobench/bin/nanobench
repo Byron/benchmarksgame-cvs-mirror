@@ -1,6 +1,6 @@
 #!/usr/bin/python -OO
 # The Computer Language Benchmarks Game
-# $Id: nanobench,v 1.1 2012/12/17 21:46:45 igouy-guest Exp $
+# $Id: nanobench,v 1.2 2015/05/15 16:56:51 igouy-guest Exp $
 
 """
 Description: nanobench records a program's cpu
@@ -596,8 +596,9 @@ def callHighlightSourceCodeMarkup(p):
 #         --add-data-dir has been deprecated
 #         ,'--add-data-dir=' + hidir + '/'
 
+#         ,'--config-file=' + hidir + '/filetypes.conf'
+
    cmd = ['highlight','--fragment'
-         ,'--add-config-dir=' + hidir + '/'
          ,'--style=edit-eclipse'
          ,'--force'
          ,'-i'
