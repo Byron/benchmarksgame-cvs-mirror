@@ -2,7 +2,7 @@
 % http://benchmarksgame.alioth.debian.org/
 % Contributed by John Shahbazian
 
--module(ring).
+-module(threadring).
 -export([main/1,process_spawner/2,ring_node/1]).
 
 -define(TOTAL_PROCESSES, 503).
