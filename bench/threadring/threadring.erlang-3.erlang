@@ -1,0 +1,43 @@
+% The Computer Language Benchmarks Game
+% http://benchmarksgame.alioth.debian.org/
+% Contributed by John Shahbazian
+
+-module(ring).
+-export([main/1,process_spawner/2,ring_node/1]).
+
+-define(TOTAL_PROCESSES, 503).
+
+main([Arg]) ->
+  N = list_to_integer(Arg),
+  Pid = process_spawner(?TOTAL_PROCESSES,[]),
+  Pid ! N.
+
+process_spawner(Num_Processes,[]) ->
+  Pid = spawn(ring,ring_node,[self()]),
+  register(list_to_atom("number" ++ integer_to_list(1)),Pid),
+  Next_Pid = spawn(ring,ring_node,[process_spawner(Num_Processes-2,Pid)]),
+  register(list_to_atom("number" ++ integer_to_list(2)),Next_Pid),
+  Pid ! {update,Next_Pid},
+  Pid;
+process_spawner(1,Starter_Pid) ->
+  Pid = spawn(ring,ring_node,[Starter_Pid]),
+  register(list_to_atom("number" ++ integer_to_list(?TOTAL_PROCESSES)),Pid),
+  Pid;
+process_spawner(Num_Processes,Starter_Pid) ->
+  Pid = spawn(ring,ring_node,[process_spawner(Num_Processes-1,Starter_Pid)]),
+  register(list_to_atom("number" ++ integer_to_list(?TOTAL_PROCESSES - (Num_Processes-1) )),Pid),
+  Pid.
+
+ring_node(Send_To_Pid) ->
+  receive
+    {update, New_Pid} ->
+      ring_node(New_Pid);
+    0 ->
+      {_,Process_Name} = process_info(self(),registered_name),
+      Process_Name2 = string:sub_string(atom_to_list(Process_Name),7),
+      io:fwrite("~s~n",[Process_Name2]),
+      erlang:halt();     
+    N ->
+      Send_To_Pid ! (N-1),
+      ring_node(Send_To_Pid)        
+  end.
