@@ -1,116 +1,100 @@
-/* The Computer Language Benchmarks Game
- * http://benchmarksgame.alioth.debian.org/
- *
- * based on Go program by The Go Authors.
- * based on C program by Kevin Carson
- * flag.Arg hack by Isaac Gouy
- * modified by Jamil Djadala to use goroutines
- * modified by Chai Shushan
- * modified by Chandra Sekar S to use arenas
- * modified by Oas Uisjak
- */
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// Contributed by Alex A Skinner
+// Based on the C program by Jeremy Zerfas
+// Based on the C++ program from Jon Harrop, Alex Mizrahi, and Bruno Coutinho.
+
 package main
 
 import (
-   "flag"
-   "fmt"
-   "runtime"
-   "strconv"
-   "sync"
-   "runtime/debug"
+    "fmt"
+    "os"
+    "runtime"
+    "strconv"
+    "sync"
 )
 
-var minDepth = 4
-var n = 0
+type nodeArena struct {
+    nodes []*node
+    index int
+}
 
-type NodeArena []Node
+func (na *nodeArena) get() *node {
+    if na.index >= len(na.nodes) {
+        na.nodes = append(na.nodes, &node{})
+    }
+    if na.nodes[na.index] == nil {
+        na.nodes[na.index] = &node{}
+    }
+    na.index++
+    return na.nodes[na.index-1]
+}
 
-func (na *NodeArena) Get() *Node {
-   if len(*na) == 0 {
-      *na = make([]Node, 10000)
-   }
+func (na *nodeArena) reset() {
+    na.index = 0
+}
 
-   n := &(*na)[len(*na)-1]
-   *na = (*na)[:len(*na)-1]
-   return n
+type node struct {
+    value       int
+    left, right *node
+}
+
+func (n *node) compute() int {
+    if n.left != nil {
+        return n.left.compute() - n.right.compute() + n.value
+    }
+    return n.value
+}
+
+func createTree(value int, depth int, arena *nodeArena) *node {
+    n := arena.get()
+    if depth > 0 {
+        n.left = createTree(2*value-1, depth-1, arena)
+        n.right = createTree(2*value, depth-1, arena)
+    } else {
+        n.left, n.right = nil, nil
+    }
+    n.value = value
+    return n
 }
 
 func main() {
-   runtime.GOMAXPROCS(runtime.NumCPU() * 2)
-   debug.SetGCPercent(400)
-
-   flag.Parse()
-   if flag.NArg() > 0 {
-      n, _ = strconv.Atoi(flag.Arg(0))
-   }
-
-   maxDepth := n
-   if minDepth+2 > n {
-      maxDepth = minDepth + 2
-   }
-   stretchDepth := maxDepth + 1
-
-   mainArena := new(NodeArena)
-
-   check_l := bottomUpTree(0, stretchDepth, mainArena).ItemCheck()
-   fmt.Printf("stretch tree of depth %d\t check: %d\n", stretchDepth, check_l)
-
-   longLivedTree := bottomUpTree(0, maxDepth, mainArena)
-
-   result_trees := make([]int, maxDepth+1)
-   result_check := make([]int, maxDepth+1)
-
-   var wg sync.WaitGroup
-   for depth_l := minDepth; depth_l <= maxDepth; depth_l += 2 {
-      wg.Add(1)
-      go func(depth int) {
-         localArena := new(NodeArena)
-         iterations := 1 << uint(maxDepth-depth+minDepth)
-         check := 0
-
-         for i := 1; i <= iterations; i++ {
-            check += bottomUpTree(i, depth, localArena).ItemCheck()
-            check += bottomUpTree(-i, depth, localArena).ItemCheck()
-         }
-         result_trees[depth] = iterations * 2
-         result_check[depth] = check
-
-         wg.Done()
-      }(depth_l)
-   }
-   wg.Wait()
-
-   for depth := minDepth; depth <= maxDepth; depth += 2 {
-      fmt.Printf("%d\t trees of depth %d\t check: %d\n",
-         result_trees[depth], depth, result_check[depth])
-   }
-   fmt.Printf("long lived tree of depth %d\t check: %d\n",
-      maxDepth, longLivedTree.ItemCheck())
+    if len(os.Args) < 2 {
+        fmt.Printf("%s <depth>\n", os.Args[0])
+        return
+    }
+    runtime.GOMAXPROCS(runtime.NumCPU() * 2)
+    minDepth := 4
+    treeDepth, _ := strconv.Atoi(os.Args[1])
+    if treeDepth < minDepth+2 {
+        treeDepth = minDepth + 2
+    }
+    na := &nodeArena{}
+    stretchTree := createTree(0, treeDepth+1, na)
+    fmt.Printf("stretch tree of depth %d\t check: %d\n", treeDepth+1, stretchTree.compute())
+    longLived := createTree(0, treeDepth, na)
+    toPrint := make([]string, treeDepth+1)
+    var wg sync.WaitGroup
+    for current := minDepth; current <= treeDepth; current += 2 {
+        wg.Add(1)
+        go func(depth int) {
+            na := &nodeArena{}
+            total := 0
+            iterations := 1 << uint(treeDepth-depth+minDepth)
+            for i := 1; i <= iterations; i++ {
+                tree1 := createTree(i, depth, na)
+                tree2 := createTree(-i, depth, na)
+                total += tree1.compute() + tree2.compute()
+                na.reset()
+            }
+            toPrint[depth] = fmt.Sprintf("%d\t trees of depth %d\t check %d\n", 2*iterations, depth, total)
+            wg.Done()
+        }(current)
+    }
+    wg.Wait()
+    for current := minDepth; current <= treeDepth; current += 2 {
+        fmt.Print(toPrint[current])
+    }
+    fmt.Printf("long lived tree of depth %d\t check: %d\n", treeDepth, longLived.compute())
 }
-
-func bottomUpTree(item, depth int, arena *NodeArena) *Node {
-   n := arena.Get()
-   if depth <= 0 {
-      *n = Node{item, nil, nil}
-   } else {
-      *n = Node{
-         item,
-         bottomUpTree(2*item-1, depth-1, arena),
-         bottomUpTree(2*item, depth-1, arena),
-      }
-   }
-   return n
-}
-
-type Node struct {
-   item        int
-   left, right *Node
-}
-
-func (self *Node) ItemCheck() int {
-   if self.left == nil {
-      return self.item
-   }
-   return self.item + self.left.ItemCheck() - self.right.ItemCheck()
-}
-
