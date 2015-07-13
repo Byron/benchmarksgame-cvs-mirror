@@ -251,7 +251,7 @@ package body root is
 
    -- "rsqrtps" (Reciprocal Sqrt) operates on Float (single precision):
 
-   type m128s is array (0 .. 1) of Float;
+   type m128s is array (0 .. 3) of Float;
    for m128s'Alignment use 16;
    pragma Machine_Attribute (m128s, "vector_type");
    pragma Assert (Float'Digits < 7 and m128s'size = 128);
@@ -260,7 +260,7 @@ package body root is
    pragma Import (Intrinsic, ia32_RSqrt, "__builtin_ia32_rsqrtps");
 
    function Recip_Sqrt (X : S_Real) return S_Real is
-      Z :  constant m128s := ia32_RSqrt ((Float (X), 1.0));
+      Z :  constant m128s := ia32_RSqrt ((Float (X), others => 1.0));
       r : S_Real := S_Real (Z(0));
    begin
       for i in 1 .. 2 loop
