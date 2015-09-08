@@ -1,0 +1,121 @@
+﻿(* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   contributed by Valentin Kraevskiy
+   modified by Javier de Vega Ruiz
+*)
+
+let im = 139968
+let ia = 3877
+let ic = 29573
+let imReciprocal = 1.0 / float im
+let mutable seed = 42;
+
+let inline random max =
+    seed <- (seed * ia + ic) % im
+    max * float seed * imReciprocal
+
+let alu =
+    "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG\
+     GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA\
+     CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT\
+     ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA\
+     GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG\
+     AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC\
+     AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"B
+
+let makeCumulative = 
+    List.fold (fun (cp, res) (c, p) -> cp + p, (c, cp + p):: res) (0.0, []) 
+    >> snd
+    >> List.rev
+    >> List.toArray
+    >> Array.unzip
+
+let homoSapiens = 
+    makeCumulative
+        ['a'B, 0.3029549426680
+         'c'B, 0.1979883004921
+         'g'B, 0.1975473066391
+         't'B, 0.3015094502008]
+     
+let iub = 
+    makeCumulative 
+        ['a'B, 0.27; 'c'B, 0.12; 'g'B, 0.12
+         't'B, 0.27; 'B'B, 0.02; 'D'B, 0.02
+         'H'B, 0.02; 'K'B, 0.02; 'M'B, 0.02
+         'N'B, 0.02; 'R'B, 0.02; 'S'B, 0.02
+         'V'B, 0.02; 'W'B, 0.02; 'Y'B, 0.02]
+
+let inline selectRandom (items : 'a[], probs : float[]) =
+    let r = random 1.0
+    let rec selectRandom' i =
+        if probs.[i] < r then selectRandom' <| i + 1
+        else i
+    items.[selectRandom' 0]
+ 
+let width = 60 
+let stream = System.Console.OpenStandardOutput ()
+let buffer = Array.create 1024 0uy
+let mutable index = 0
+let inline flush () =    
+    stream.Write (buffer, 0, index)
+    stream.Flush ()
+    index <- 0
+let inline write b = 
+    buffer.[index] <- b
+    index <- index + 1
+    if index = buffer.Length then flush ()
+
+let inline writeBuffer src offset count =
+    let rec writeChunk srcIndex left =
+        if left > 0 then
+            let capacity = buffer.Length - index
+            if left > capacity then
+                System.Array.Copy (src, srcIndex, buffer, index, capacity)
+                index <- index + capacity
+                flush ()
+                writeChunk (srcIndex + capacity) (left - capacity)
+            else
+                System.Array.Copy (src, srcIndex, buffer, index, left)
+                index <- index + left
+                if left = capacity then flush ()
+
+    writeChunk offset count
+    
+let inline writeFullBuffer src = writeBuffer src 0 src.Length
+
+let randomFasta desc table n =
+    writeFullBuffer desc
+    let rec randomFasta' left = 
+        if left > 0 then
+            let sliceLength = System.Math.Min (width, left)
+            for i in 1 .. sliceLength do write <| selectRandom table
+            write '\n'B
+            randomFasta' <| left - sliceLength
+    randomFasta' n
+
+let repeatFasta desc (table : byte []) n =
+    writeFullBuffer desc
+    let rec writeLine left offset =
+        if left > 0 then
+            let sliceLength = System.Math.Min (width, left)
+            if offset + sliceLength > table.Length then
+                let firstCount = table.Length - offset
+                writeBuffer table offset firstCount
+                writeBuffer table 0 (sliceLength - firstCount)
+                write '\n'B
+                writeLine (left - sliceLength) (offset + sliceLength - table.Length)
+            else
+                writeBuffer table offset sliceLength
+                write '\n'B
+                writeLine (left - sliceLength) (offset + sliceLength)
+    writeLine n 0
+
+[<EntryPoint>]
+let main args =
+    let n = try int args.[0] with _ -> 1000
+    repeatFasta ">ONE Homo sapiens alu\n"B alu (2 * n)
+    randomFasta ">TWO IUB ambiguity codes\n"B iub (3 * n)
+    randomFasta ">THREE Homo sapiens frequency\n"B homoSapiens (5 * n)
+    flush ()
+    0
