@@ -1,0 +1,70 @@
+;;   The Computer Language Benchmarks Game
+;;   http://benchmarksgame.alioth.debian.org/
+;;;
+;;; contributed by Dmitry Ignatiev
+;;;
+
+(declaim (optimize (speed 3) (space 0) (safety 0) (debug 0)))
+
+(defstruct (node
+            ;; vector :type layout optimizes away type information
+            ;;  and reduces consing
+            (:type vector)
+            (:constructor node (item left right)))
+  (item 0 :type fixnum)
+  (left nil :type (or null node))
+  (right nil :type (or null node)))
+
+(deftype node () '(simple-array t (3)))
+
+(defun create-tree (item depth)
+  (declare (type fixnum item depth))
+  ;; Use of LABELS will force SBCL to use local call convention
+  ;;  which will speed up function call
+  (labels ((create-node (item depth)
+             (declare (type fixnum item depth))
+             (let ((node (node item nil nil))
+                   (item2 (* item 2)))
+               (declare (type fixnum item2))
+               (when (> depth 0)
+                 (setf (node-left node)
+                       (create-node (1- item2) (1- depth))
+                       (node-right node)
+                       (create-node item2 (1- depth))))
+               node)))
+    (create-node item (1- depth))))
+
+(defun check-tree (node)
+  (declare (type node node))
+  ;; Force local call
+  (labels ((check-node (node)
+             (if (node-left node)
+               (the fixnum (- (+ (node-item node)
+                                 (check-node (node-left node)))
+                              (check-node (node-right node))))
+               (node-item node))))
+    (check-node node)))
+
+(defun main (&optional (n (parse-integer (or (cdr (last sb-ext:*posix-argv*))
+                                             "1"))))
+  (declare (type (integer 0 255) n))
+  (let* ((min-depth 4)
+         (max-depth (max (+ min-depth 2) n))
+         (stretch-depth (1+ max-depth)))
+    (format t "stretch tree of depth ~d	 check: ~d~%"
+            stretch-depth (check-tree (create-tree 0 stretch-depth)))
+    (let ((long-lived-tree (create-tree 0 max-depth)))
+      (do ((depth min-depth (+ depth 2)))
+          ((> depth max-depth))
+        (declare (type fixnum depth))
+        (do* ((iterations (ash 1 (+ max-depth min-depth (- depth))))
+              (check 0)
+              (i 1 (1+ i)))
+             ((> i iterations)
+              (format t "~D	 trees of depth ~D	 check: ~D~%"
+                      (the fixnum (* iterations 2)) depth check))
+          (declare (type fixnum iterations check i))
+          (incf check (check-tree (create-tree i depth)))
+          (incf check (check-tree (create-tree (- i) depth)))))
+      (format t "long lived tree of depth ~D	 check: ~D~%"
+              max-depth (check-tree long-lived-tree)))))
