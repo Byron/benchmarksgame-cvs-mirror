@@ -3,8 +3,8 @@ Description="Dart"
 
 Keywords={
   {  Id=1,
-   List={ "assert", "break", "case", "catch", "class", "const", "continue", "default", "do", "else", "extends", "false", "final", "finally", 
-	  "for", "if", "in", "is", "new", "null", "return", "super", "switch", "this", "throw", "true", "try", "var", "void", "while", "static"
+   List={ "assert", "break", "case", "catch", "class", "const", "continue", "default", "do", "else", "enum", "extends", "false", "final", "finally", 
+	  "for", "if", "in", "is", "new", "null", "rethrow", "return", "super", "switch", "this", "throw", "true", "try", "var", "void", "while", "with", "static"
         }
   },
   { Id=2,
@@ -15,6 +15,9 @@ Keywords={
     Regex=[[[A-Z][a-z_-]+]]
   },
 
+  { Id=3,
+    List={ "abstract", "as", "deferred", "dynamic", "export", "external", "factory", "get", "implements", "import", "library", "operator", "part", "set", "static", "typedef", "async", "await", "yield" }
+  },
 
   { Id=3,
     Regex=[[(#\w+)\s*\(]]
