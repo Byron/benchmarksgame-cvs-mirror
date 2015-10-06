@@ -10,22 +10,11 @@ Keywords={
   { Id=2,
     List={ "num", "int", "double", "bool" }
   },
-  
-  { Id=2,
-    Regex=[[[A-Z][a-z_-]+]]
-  },
 
   { Id=3,
     List={ "abstract", "as", "deferred", "dynamic", "export", "external", "factory", "get", "implements", "import", "library", "operator", "part", "set", "static", "typedef", "async", "await", "yield" }
-  },
-
-  { Id=3,
-    Regex=[[(#\w+)\s*\(]]
-  },
-
-  { Id=4,
-    Regex=[[(\w+)\s*\(]]
   }
+
 }
 
 Strings = {

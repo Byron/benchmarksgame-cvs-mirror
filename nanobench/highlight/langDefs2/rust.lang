@@ -8,23 +8,11 @@ Keywords={
          "mod", "move", "mut", "offsetof", "override", "priv", "proc", "pub", "pure", "ref", "return", "Self", "self", "sizeof",
          "static", "struct", "super", "trait", "true", "type", "typeof", "unsafe", "unsized", "use", "virtual", "where", "while", "yield",
         }
-  },
-
-  { Id=2,
-    Regex=[[[A-Z][a-z_-]+]]
-  },
-
-  { Id=3,
-    Regex=[[(#\w+)\s*\(]]
-  },
-
-  { Id=4,
-    Regex=[[(\w+)\s*\(]]
   }
 }
 
 Strings = {
-  Delimiter=[["|']],
+  Delimiter=[["]],
   RawPrefix="R",
 }
 
