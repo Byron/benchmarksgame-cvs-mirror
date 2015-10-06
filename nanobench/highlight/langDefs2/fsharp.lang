@@ -20,7 +20,7 @@ Keywords={
 }
 
 Strings={
-  Delimiter=[["|']],
+  Delimiter=[["]],
   RawPrefix="@",
   Interpolation=[[ \{\d+\}|%\w ]]
 }

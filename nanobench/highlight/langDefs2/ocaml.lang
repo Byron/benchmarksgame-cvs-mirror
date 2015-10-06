@@ -21,7 +21,7 @@ Keywords={
 }
 
 Strings={
-  Delimiter=[["|']],
+  Delimiter=[["]],
     Interpolation=[[ %\w ]],
 }
 Comments={
