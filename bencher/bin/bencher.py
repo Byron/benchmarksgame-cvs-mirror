@@ -1,12 +1,12 @@
 # The Computer Language Benchmarks Game
-# $Id: bencher.py,v 1.1 2012/12/29 19:19:30 igouy-guest Exp $
+# $Id: bencher.py,v 1.2 2015/10/23 21:56:17 igouy-guest Exp $
 
 """
 Description: bencher does repeated measurements of program
 cpu time, elapsed time, resident memory usage, cpu load while
 a program is running.
 
-copyright Isaac Gouy 2010-2011
+copyright Isaac Gouy 2010-2015
 """
 
 
@@ -639,10 +639,11 @@ def cleanTmpdirFor(p,allowed):
 def callHighlightSourceCodeMarkup(p):
    hidir = join( dirs['bencher'], 'highlight')
 
-   cmd = [highlightExeName,'--fragment'
-         ,'--add-config-dir=' + hidir + '/'
+   cmd = ['highlight'
+         ,'--fragment'
          ,'--style=edit-eclipse'
          ,'--force'
+         ,'--class-name=NONE'
          ,'-i'
          ,join(codedir,p.codeName)
          ,'-o'
