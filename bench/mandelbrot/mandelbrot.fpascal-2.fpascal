@@ -3,7 +3,8 @@
 
   contributed by Ales Katona
   modified by Vincent Snijders
-  optimized and multithreaded by Jean de La Taille 
+  optimized and multithreaded by Jean de La Taille
+  fixed by Peter Blackman
 }
 
 program mandelbrot;
@@ -26,7 +27,7 @@ type
   end;
   pmem = ^mem;
 
-function subThread(p: pointer) : longint;
+function subThread(p: pointer) : ptrint;
 var
   x, y, from_y, to_y, buf_index, i: Longint;
   Zr, Zi, Ti, Tr : Double;
@@ -128,5 +129,3 @@ begin
 
   finish := now;
 end.
-
-
