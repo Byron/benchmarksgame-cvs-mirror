@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.12 2015/08/26 19:16:16 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.13 2015/12/02 21:04:57 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -633,5 +633,15 @@ SBCL_TRACE :=
 
 %.hack_run: %.hack $(HHVM)
 	-/usr/bin/hh_client
+
+
+
+########################################
+# TypeScript
+########################################
+
+%.typescript_run: %.typescript $(TYPSCRIPT)
+	-mv $< $*.ts
+	-$(TYPSCRIPT) $*.ts
 
 
