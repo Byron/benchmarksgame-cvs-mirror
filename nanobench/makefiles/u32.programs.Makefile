@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.11 2015/06/25 15:09:46 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.12 2015/12/02 20:15:20 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -617,6 +617,17 @@ SBCL_TRACE :=
 
 %.rust_run: %.rs $(RUST)
 	-$(RUST) -C opt-level=3 -C target-cpu=core2 $(RUSTLOPTS) $(TEST).rs -o $@
+
+
+########################################
+# TypeScript
+########################################
+
+%.typescript_run: %.typescript $(TYPSCRIPT)
+	-mv $< $*.ts
+	-$(TYPSCRIPT) $*.ts
+
+
 
 
 
