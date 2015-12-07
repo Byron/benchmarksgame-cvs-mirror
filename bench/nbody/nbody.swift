@@ -161,7 +161,7 @@ class Body {
 }
 
 
-let n = 1000
+let n: Int? = Int(Process.arguments[1])
 let nbodies = NBodySystem()
 print( nbodies.energy() )
 for var i=0; i<n; i++ {
