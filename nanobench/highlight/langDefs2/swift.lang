@@ -8,7 +8,7 @@ Keywords={
     "Self", "super", "true", "this", "associativity", "convenience", "dynamic", "didSet", "final", "get", "infix", "inout", "lazy", "left", "mutating", "none", "nonmutating", "optional", "override", "postfix", "precedence", "prefix", "Protocol", "required", "right", "set", "Type", "unowned", "weak", "catch", "guard", "repeat", "throws", "try", "willset" },
   },
   { Id=2,
-    List={"Array", "Bool", "Dictionary", "ErrorType", "Int", "Set", "String", "Double", "Tuple", "UnicodeScalar", "Float", "COLUMN", "FILE", "FUNCTION", "LINE" },
+    List={"Array", "Bool", "Dictionary", "ErrorType", "Int?", "Int", "Set", "String?", "String", "Double?", "Double", "Float?", "Float", "Tuple", "UnicodeScalar", "COLUMN", "FILE", "FUNCTION", "LINE" },
   },
   { Id=3,
     Regex=[[^\s*(\w+):]],
