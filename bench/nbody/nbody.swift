@@ -152,11 +152,10 @@ class Body {
       return p
    }
 
-   func offsetMomentum(px: Double, _ py: Double, _ pz: Double) -> Body {
+   func offsetMomentum(px: Double, _ py: Double, _ pz: Double) {
       vx = -px / Body.SOLAR_MASS;
       vy = -py / Body.SOLAR_MASS;
-      vz = -pz / Body.SOLAR_MASS;	   
-      return self;   
+      vz = -pz / Body.SOLAR_MASS;	    
    }	
 }
 
