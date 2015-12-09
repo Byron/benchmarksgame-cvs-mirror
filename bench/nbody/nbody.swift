@@ -8,24 +8,6 @@ import CoreFoundation
 
 struct Body {
    var x, y, z, vx, vy, vz, mass : Double
-
-   mutating func advance(dt: Double) {
-      x += dt * vx
-      y += dt * vy
-      z += dt * vz
-   }
-
-   mutating func dec(vx: Double, _ vy: Double, _ vz: Double) {
-      self.vx -= vx
-      self.vy -= vy
-      self.vz -= vz
-   }
-
-   mutating func inc(vx: Double, _ vy: Double, _ vz: Double) {
-      self.vx += vx
-      self.vy += vy
-      self.vz += vz
-   }
 }
 
 let PI = 3.141592653589793
@@ -106,13 +88,13 @@ func energy() -> Double {
    var dx, dy, dz, distance: Double	
    var e = 0.0		   
 		
-   for var i=0; i < bodies.count; i++ {
+   for i in 0...bodies.count-1 {
       e += 0.5 * bodies[i].mass * 
          ( bodies[i].vx * bodies[i].vx 
          + bodies[i].vy * bodies[i].vy 
          + bodies[i].vz * bodies[i].vz )
 			   
-      for var j=i+1; j < bodies.count; j++ {
+      for j in i+1...bodies.count-1 {
          dx = bodies[i].x - bodies[j].x
          dy = bodies[i].y - bodies[j].y
          dz = bodies[i].z - bodies[j].z
@@ -128,8 +110,8 @@ func energy() -> Double {
 func advance(dt: Double) {
    var dx, dy, dz, distance, mag: Double	
 	
-   for var i=0; i < bodies.count; i++ {
-      for var j=i+1; j < bodies.count; j++ {	
+   for i in 0...bodies.count-1 {
+      for j in i+1...bodies.count-1 {
          dx = bodies[i].x - bodies[j].x
          dy = bodies[i].y - bodies[j].y
          dz = bodies[i].z - bodies[j].z
@@ -137,31 +119,30 @@ func advance(dt: Double) {
          distance = sqrt(dx*dx + dy*dy + dz*dz)				   
          mag = dt / (distance * distance * distance)
 
-         bodies[i].dec(
-            dx * bodies[j].mass * mag,
-            dy * bodies[j].mass * mag,
-            dz * bodies[j].mass * mag
-         )
+         bodies[i].vx -= dx * bodies[j].mass * mag
+         bodies[i].vy -= dy * bodies[j].mass * mag
+         bodies[i].vz -= dz * bodies[j].mass * mag
                                 
-         bodies[j].inc(
-            dx * bodies[i].mass * mag,
-            dy * bodies[i].mass * mag,
-            dz * bodies[i].mass * mag
-         )
+         bodies[j].vx += dx * bodies[i].mass * mag
+         bodies[j].vy += dy * bodies[i].mass * mag
+         bodies[j].vz += dz * bodies[i].mass * mag
       }
    }		
 
-   for var i=0; i < bodies.count; i++ {
-      bodies[i].advance(dt)
+   for i in 0...bodies.count-1 {
+      bodies[i].x += dt * bodies[i].vx
+      bodies[i].y += dt * bodies[i].vy
+      bodies[i].z += dt * bodies[i].vz
    }	
 }
 
 
-let n: Int? = Int(Process.arguments[1])
+let n: Int = Int(Process.arguments[1])!
 offsetMomentum()
 print( energy() )
-for var i=0; i<n; i++ {
+for _ in 1...n {
    advance(0.01)
 }
 print( energy() )
+
 
