@@ -55,5 +55,5 @@ func multiplyAtAv(n: Int, _ v: [Double], inout _ atAv: [Double]) {
 
 
 let n: Int = Int(Process.arguments[1])!
-print( approximate(n) )
+print( String(format: "%.9f", approximate(n)) )
 
