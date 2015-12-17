@@ -2,14 +2,14 @@
    http://benchmarksgame.alioth.debian.org/
    contributed by Isaac Gouy 
 
-   TypeScript install check, transliterated from C#
+   Transliterated from Smalltalk program
 */
 
 /// <reference path="/usr/local/src/typescript/node.d.ts" />
 
 
-class NBodySystem {
-   private bodies: Body[];
+class PlanetarySystem {
+   private bodies: Body[]
 
    constructor(){
       this.bodies = [
@@ -18,93 +18,60 @@ class NBodySystem {
          Body.Saturn(),
          Body.Uranus(),
          Body.Neptune()
-      ];
+      ]
 
-      var px = 0.0;
-      var py = 0.0;	
-      var pz = 0.0;			
-	
-      var size = this.bodies.length;
-      for (var i=0; i<size; i++){	
-         var b = this.bodies[i];
-         var m = b.mass;
-         px += b.vx * m;
-         py += b.vy * m;
-         pz += b.vz * m;			
-      }		
-      this.bodies[0].offsetMomentum(px,py,pz);
+      // How to use reduce?
+      let total : [number,number,number] = [0.0,0.0,0.0]	
+      this.bodies.forEach(each => {
+         total = each.addMomentumTo(total)
+      })
+      this.bodies[0].offsetMomentum(total)
    }
 
-   advance(dt: number): void {
-      var dx, dy, dz, distance, mag: number;
-      var size = this.bodies.length;	
-	
-      for (var i=0; i<size; i++) {
-         for (var j=i+1; j < size; j++) {	
-            dx = this.bodies[i].x - this.bodies[j].x;
-            dy = this.bodies[i].y - this.bodies[j].y;
-            dz = this.bodies[i].z - this.bodies[j].z;
-				
-            distance = Math.sqrt(dx*dx + dy*dy + dz*dz);				   
-            mag = dt / (distance * distance * distance);
-				
-            this.bodies[i].vx -= dx * this.bodies[j].mass * mag;
-            this.bodies[i].vy -= dy * this.bodies[j].mass * mag;
-            this.bodies[i].vz -= dz * this.bodies[j].mass * mag;
-                                
-            this.bodies[j].vx += dx * this.bodies[i].mass * mag;
-            this.bodies[j].vy += dy * this.bodies[i].mass * mag;
-            this.bodies[j].vz += dz * this.bodies[i].mass * mag;
-         }
-      }		
-		
-      for (var i=0; i<size; i++) {
-         var body = this.bodies[i];
-         body.x += dt * body.vx;
-         body.y += dt * body.vy;
-         body.z += dt * body.vz;
-      }		
-   }
-
-   energy(): number {		
-      var dx, dy, dz, distance: number;	
-      var e = 0.0;		   
-      var size = this.bodies.length;
-		
-      for (var i=0; i < size; i++) {
-         e += 0.5 * this.bodies[i].mass * 
-            ( this.bodies[i].vx * this.bodies[i].vx 
-            + this.bodies[i].vy * this.bodies[i].vy 
-            + this.bodies[i].vz * this.bodies[i].vz );
-			   
-         for (var j=i+1; j < size; j++) {
-            dx = this.bodies[i].x - this.bodies[j].x;
-            dy = this.bodies[i].y - this.bodies[j].y;
-            dz = this.bodies[i].z - this.bodies[j].z;
-                                
-            distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            e -= (this.bodies[i].mass * this.bodies[j].mass) / distance;
+   after(dt: number) {
+      const size = this.bodies.length
+      for (let i=0; i<size; i++) {
+         for (let j=i+1; j < size; j++) {	
+            this.bodies[i].setVelocitiesAfter(dt,this.bodies[j])
          }
       }
-      return e;
+      for (let i=0; i<size; i++) {	
+         this.bodies[i].setPositionAfter(dt)	
+      }
+   }
+
+   energy(): number {
+      let e = 0.0
+      const size = this.bodies.length
+      for (let i=0; i<size; i++) {
+         e += this.bodies[i].kineticEnergy()
+         for (let j=i+1; j < size; j++) {	
+            e -= this.bodies[i].potentialEnergyWith(this.bodies[j])
+         }
+      }
+      return e
    }
 }
 
 
 class Body {
-   private static PI = 3.141592653589793;
-   private static SOLAR_MASS = 4 * Body.PI * Body.PI;
-   private static DAYS_PER_YEAR = 365.24;
+   private static PI = 3.141592653589793
+   private static SOLAR_MASS = 4 * Body.PI * Body.PI
+   private static DAYS_PER_YEAR = 365.24
 
    constructor(
-      public x: number, 
-      public y: number, 
-      public z: number, 
-      public vx: number,
-      public vy: number, 
-      public vz: number,
-      public mass: number
+      private x: number, 
+      private y: number, 
+      private z: number, 
+      private vx: number,
+      private vy: number, 
+      private vz: number,
+      private m: number
    ) { }
+
+   mass(): number {
+      return this.m
+   }
 
    static Jupiter(){
       return new Body(
@@ -115,7 +82,7 @@ class Body {
          7.69901118419740425e-03 * Body.DAYS_PER_YEAR,
          -6.90460016972063023e-05 * Body.DAYS_PER_YEAR,
          9.54791938424326609e-04 * Body.SOLAR_MASS
-      );
+      )
    }
 
    static Saturn(){
@@ -127,7 +94,7 @@ class Body {
          4.99852801234917238e-03 * Body.DAYS_PER_YEAR,
          2.30417297573763929e-05 * Body.DAYS_PER_YEAR,
          2.85885980666130812e-04 * Body.SOLAR_MASS
-      );
+      )
    }
 
    static Uranus(){
@@ -139,7 +106,7 @@ class Body {
          2.37847173959480950e-03 * Body.DAYS_PER_YEAR,
          -2.96589568540237556e-05 * Body.DAYS_PER_YEAR,
          4.36624404335156298e-05 * Body.SOLAR_MASS
-      );
+      )
    }
 
    static Neptune(){
@@ -151,7 +118,7 @@ class Body {
          1.62824170038242295e-03 * Body.DAYS_PER_YEAR,
          -9.51592254519715870e-05 * Body.DAYS_PER_YEAR,
          5.15138902046611451e-05 * Body.SOLAR_MASS
-      );
+      )
    }
 
    static Sun(){
@@ -163,22 +130,69 @@ class Body {
          0,
          0,
          Body.SOLAR_MASS
-      );
+      )
    }
 
-   offsetMomentum(px, py, pz : number): Body {
-      this.vx = -px / Body.SOLAR_MASS;
-      this.vy = -py / Body.SOLAR_MASS;
-      this.vz = -pz / Body.SOLAR_MASS;	   
-      return this;
+
+   addMomentumTo([x,y,z]: [number,number,number]): [number,number,number] {
+      return [
+         x + this.vx * this.m, 
+         y + this.vy * this.m, 
+         z + this.vz * this.m 
+         ]
+   }
+
+   private decreaseVelocity(dx, dy, dz, m: number) {
+      this.vx -= dx * m
+      this.vy -= dy * m
+      this.vz -= dz * m
+   }
+
+   private increaseVelocity(dx, dy, dz, m : number) {
+      this.vx += dx * m
+      this.vy += dy * m
+      this.vz += dz * m
+   }
+
+   kineticEnergy(): number {
+      return 0.5 * this.m * (this.vx**2 + this.vy**2 + this.vz**2)
+   }
+
+   offsetMomentum([px,py,pz]: [number,number,number]) {
+      this.vx = -px / Body.SOLAR_MASS
+      this.vy = -py / Body.SOLAR_MASS
+      this.vz = -pz / Body.SOLAR_MASS  
+   }
+
+   potentialEnergyWith(b: Body) {
+      const [dx,dy,dz] = b.vectorTo(this.x,this.y,this.z)
+      const distance = Math.sqrt(dx**2 + dy**2 + dz**2)
+      return this.m * b.mass() / distance
+   }
+
+   setPositionAfter(dt: number) {
+      this.x += dt * this.vx
+      this.y += dt * this.vy
+      this.z += dt * this.vz
+   }
+
+   setVelocitiesAfter(dt: number, b: Body) {
+      const [dx,dy,dz] = b.vectorTo(this.x,this.y,this.z)
+      const distance = Math.sqrt(dx**2 + dy**2 + dz**2)
+      const mag = dt / distance**3
+      this.decreaseVelocity(dx,dy,dz,b.mass()*mag)
+      b.increaseVelocity(dx,dy,dz,this.m*mag)
+   }
+
+   private vectorTo(x,y,z : number) {
+      return [x-this.x, y-this.y, z-this.z]
    }
 }
 
 
-var n = +process.argv[2];
-var nbodies = new NBodySystem();
-
-console.log(nbodies.energy().toFixed(9));
-for (var i=0; i<n; i++){ nbodies.advance(0.01); }
-console.log(nbodies.energy().toFixed(9));
+const n = +process.argv[2]
+const system = new PlanetarySystem()
+console.log(system.energy().toFixed(9))
+for (let i=0; i<n; i++){ system.after(0.01) }
+console.log(system.energy().toFixed(9))
 
