@@ -1,0 +1,62 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+   contributed by Isaac Gouy 
+*/
+
+/// <reference path="/usr/local/src/typescript/node.d.ts" />
+
+
+class TreeNode {
+
+   constructor(
+      private left: TreeNode, 
+      private right: TreeNode, 
+      private item: number
+   ) { }
+
+   check(): number {
+      if (this.left) {
+         return this.item + this.left.check() - this.right.check()
+      }
+      else {
+         return this.item
+      }
+   }
+
+   static bottomUpTree(item: number, depth: number): TreeNode {
+      if (depth > 0) {
+         // "new TreeNode(" must be on same line as "return" 
+         return new TreeNode(
+               TreeNode.bottomUpTree(2*item-1, depth-1),
+               TreeNode.bottomUpTree(2*item, depth-1),
+               item
+            )
+      }
+      else {
+         return new TreeNode(undefined,undefined,item)
+      }
+   }
+}
+
+
+const n = +process.argv[2]
+const minDepth = 4
+const maxDepth = n
+const stretchDepth = n + 1
+
+let check = TreeNode.bottomUpTree(0,stretchDepth).check()
+console.log("stretch tree of depth " + stretchDepth + "\t check: " + check)
+
+const longLivedTree = TreeNode.bottomUpTree(0,maxDepth)
+for (let depth=minDepth; depth<=maxDepth; depth+=2) {
+   let iterations = 1 << (maxDepth - depth + minDepth)
+
+   check = 0;
+   for (let i=1; i<=iterations; i++) {
+      check += TreeNode.bottomUpTree(i,depth).check()
+      check += TreeNode.bottomUpTree(-i,depth).check()
+   }
+   console.log(iterations*2 + "\t trees of depth " + depth + "\t check: " + check)
+}
+console.log("long lived tree of depth " + maxDepth + "\t check: " + longLivedTree.check())
+
