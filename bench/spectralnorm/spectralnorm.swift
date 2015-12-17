@@ -16,7 +16,7 @@ func approximate(n: Int) -> Double {
    }
  
    var vBv = 0.0, vv = 0.0
-   for i in 0...n-1 {
+   for i in 0..<n {
       vBv += u[i]*v[i]
       vv  += v[i]*v[i]
    }
@@ -30,18 +30,18 @@ func a(i: Int, _ j: Int) -> Double {
 }
 
 func multiplyAv(n: Int, _ v: [Double], inout _ av: [Double]) {
-   for i in 0...n-1 {
+   for i in 0..<n {
       av[i] = 0.0;
-      for j in 0...n-1 {
+      for j in 0..<n {
          av[i] += a(i,j)*v[j] 
       }
    }
 }
 
 func multiplyAtv(n: Int, _ v: [Double], inout _ atv: [Double]) {
-   for i in 0...n-1 {
+   for i in 0..<n {
       atv[i] = 0;
-      for j in 0...n-1 {
+      for j in 0..<n {
          atv[i] += a(j,i)*v[j] 
       }
    }
