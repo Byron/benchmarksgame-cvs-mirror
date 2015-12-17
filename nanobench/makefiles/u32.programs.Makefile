@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.13 2015/12/02 22:03:35 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.14 2015/12/17 23:59:04 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -625,7 +625,7 @@ SBCL_TRACE :=
 
 %.typescript_run: %.typescript $(TYPSCRIPT)
 	-mv $< $*.ts
-	-$(TYPSCRIPT) $*.ts -t ES6
+	-$(TYPSCRIPT) $(TSOPTS) $*.ts
 
 
 
