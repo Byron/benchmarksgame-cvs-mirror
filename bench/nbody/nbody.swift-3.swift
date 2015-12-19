@@ -99,13 +99,13 @@ func energy() -> Double {
    var dx, dy, dz, distance: Double	
    var e = 0.0		   
 		
-   for i in 0...bodies.count-1 {
+   for i in 0..<bodies.count {
       e += 0.5 * bodies[i].mass * 
          ( bodies[i].vx * bodies[i].vx 
          + bodies[i].vy * bodies[i].vy 
          + bodies[i].vz * bodies[i].vz )
 			   
-      for j in i+1...bodies.count-1 {
+      for j in i+1..<bodies.count {
          dx = bodies[i].x - bodies[j].x
          dy = bodies[i].y - bodies[j].y
          dz = bodies[i].z - bodies[j].z
@@ -121,8 +121,8 @@ func energy() -> Double {
 func advance(dt: Double) {
    var dx, dy, dz, distance, mag: Double	
 	
-   for i in 0...bodies.count-1 {
-      for j in i+1...bodies.count-1 {
+   for i in 0..<bodies.count {
+      for j in i+1..<bodies.count {
          dx = bodies[i].x - bodies[j].x
          dy = bodies[i].y - bodies[j].y
          dz = bodies[i].z - bodies[j].z
@@ -140,7 +140,7 @@ func advance(dt: Double) {
       }
    }		
 
-   for i in 0...bodies.count-1 {
+   for i in 0..<bodies.count {
       bodies[i].x += dt * bodies[i].vx
       bodies[i].y += dt * bodies[i].vy
       bodies[i].z += dt * bodies[i].vz
