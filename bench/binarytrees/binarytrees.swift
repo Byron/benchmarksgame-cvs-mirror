@@ -55,8 +55,8 @@ while depth <= maxDepth {
    let iterations = 1 << (maxDepth - depth + minDepth)
    var check = 0
    for i in 0..<iterations {
-      check += bottomUpTree(i,maxDepth).check()
-      check += bottomUpTree(-i,maxDepth).check()
+      check += bottomUpTree(i,depth).check()
+      check += bottomUpTree(-i,depth).check()
    }
    print("\(iterations*2)\t trees of depth \(depth)\t check: \(check)")
    depth += 2
