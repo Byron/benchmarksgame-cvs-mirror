@@ -25,16 +25,18 @@ class TreeNode {
 }
 
 func bottomUpTree(item: Int, _ depth: Int) -> TreeNode {
-   return 
-      depth > 0
-         ?
-            TreeNode(
-               bottomUpTree(2*item-1, depth-1),
-               bottomUpTree(2*item, depth-1),
-               item
-            )
-         :
-            TreeNode(nil,nil,item)
+   if depth > 0 {
+      return 
+         TreeNode(
+            bottomUpTree(2*item-1, depth-1),
+            bottomUpTree(2*item, depth-1),
+            item
+         )
+   }
+   else {
+      return 
+         TreeNode(nil,nil,item)
+   }
 }
 
 
@@ -48,14 +50,17 @@ print("stretch tree of depth \(stretchDepth)\t check: \(check)")
 
 let longLivedTree = bottomUpTree(0,maxDepth)
 
-for var depth=minDepth; depth<=maxDepth; depth+=2 {
+var depth = minDepth
+while depth <= maxDepth {
    let iterations = 1 << (maxDepth - depth + minDepth)
    var check = 0
-   for i in 1...iterations {
+   for i in 0..<iterations {
       check += bottomUpTree(i,maxDepth).check()
       check += bottomUpTree(-i,maxDepth).check()
    }
    print("\(iterations*2)\t trees of depth \(depth)\t check: \(check)")
+   depth += 2
 }
+
 print("long lived tree of depth \(maxDepth)\t check: \(longLivedTree.check())")
 
