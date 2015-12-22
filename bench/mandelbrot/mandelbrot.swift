@@ -2,7 +2,7 @@
    http://benchmarksgame.alioth.debian.org/
 
    direct transliteration of Greg Buchholz's C program
-   contributed by Isaac Gouy
+   contributed by Isaac Gouy, fix by David Turnbull
 */
 
 import Glibc
@@ -14,13 +14,14 @@ var bit_num = 0, i = 0, byte_acc: Int32 = 0
 let iter = 50, limit = 2.0
 var Zr, Zi, Cr, Ci, Tr, Ti: Double
 
-print("P4\n\(w) \(h)\n")
+print("P4\n\(w) \(h)")
 
 for y in 0..<h {
    for x in 0..<w {
 
       Zr = 0.0; Zi = 0.0; Tr = 0.0; Ti = 0.0
-      Cr = 2.0*Double(x)/Double(w) - 1.5; Ci = 2.0*Double(y)/Double(h) - 1.0
+      Cr = 2.0*Double(x)/Double(w) - 1.5; 
+      Ci = 2.0*Double(y)/Double(h) - 1.0
 
       i = 0
       while i < iter && (Tr+Ti <= limit*limit) {
