@@ -37,13 +37,13 @@ for (let y = 0; y < h; ++y) {
       ++bit_num
 
       if (bit_num == 8) {
-         process.stdout.write( String.fromCharCode(byte_acc) );
+         process.stdout.write( String.fromCharCode(byte_acc),'ascii' )
          byte_acc = 0
          bit_num = 0
       }
       else if (x == w-1) {
          byte_acc <<= (8-w%8)
-         process.stdout.write( String.fromCharCode(byte_acc) );
+         process.stdout.write( String.fromCharCode(byte_acc),'ascii' )
          byte_acc = 0
          bit_num = 0
       }
