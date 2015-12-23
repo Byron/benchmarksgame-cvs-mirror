@@ -1,6 +1,7 @@
 # The Computer Language Benchmarks Game
 # http://benchmarksgame.alioth.debian.org
 # Contributed by Rick Branson
+# fixed by Isaac Gouy
 #
 # There is currently a bug in JRuby as of 11/16/2010 that causes
 # Marshal to read IOs in a blocking manner, which will cause this
@@ -89,6 +90,10 @@ class Worker
   end
 end
 
+def eval_a(i, j)
+  1.0/((i+j)*(i+j+1.0)/2.0+i+1.0)
+end
+
 def eval_A_times_u(u)
   usz     = u.size
   urange  = (0 ... usz)
@@ -96,7 +101,7 @@ def eval_A_times_u(u)
   
   Worker.map(umap) do |i|
     urange.inject(0) do |sum, j|
-      sum += (1.0 / ((i + j) * (i + j + 1) / 2 + i + 1)) * u[j]
+      sum += eval_a(j, i) * u[j]
     end
   end
 end
@@ -108,7 +113,7 @@ def eval_At_times_u(u)
   
   Worker.map(umap) do |i|
     urange.inject(0) do |sum, j|
-      sum += (1.0 / ((j + i) * (j + i + 1) / 2 + j + 1)) * u[j]      
+      sum += eval_a(i, j) * u[j]      
     end
   end
 end
