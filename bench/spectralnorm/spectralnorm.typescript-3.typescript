@@ -36,7 +36,7 @@ function multiplyAv(n: number, v: number[], av: number[]) {
    }
 }
 
-function multiplyAtv(n: number, v: number[], atv: number[]) {
+function multiplyAtv(n: number, v: number[], atv:number[]) {
    for (let i=0; i<n-1; ++i) {
       atv[i] = 0.0
       for (let j=0; j<n-1; ++j) {
