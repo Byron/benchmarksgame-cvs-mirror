@@ -5,8 +5,6 @@
 */
 
 
-import CoreFoundation
-
 struct TreeNode {
    let item:Int
    let left,right:UnsafeMutablePointer<TreeNode>

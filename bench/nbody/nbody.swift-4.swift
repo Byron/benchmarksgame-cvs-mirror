@@ -4,7 +4,7 @@
    Modified slightly by Erik Little
 */
 
-import CoreFoundation
+import Glibc
 
 struct Body {
     var x, y, z, vx, vy, vz, mass : Double

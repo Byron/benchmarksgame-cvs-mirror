@@ -3,8 +3,7 @@
    contributed by Isaac Gouy 
 */
 
-import CoreFoundation
-
+import Glibc
 
 class Body {
    var x, y, z, vx, vy, vz, mass : Double

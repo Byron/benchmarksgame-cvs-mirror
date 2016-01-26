@@ -4,8 +4,6 @@
    contributed by Alex Bustin
 */
 
-
-import CoreFoundation
 import Glibc
 
 struct TreeNode {

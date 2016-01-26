@@ -3,8 +3,6 @@
    contributed by Isaac Gouy 
 */
 
-import CoreFoundation
-
 
 class TreeNode {
    var left, right : TreeNode?

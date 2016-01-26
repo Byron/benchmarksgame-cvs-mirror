@@ -5,8 +5,6 @@
    transliterated from Rex Kerr's Scala program 
 */
 
-import CoreFoundation
-
 
 func fannkuch(n: Int) -> Int {
    var perm = Array(count: n, repeatedValue: 0),

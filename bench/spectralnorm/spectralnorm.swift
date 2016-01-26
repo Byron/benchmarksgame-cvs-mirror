@@ -3,8 +3,7 @@
    contributed by Isaac Gouy 
 */
 
-import CoreFoundation
-
+import Glibc
 
 func approximate(n: Int) -> Double {
    var u = Array(count: n, repeatedValue: 1.0) 
