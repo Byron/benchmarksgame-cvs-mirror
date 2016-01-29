@@ -2,6 +2,7 @@
 -- The Computer Language Benchmarks Game
 -- http://benchmarksgame.alioth.debian.org/
 --
+-- Modified by Gabriel Gonzalez
 -- Modified by Ryan Trinkle: 1) change from divInt# to uncheckedIShiftRA#
 --                           2) changed -optc-O to -optc-O3
 --                           3) added -optc-ffast-math
@@ -70,7 +71,7 @@ powerMethod z n u v = allocaArray n $ \ !t -> do
 		await barrier
 		timesAtv n t d l r
 		await barrier
-	let thread !l !r = foldr (>>) (return ()) $ replicate z $ do
+	let thread !l !r = GHC.Base.foldr (>>) (return ()) $ replicate z $ do
 		timesAtAv u v l r
 		timesAtAv v u l r
 	let go l = case l + chunk of
