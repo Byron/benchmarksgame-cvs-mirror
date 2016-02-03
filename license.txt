@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: license.txt,v 1.4 2015/01/05 18:55:41 igouy-guest Exp $
+# $Id: license.txt,v 1.5 2016/02/03 17:46:25 igouy-guest Exp $
 
 Revised BSD license
 
@@ -7,7 +7,7 @@ This is a specific instance of the Open Source Initiative (OSI) BSD license temp
 http://www.opensource.org/licenses/bsd-license.php
 
 
-Copyright 2008-2015 Isaac Gouy
+Copyright 2008-2016 Isaac Gouy
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
