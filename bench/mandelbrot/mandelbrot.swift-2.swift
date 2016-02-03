@@ -5,7 +5,6 @@
 */
 
 import Glibc
-import CBlock
 import Cdispatch
 
 struct Line {
