@@ -4,8 +4,8 @@
    contributed by Ralph Ganszky
 */
 
-import Glibc
 import Cdispatch
+import CBlock
 
 struct Line {
     let row: Int
@@ -15,21 +15,21 @@ struct Line {
     init(_ row: Int, _ width: UInt) {
         self.row = row
         size = Int((width+7)/8)
-        buffer = [UInt8](count: Int((width+7)/8), repeatedValue: 0)
+        buffer = [UInt8](count: size, repeatedValue: 0)
     }
 }
 
 func writeLine(io: dispatch_io_t, _ data: dispatch_data_t, _ queue: dispatch_queue_t, _ last: Bool) {
     dispatch_io_write(io, 0, data, queue) {
-	(done: Bool, dd:dispatch_data_t!, errorCode:Int32) -> Void in
-	if errorCode != 0 {
-	    print("FileOutputStream: Error writing data to channel")
-	}
-	if done {
-	    if last {
-		dispatch_io_close(io, 0)
-	    }
-	}
+        (done: Bool, dd:dispatch_data_t!, errorCode:Int32) -> Void in
+        if errorCode != 0 {
+            print("FileOutputStream: Error writing data to channel")
+        }
+        if done {
+            if last {
+                dispatch_io_close(io, 0)
+            }
+        }
     }
 }
 
@@ -75,14 +75,13 @@ let stdout = dispatch_io_create(0, STDOUT_FILENO, queue) { (errorcode: Int32) ->
 }
 
 let header = "P4\n\(n) \(n)\n"
-if let data = header.dataUsingEncoding(NSUTF8StringEncoding) {
-    let dispData = dispatch_data_create(data.bytes, data.length, nil, nil)
-        dispatch_io_write(stdout, 0, dispData, queue) {
-            (done: Bool, data:dispatch_data_t!, errorCode:Int32) -> Void in
-            if errorCode != 0 {
-                print("FileOutputStream: Error writing data to channel")
-            }
-        }
+let headerStr = header.withCString({ b in b })
+let dispData = dispatch_data_create(headerStr, header.nulTerminatedUTF8.count - 1, nil, nil)
+dispatch_io_write(stdout, 0, dispData, queue) {
+    (done: Bool, data:dispatch_data_t!, errorCode:Int32) -> Void in
+    if errorCode != 0 {
+        print("FileOutputStream: Error writing data to channel")
+    }
 }
 
 for y in Zero.stride(to: h, by: 1.0) {
@@ -130,20 +129,20 @@ for y in Zero.stride(to: h, by: 1.0) {
         }
         let data = dispatch_data_create(&line.buffer, line.size, nil, nil)
         dispatch_async(queue) {
-
+            
             // Check if row is next in line, if not store for later use
             if line.row == nextRow {
                 nextRow = nextRow + 1
-		writeLine(stdout, data, wqueue, line.row == n-1)
+                writeLine(stdout, data, wqueue, line.row == n-1)
             } else {
                 lines[line.row] = data
             }
-
+            
             var written = [Int]()
             for waitingRow in lines.keys.sort() {
                 if waitingRow == nextRow {
                     nextRow = nextRow + 1
-		    writeLine(stdout, lines[waitingRow]!, wqueue, waitingRow == n-1)
+                    writeLine(stdout, lines[waitingRow]!, wqueue, waitingRow == n-1)
                     written.append(waitingRow)
                 } else {
                     break

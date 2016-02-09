@@ -1,0 +1,6 @@
+module Cdispatch [system] {
+    header "/usr/local/src/swift-corelibs/include/dispatch/dispatch.h"
+    link "dispatch"
+    export *
+}
+
