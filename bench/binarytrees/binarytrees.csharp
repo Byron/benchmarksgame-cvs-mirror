@@ -39,7 +39,8 @@ class BinaryTrees {
       }
       internal static TreeNode bottomUpTree( int item, int depth ) {
          TreeNode t;
-         ChildTreeNodes(out t, item, depth - 1);
+         // ChildTreeNodes(out t, item, depth - 1);
+         ChildTreeNodes(out t, item, depth);
          return t;
       }
       static void ChildTreeNodes( out TreeNode node, int item, int depth ) {

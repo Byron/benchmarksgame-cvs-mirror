@@ -19,6 +19,7 @@ let rec mkTree(item, depth) =
     if depth = 0 then TreeNode(null, null, item)
     else TreeNode(mkTree (2*item - 1, depth-1), mkTree(2*item, depth-1), item)
 
+//let bottomUpTree (item, depth) = mkTree(item, depth - 1)
 let bottomUpTree (item, depth) = mkTree(item, depth - 1)
 
 let minDepth = 4

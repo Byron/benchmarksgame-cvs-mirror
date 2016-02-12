@@ -70,7 +70,8 @@ public class binarytrees {
         TreeNode left, right;
 
         static TreeNode create(int item, int depth) {
-            TreeNode[] queue = new TreeNode[(1 << depth) - 1];
+//            TreeNode[] queue = new TreeNode[(1 << depth) - 1];
+            TreeNode[] queue = new TreeNode[(1 << depth)];
             queue[0] = new TreeNode(item);
 
             int head = 0, nodes = 0;
