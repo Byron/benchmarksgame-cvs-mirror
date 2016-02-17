@@ -2,6 +2,7 @@
  * http://benchmarksgame.alioth.debian.org/
  *
  * contributed by Edward McFarlane
+ * modified by Red Forks 
  */
 
 package main
@@ -20,21 +21,19 @@ type Node struct {
    value       int
 }
 
-func (root *Node) createTree(pool *sync.Pool, rootNodeValue, treeDepth int) {
+func (root *Node) createTree(rootNodeValue, treeDepth int) {
    root.value = rootNodeValue
 
    if treeDepth > 0 {
       if root.left == nil {
-         root.left = pool.Get().(*Node)
-         root.right = pool.Get().(*Node)
+         root.left = &Node{}
+         root.right = &Node{}
       }
 
-      root.left.createTree(pool, 2*rootNodeValue-1, treeDepth-1)
-      root.right.createTree(pool, 2*rootNodeValue, treeDepth-1)
+      root.left.createTree(2*rootNodeValue-1, treeDepth-1)
+      root.right.createTree(2*rootNodeValue, treeDepth-1)
 
    } else if root.left != nil {
-      pool.Put(root.left)
-      pool.Put(root.right)
       root.left = nil
       root.right = nil
    }
@@ -60,22 +59,15 @@ func main() {
       maxDepth = minDepth + 2
    }
 
-   var pool = &sync.Pool{
-      New: func() interface{} {
-         return &Node{}
-      },
-   }
-
    {
       stretchTree := &Node{}
-      stretchTree.createTree(pool, 0, maxDepth+1)
+      stretchTree.createTree(0, maxDepth+1)
 
       fmt.Printf("stretch tree of depth %d\t check: %d\n", maxDepth+1, stretchTree.computeTreeChecksum())
-      pool.Put(stretchTree)
    }
 
-   longLivedTree := pool.Get().(*Node)
-   longLivedTree.createTree(pool, 0, maxDepth)
+   longLivedTree := &Node{}
+   longLivedTree.createTree(0, maxDepth)
 
    var wg sync.WaitGroup
    work := make(chan int, 2)
@@ -90,8 +82,7 @@ func main() {
          var ok bool
          var depth, iterations, check, i int
 
-         treeRoot := pool.Get().(*Node)
-         defer pool.Put(treeRoot)
+         treeRoot := &Node{}
 
          for {
             depth, ok = <-work
@@ -103,9 +94,9 @@ func main() {
 
             check = 0
             for i = 0; i < iterations; i++ {
-               treeRoot.createTree(pool, i, depth)
+               treeRoot.createTree(i, depth)
                check += treeRoot.computeTreeChecksum()
-               treeRoot.createTree(pool, -i, depth)
+               treeRoot.createTree(-i, depth)
                check += treeRoot.computeTreeChecksum()
             }
 
