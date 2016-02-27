@@ -163,8 +163,11 @@ let headerStr = header.withCString({ s in s })
 let iov = UnsafeMutablePointer<iovec>.alloc(2)
 iov[0].iov_base = UnsafeMutablePointer<Void>(headerStr)
 iov[0].iov_len = header.nulTerminatedUTF8.count - 1
-//iov[1].iov_base = unsafeBitCast(rows.withUnsafeBufferPointer({ p in p }), UnsafeMutablePointer<()>.self)
-iov[1].iov_base = UnsafeMutablePointer<()>(rows.withUnsafeBufferPointer({ p in p }))
+rows.withUnsafeMutableBufferPointer{
+    (inout p: UnsafeMutableBufferPointer) -> OSStatus in
+    iov[1].iov_base = UnsafeMutablePointer<()>(p.baseAddress)
+    return 0
+}
 iov[1].iov_len = rows.count
 writev(STDOUT_FILENO, iov, 2)
 iov.dealloc(2)
