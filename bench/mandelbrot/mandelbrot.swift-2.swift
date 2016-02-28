@@ -164,7 +164,7 @@ let iov = UnsafeMutablePointer<iovec>.alloc(2)
 iov[0].iov_base = UnsafeMutablePointer<Void>(headerStr)
 iov[0].iov_len = header.nulTerminatedUTF8.count - 1
 rows.withUnsafeMutableBufferPointer{
-    (inout p: UnsafeMutableBufferPointer) -> OSStatus in
+    (inout p: UnsafeMutableBufferPointer) -> Int in
     iov[1].iov_base = UnsafeMutablePointer<()>(p.baseAddress)
     return 0
 }
