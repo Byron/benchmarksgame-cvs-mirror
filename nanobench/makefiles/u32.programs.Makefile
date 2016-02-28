@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.15 2016/02/24 23:46:16 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.16 2016/02/28 06:19:56 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -605,7 +605,7 @@ SBCL_TRACE :=
 
 %.clojure_run: %.clojure $(CLOJURE)
 	-mv $< $(TEST).clj
-	-$(JDKRUN) -Dclojure.compile.path=. -cp .:$(CLOJURE):$(CLOJURECONTRIB) clojure.lang.Compile $(TEST)
+	-$(JDKRUN) -Dclojure.compiler.direct-linking=true -Dclojure.compile.path=. -cp .:$(CLOJURE):$(CLOJURECONTRIB) clojure.lang.Compile $(TEST)
 
 
 ########################################
@@ -633,7 +633,7 @@ SBCL_TRACE :=
 ########################################
 
 %.node_run: %.node $(NODEJS)
-	-mv $< $*.js
+	-cp -L $< $*.js
 	-$(NODEJS) $(NODEOPTS) $*.js
 
 

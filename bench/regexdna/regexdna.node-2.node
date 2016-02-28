@@ -4,7 +4,7 @@
 // contributed by Jesse Millikan
 // Base on the Ruby version by jose fco. gonzalez
 // fixed by Matthew Wilson
-// node fix by Isaac Gouy
+// modified for Node.js by Isaac Gouy 
 
 var i = "", ilen, clen, j, q = [ /agggtaaa|tttaccct/ig,
   /[cgt]gggtaaa|tttaccc[acg]/ig, /a[act]ggtaaa|tttacc[agt]t/ig,
