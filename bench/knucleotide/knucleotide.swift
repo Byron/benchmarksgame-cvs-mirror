@@ -61,7 +61,7 @@ func roundDouble(num: Double, precision: Int) -> String {
     let exponent = pow(10.0, Double(precision))
     let number = Double(Int(num * exponent + 0.5)) / exponent
     var numberStr = "\(number)"
-    if numberStr.characters.count < Int(log10(num)) + 2 + precision {
+    while numberStr.characters.count < Int(log10(num)) + 2 + precision {
         numberStr = numberStr + "0"
     }
     return numberStr
