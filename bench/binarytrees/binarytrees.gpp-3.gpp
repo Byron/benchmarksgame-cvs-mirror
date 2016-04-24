@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <thread>
+#include <mutex>
 #include <vector>
 
 #include <boost/pool/object_pool.hpp>
