@@ -298,7 +298,6 @@ int main(int argc, char *argv[])
       return 1;
    }
    
-   std::cout.sync_with_stdio(false);
    make_cumulative(iub.begin(), iub.end());
    make_cumulative(homosapiens.begin(), homosapiens.end());
    
