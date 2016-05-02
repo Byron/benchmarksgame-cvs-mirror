@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.17 2016/04/29 18:44:19 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.18 2016/05/02 00:16:46 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -638,7 +638,6 @@ SBCL_TRACE :=
 
 
 
-
 ########################################
 # Chapel
 ########################################
@@ -651,4 +650,10 @@ SBCL_TRACE :=
 
 
 
+########################################
+# Racket
+########################################
+
+%.racket_run: %.racket $(RACO)
+	-$(RACO) make $<
 
