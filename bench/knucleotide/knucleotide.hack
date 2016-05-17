@@ -18,7 +18,7 @@ function read_sequence($id) {
    $fd = STDIN;
 
    // reach sequence three
-   
+   $line = '';
    while (strpos($line, $id) ===false){
       $line = stream_get_line($fd, 64, "\n"); // returns faster when the length is too large
       if(feof($fd)){
