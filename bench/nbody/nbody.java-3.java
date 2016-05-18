@@ -3,6 +3,7 @@
 
    contributed by Mark C. Lewis
    modified slightly by Chad Whipkey
+   modified slightly by Stefan Feldbinder
 */
 
 public final class nbody {
@@ -44,6 +45,7 @@ final class NBodySystem {
       for(int i=0; i < bodies.length; ++i) {
          Body iBody = bodies[i];
          for(int j=i+1; j < bodies.length; ++j) {
+            Body jBody = bodies[j];
             double dx = iBody.x - bodies[j].x;
             double dy = iBody.y - bodies[j].y;
             double dz = iBody.z - bodies[j].z;
@@ -56,9 +58,9 @@ final class NBodySystem {
             iBody.vy -= dy * bodies[j].mass * mag;
             iBody.vz -= dz * bodies[j].mass * mag;
 
-            bodies[j].vx += dx * iBody.mass * mag;
-            bodies[j].vy += dy * iBody.mass * mag;
-            bodies[j].vz += dz * iBody.mass * mag;
+            jBody.vx += dx * iBody.mass * mag;
+            jBody.vy += dy * iBody.mass * mag;
+            jBody.vz += dz * iBody.mass * mag;
          }
       }
 
