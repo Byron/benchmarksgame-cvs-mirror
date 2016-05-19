@@ -2,112 +2,115 @@
    http://benchmarksgame.alioth.debian.org/
 
    contributed by Mark C. Lewis
-   modified slightly by Chad Whipkey
-
-   Same program, different command-line: 
-      -XX:MaxMetaspaceSize=3m -XX:InitialCodeCacheSize=2048K -XX:ReservedCodeCacheSize=2048K
 */
 
-public final class nbody {
-    public static void main(String[] args) {
-        int n = Integer.parseInt(args[0]);
+import java.text.*;
 
-        NBodySystem bodies = new NBodySystem();
-        System.out.printf("%.9f\n", bodies.energy());
-        for (int i=0; i<n; ++i)
-           bodies.advance(0.01);
-        System.out.printf("%.9f\n", bodies.energy());
-    }
+public final class nbody {
+   public static void main(String[] args) {      
+      NumberFormat nf = NumberFormat.getInstance();
+      nf.setMaximumFractionDigits(9);
+      nf.setMinimumFractionDigits(9);
+      nf.setGroupingUsed(false);      
+   
+      int n = Integer.parseInt(args[0]);
+      
+      NBodySystem bodies = new NBodySystem();
+      
+      System.out.println(nf.format(bodies.energy()) );
+      for (int i=0; i<n; ++i) {
+         bodies.advance(0.01);
+      }
+      System.out.println(nf.format(bodies.energy()) );      
+   }
 }
 
-final class NBodySystem {
-   private Body[] bodies;
 
-   public NBodySystem(){
+final class NBodySystem {      
+   private Body[] bodies;
+              
+   public NBodySystem(){         
       bodies = new Body[]{
-            Body.sun(),
+            Body.sun(),      
             Body.jupiter(),
             Body.saturn(),
             Body.uranus(),
-            Body.neptune()
+            Body.neptune()                                    
          };
-
+      
       double px = 0.0;
-      double py = 0.0;
-      double pz = 0.0;
-      for(int i=0; i < bodies.length; ++i) {
+      double py = 0.0;   
+      double pz = 0.0;            
+      for(int i=0; i < bodies.length; ++i) {                                          
          px += bodies[i].vx * bodies[i].mass;
-         py += bodies[i].vy * bodies[i].mass;
-         pz += bodies[i].vz * bodies[i].mass;
-      }
+         py += bodies[i].vy * bodies[i].mass;      
+         pz += bodies[i].vz * bodies[i].mass;            
+      }      
       bodies[0].offsetMomentum(px,py,pz);
    }
-
+                        
    public void advance(double dt) {
-
+      double dx, dy, dz, distance, mag;   
+   
       for(int i=0; i < bodies.length; ++i) {
-            Body iBody = bodies[i];
-         for(int j=i+1; j < bodies.length; ++j) {
-                double dx = iBody.x - bodies[j].x;
-            double dy = iBody.y - bodies[j].y;
-            double dz = iBody.z - bodies[j].z;
-
-                double dSquared = dx * dx + dy * dy + dz * dz;
-                double distance = Math.sqrt(dSquared);
-                double mag = dt / (dSquared * distance);
-
-            iBody.vx -= dx * bodies[j].mass * mag;
-            iBody.vy -= dy * bodies[j].mass * mag;
-            iBody.vz -= dz * bodies[j].mass * mag;
-
-            bodies[j].vx += dx * iBody.mass * mag;
-            bodies[j].vy += dy * iBody.mass * mag;
-            bodies[j].vz += dz * iBody.mass * mag;
+         for(int j=i+1; j < bodies.length; ++j) {   
+            dx = bodies[i].x - bodies[j].x;
+            dy = bodies[i].y - bodies[j].y;
+            dz = bodies[i].z - bodies[j].z;
+            
+            distance = Math.sqrt(dx*dx + dy*dy + dz*dz);               
+            mag = dt / (distance * distance * distance);
+            
+            bodies[i].vx -= dx * bodies[j].mass * mag;
+            bodies[i].vy -= dy * bodies[j].mass * mag;
+            bodies[i].vz -= dz * bodies[j].mass * mag;
+            
+            bodies[j].vx += dx * bodies[i].mass * mag;
+            bodies[j].vy += dy * bodies[i].mass * mag;
+            bodies[j].vz += dz * bodies[i].mass * mag;
          }
-      }
-
-        for ( Body body : bodies) {
-         body.x += dt * body.vx;
-         body.y += dt * body.vy;
-         body.z += dt * body.vz;
-      }
-   }
-
-   public double energy(){
-      double dx, dy, dz, distance;
-      double e = 0.0;
-
+      }      
+      
+      for(int i=0; i < bodies.length; ++i) {
+         bodies[i].x += dt * bodies[i].vx;
+         bodies[i].y += dt * bodies[i].vy;
+         bodies[i].z += dt * bodies[i].vz;
+      }      
+   }         
+   
+   public double energy(){      
+      double dx, dy, dz, distance;   
+      double e = 0.0;         
+      
       for (int i=0; i < bodies.length; ++i) {
-            Body iBody = bodies[i];
-            e += 0.5 * iBody.mass *
-                 ( iBody.vx * iBody.vx
-                   + iBody.vy * iBody.vy
-                   + iBody.vz * iBody.vz );
-
+         e += 0.5 * bodies[i].mass * 
+            ( bodies[i].vx * bodies[i].vx 
+            + bodies[i].vy * bodies[i].vy 
+            + bodies[i].vz * bodies[i].vz );
+            
          for (int j=i+1; j < bodies.length; ++j) {
-                Body jBody = bodies[j];
-                dx = iBody.x - jBody.x;
-            dy = iBody.y - jBody.y;
-            dz = iBody.z - jBody.z;
-
+            dx = bodies[i].x - bodies[j].x;
+            dy = bodies[i].y - bodies[j].y;
+            dz = bodies[i].z - bodies[j].z;
+            
             distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-            e -= (iBody.mass * jBody.mass) / distance;
+            e -= (bodies[i].mass * bodies[j].mass) / distance;
          }
       }
       return e;
-   }
+   }                                                                                                           
 }
 
 
 final class Body {
-   static final double PI = 3.141592653589793;
+   static final double PI = 3.141592653589793;   
    static final double SOLAR_MASS = 4 * PI * PI;
    static final double DAYS_PER_YEAR = 365.24;
 
    public double x, y, z, vx, vy, vz, mass;
-
-   public Body(){}
-
+   
+   public Body(){}   
+   
    static Body jupiter(){
       Body p = new Body();
       p.x = 4.84143144246472090e+00;
@@ -116,10 +119,10 @@ final class Body {
       p.vx = 1.66007664274403694e-03 * DAYS_PER_YEAR;
       p.vy = 7.69901118419740425e-03 * DAYS_PER_YEAR;
       p.vz = -6.90460016972063023e-05 * DAYS_PER_YEAR;
-      p.mass = 9.54791938424326609e-04 * SOLAR_MASS;
+      p.mass = 9.54791938424326609e-04 * SOLAR_MASS;                  
       return p;
-   }
-
+   }   
+   
    static Body saturn(){
       Body p = new Body();
       p.x = 8.34336671824457987e+00;
@@ -128,10 +131,10 @@ final class Body {
       p.vx = -2.76742510726862411e-03 * DAYS_PER_YEAR;
       p.vy = 4.99852801234917238e-03 * DAYS_PER_YEAR;
       p.vz = 2.30417297573763929e-05 * DAYS_PER_YEAR;
-      p.mass = 2.85885980666130812e-04 * SOLAR_MASS;
+      p.mass = 2.85885980666130812e-04 * SOLAR_MASS;                  
       return p;
-   }
-
+   }   
+   
    static Body uranus(){
       Body p = new Body();
       p.x = 1.28943695621391310e+01;
@@ -140,9 +143,9 @@ final class Body {
       p.vx = 2.96460137564761618e-03 * DAYS_PER_YEAR;
       p.vy = 2.37847173959480950e-03 * DAYS_PER_YEAR;
       p.vz = -2.96589568540237556e-05 * DAYS_PER_YEAR;
-      p.mass = 4.36624404335156298e-05 * SOLAR_MASS;
+      p.mass = 4.36624404335156298e-05 * SOLAR_MASS;                     
       return p;
-   }
+   }      
 
    static Body neptune(){
       Body p = new Body();
@@ -152,21 +155,20 @@ final class Body {
       p.vx = 2.68067772490389322e-03 * DAYS_PER_YEAR;
       p.vy = 1.62824170038242295e-03 * DAYS_PER_YEAR;
       p.vz = -9.51592254519715870e-05 * DAYS_PER_YEAR;
-      p.mass = 5.15138902046611451e-05 * SOLAR_MASS;
+      p.mass = 5.15138902046611451e-05 * SOLAR_MASS;                  
       return p;
    }
-
+   
    static Body sun(){
       Body p = new Body();
-      p.mass = SOLAR_MASS;
+      p.mass = SOLAR_MASS;                  
       return p;
-   }
-
+   }         
+   
    Body offsetMomentum(double px, double py, double pz){
       vx = -px / SOLAR_MASS;
       vy = -py / SOLAR_MASS;
-      vz = -pz / SOLAR_MASS;
-      return this;
-   }
+      vz = -pz / SOLAR_MASS;      
+      return this;   
+   }                             
 }
-
