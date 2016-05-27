@@ -16,7 +16,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-class FastaRedux
+class Fasta
 {
     const int LineLength = 60;
 
@@ -27,11 +27,12 @@ class FastaRedux
 
     public static void Main(string[] args)
     {
-        int n = args.Length > 0 ? Int32.Parse(args[0]) : 25000000;
+        int n = args.Length > 0 ? Int32.Parse(args[0]) : 1000;
 
         MakeCumulative(IUB);
         MakeCumulative(HomoSapiens);
 
+        //using (var s = new System.IO.MemoryStream()) // testing version to avoid large dump to screen
         using (var s = Console.OpenStandardOutput())
         {
             MakeRepeatFasta("ONE", "Homo sapiens alu", Encoding.ASCII.GetBytes(ALU), n * 2, s);
@@ -123,6 +124,7 @@ class FastaRedux
 
     static byte SelectRandom(Frequency[] a, int _r)
     {
+        double r = _r / (double)IM;
         for (int i = 0; i < a.Length; i++)
         {
             var ai = a[i];
@@ -165,7 +167,12 @@ class FastaRedux
             set
             {
                 _p = value;
-                pDenormalized = (int)(p * IM);
+
+                // Note: the extra value of (IM - 1.0) / IM is to correct for integer rounding in the comparison in 
+                //       SelectRandom and ensure we get the same results as the original algorithm
+                //       in a real implementation, it wouldn't be used unless 100% compatiblity with
+                //       existing results is required.
+                pDenormalized = (int)(p * IM + ((IM - 1.0) / IM));
             }
         }
 
