@@ -1,7 +1,8 @@
 // The Computer Language Benchmarks Game
 // http://benchmarksgame.alioth.debian.org/
 //
-// contributed Roman Pletnev
+// contributed by Zach Kelling
+// modified by Roman Pletnev
 
 var bignum = require('bignum');
 
