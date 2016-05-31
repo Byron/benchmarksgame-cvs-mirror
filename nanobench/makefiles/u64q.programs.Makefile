@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.27 2016/05/31 16:07:19 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.28 2016/05/31 17:04:00 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -663,7 +663,6 @@ SBCL_TRACE :=
 
 %.node_run: %.node $(NODEJS)
 	-cp -L $< $*.js
-	-$(NODEJS) $(NODEOPTS) $*.js
 
 
 
