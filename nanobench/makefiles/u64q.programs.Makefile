@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.26 2016/05/30 16:36:18 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.27 2016/05/31 16:07:19 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -179,6 +179,18 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 %.fsharp_run: %.fs
 	-$(FSHARPC) --target:exe --platform:x64 -O $(FSHARPOPTS) -o $@.exe $<
 
+
+
+########################################
+# .NET Core (F#)
+########################################
+
+%.fsharpcore_run: %.fsharpcore $(DOTNETCORE)
+	-cp $< Program.fs
+	-cp Include/fsharpcore/* .
+	-$(DOTNETCORE) build -c Release
+
+
 ########################################
 # Zonnon
 ########################################
@@ -200,26 +212,13 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 
 
 ########################################
-# .Net Core (C#)
+# .NET Core (C#)
 ########################################
 
 %.csharpcore_run: %.csharpcore $(DOTNETCORE)
-	-mv $< $(TEST).cs
+	-cp $< Program.cs
 	-cp Include/csharpcore/* .
 	-$(DOTNETCORE) build -c Release
-
-
-
-########################################
-# .Net Core (F#)
-########################################
-
-%.fsharpcore_run: %.fsharpcore $(DOTNETCORE)
-#	-mv $< $(TEST).fs
-	-mv $< Program.fs
-	-cp Include/fsharpcore/* .
-	-$(DOTNETCORE) build -c Release
-
 
 
 ########################################
@@ -329,6 +328,33 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 	-mv $< $(TEST).java
 	-$(JDKC) $(TEST).java
 
+%.javaxx_run: %.javaxx $(JDKRUN)
+	-mv $< $(TEST).java
+	-$(JDKC) $(TEST).java
+
+%.javaxint_run: %.javaxint $(JDKRUN)
+	-mv $< $(TEST).java
+	-$(JDKC) $(TEST).java
+
+%.javaclient_run: %.javaclient $(JDKRUN)
+	-mv $< $(TEST).java
+	-$(JDKC) $(TEST).java
+
+%.java14_run: %.java14 $(JDKOLDRUN)
+	-mv $< $(TEST).java
+	-$(JDKOLDC) $(TEST).java
+
+%.java5_run: %.java5 $(JDK5RUN)
+	-mv $< $(TEST).java
+	-$(JDK5C) $(TEST).java
+
+%.ibmjava_run: %.ibmjava $(IBMJDKRUN)
+	-mv $< $(TEST).java
+	-$(IBMJDKC) $(TEST).java
+
+%.javasteady_run: %.javasteady $(JDKRUN)
+	-mv $< $(TEST).java
+	-$(JDKC) $(TEST).java
 
 
 ########################################
@@ -637,6 +663,7 @@ SBCL_TRACE :=
 
 %.node_run: %.node $(NODEJS)
 	-cp -L $< $*.js
+	-$(NODEJS) $(NODEOPTS) $*.js
 
 
 
@@ -666,4 +693,5 @@ SBCL_TRACE :=
 
 %.racket_run: %.racket $(RACO)
 	-$(RACO) make $<
+
 
