@@ -1,0 +1,332 @@
+﻿/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   Contributed by Peperud
+
+   Naive attempt at introducing concurrency.
+   Ideas and code borrowed from various other contributions and places. 
+
+    TODO 
+        Better way to reverse complement the block's body without having 
+        to flatten it first.   
+
+    NOTES        
+        Running with LLVM makes it crash in x86, possibly related to try/catch 
+        usage - see the limitations section on Mono's LLVM page 
+        http://www.mono-project.com/docs/advanced/mono-llvm/ 
+        ...and in my tests is slower than using Mono's JIT.
+
+    SUGGESTED USAGE
+        mono --server revcomp 0 < input.txt
+*/
+
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+
+static class revcomp
+{
+    static BlockingCollection<byte[]> inputBufferQue = new BlockingCollection<byte[]>();
+    static BlockingCollection<RCBlock> parserQue = new BlockingCollection<RCBlock>();
+    static BlockingCollection<RCBlock> outputQue = new BlockingCollection<RCBlock>();
+
+    static readonly int READER_BUFFER_SIZE = 1024 * 1024 * 16;
+
+    static readonly byte[] comp = new byte[256];
+    static readonly byte LF = 10;
+    const string Seq = "ABCDGHKMRTVYabcdghkmrtvy";
+    const string Rev = "TVGHCDMKYABRTVGHCDMKYABR";
+
+    static void Main(string[] args)
+    {
+        Task.Run(() => Reader());
+
+        Task.Run(() => Parser());
+
+        InitComplements();
+
+        Task.Run(() => Reverser());
+
+        Task.Run(() => Writer()).Wait();
+    }
+
+    static void Reader()
+    {
+        using (var inS = Console.OpenStandardInput())
+        {
+            byte[] buf;
+            int bytesRead;
+
+            do
+            {
+                buf = new byte[READER_BUFFER_SIZE];
+                bytesRead = inS.Read(buf, 0, READER_BUFFER_SIZE);
+                if (bytesRead > 0)
+                {
+                    if (bytesRead == READER_BUFFER_SIZE)
+                    {
+                        inputBufferQue.Add(buf);
+                    }
+                    else
+                    {
+                        var tmp = new byte[bytesRead];
+                        Buffer.BlockCopy(buf, 0, tmp, 0, bytesRead);
+                        inputBufferQue.Add(tmp);
+                    }
+                }
+            } while (bytesRead == READER_BUFFER_SIZE);
+
+            inputBufferQue.CompleteAdding();
+        }
+    }
+
+    static void Parser()
+    {
+        var rdr = new RCBlockReader(inputBufferQue);
+        var rcBlock = rdr.Read();
+        while (rcBlock != null)
+        {
+            parserQue.Add(rcBlock);
+            rcBlock = rdr.Read();
+        }
+        parserQue.CompleteAdding();
+    }
+
+    static void Reverser()
+    {
+        try
+        {
+            while (!parserQue.IsCompleted)
+            {
+                var block = parserQue.Take();
+                block.ReverseAndComplement();
+                outputQue.Add(block);
+            }
+        }
+        catch (InvalidOperationException) 
+        {
+            // normal if attempted to read empty queue
+        }
+        finally
+        {
+            outputQue.CompleteAdding();
+        }
+    }
+
+    static void Writer()
+    {
+        using (var outS = Console.OpenStandardOutput())
+        {
+            try
+            {
+                while (!outputQue.IsCompleted)
+                {
+                    var block = outputQue.Take();
+                    block.Write(outS);
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // normal if attempted to read empty queue
+            }
+        }
+    }
+
+    static void InitComplements()
+    {
+        for (byte i = 0; i < 255; i++)
+        {
+            comp[i] = i;
+        }
+        for (int i = 0; i < Seq.Length; i++)
+        {
+            comp[(byte)Seq[i]] = (byte)Rev[i];
+        }
+        comp[LF] = 0;
+        comp[(byte)' '] = 0;
+    }
+
+    class RCLine
+    {
+        public List<byte[]> Line = new List<byte[]>();
+        private int Size = 0;
+
+        public void Add(byte[] buff)
+        {
+            Line.Add(buff);
+            Size += buff.Length;
+        }
+
+        public void Add(byte[] buffer, int pos, int len)
+        {
+            var tmp = new byte[len];
+            Buffer.BlockCopy(buffer, pos, tmp, 0, len);
+            Add(tmp);
+        }
+
+        public byte[] Flatten()
+        {
+            var result = new byte[Size];
+            int pos = 0, cnt = Line.Count;
+
+            for (var i = 0; i < cnt; i++)
+            {
+                Buffer.BlockCopy(Line[i], 0, result, pos, Line[i].Length);
+                pos += Line[i].Length;
+            }
+
+            return result;
+        }
+    }
+
+    static RCLine AddIt(this RCLine rcline, byte[] buffer, int pos, int len)
+    {
+        if (rcline == null)
+        {
+            rcline = new RCLine();
+        }
+
+        rcline.Add(buffer, pos, len);
+        return rcline;
+    }
+
+    class RCBlock
+    {
+        public RCLine Title;
+        public RCLine Data;
+        public byte[] FlatData;
+        public byte[] FlatTitle;
+
+        internal void ReverseAndComplement()
+        {
+            var tt = new[]
+            {
+                Task.Run(() => FlatData = Data.Flatten()),
+                Task.Run(() => FlatTitle = Title.Flatten())
+            };
+            Task.WaitAll(tt);
+
+            int i = 0, j = FlatData.Length - 1;
+            byte ci, cj;
+
+            while (i < j)
+            {
+                ci = FlatData[i];
+                if (ci == LF)
+                {
+                    i++;
+                    ci = FlatData[i];
+                }
+                cj = FlatData[j];
+                if (cj == LF)
+                {
+                    j--;
+                    cj = FlatData[j];
+                }
+                FlatData[i] = comp[cj];
+                FlatData[j] = comp[ci];
+                i++;
+                j--;
+            }
+        }
+
+        internal void Write(Stream s)
+        {
+            s.Write(FlatTitle, 0, FlatTitle.Length);
+            s.WriteByte(LF);
+            s.Write(FlatData, 0, FlatData.Length);
+        }
+    }
+
+    class RCBlockReader
+    {
+        BlockingCollection<byte[]> readQue;
+        static readonly byte GT = (byte)'>';
+        byte[] byteBuffer;
+        int bytePos, bytesRead;
+
+        public RCBlockReader(BlockingCollection<byte[]> readQue)
+        {
+            this.readQue = readQue;
+        }
+
+        public RCBlock Read()
+        {
+            var title = ReadLine(LF);
+            if (title == null)
+            {
+                return null;
+            }
+
+            return new RCBlock { Title = title, Data = ReadLine(GT, true) };
+        }
+
+        private RCLine ReadLine(byte lineSeparator, bool dontAdvanceBytePos = false)
+        {
+            if (bytePos == bytesRead && ReadToBuffer() == 0)
+            {
+                return null;
+            }
+            if (bytesRead == 0) return null;
+
+            RCLine result = null;
+            int num;
+
+            while (true)
+            {
+                num = bytePos;
+                do
+                {
+                    if (byteBuffer[num] == lineSeparator)
+                    {
+                        result = result.AddIt(byteBuffer, bytePos, num - bytePos);
+                        bytePos = num + (dontAdvanceBytePos ? 0 : 1);
+
+                        return result;
+                    }
+                    num++;
+                } while (num < bytesRead);
+
+                result = result.AddIt(byteBuffer, bytePos, bytesRead - bytePos);
+
+                if (ReadToBuffer() == 0)
+                {
+                    return result;
+                }
+            }
+        }
+
+        private int ReadToBuffer()
+        {
+            //if (!readQue.IsCompleted)
+            //{
+            //    byteBuffer = readQue.Take();
+            //    bytePos = 0;
+            //    bytesRead = byteBuffer.Length;
+            //    return bytesRead;
+            //}
+            //else
+            //{
+            //    byteBuffer = null;
+            //    bytesRead = 0;
+            //    return 0;
+            //}
+
+            try
+            {
+                byteBuffer = readQue.Take();
+                bytePos = 0;
+                bytesRead = byteBuffer.Length;
+                return bytesRead;
+            }
+            catch (InvalidOperationException)
+            {
+                byteBuffer = null;
+                bytesRead = 0;
+                return 0;
+            }
+        }
+    }
+}
