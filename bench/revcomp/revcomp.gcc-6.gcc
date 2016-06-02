@@ -23,6 +23,8 @@
 typedef intptr_t intnative_t;
 
 
+static intnative_t next_Sequence_Number_To_Output=1;
+
 static void process_Sequence(char * sequence, const intnative_t sequence_Size
   , const intnative_t sequence_Number){
    // Free up any memory we didn't need.
@@ -50,12 +52,13 @@ static void process_Sequence(char * sequence, const intnative_t sequence_Size
    }
 
    // Wait for our turn to output the altered sequence and then output it.
-   static intnative_t next_Sequence_Number_To_Output=1;
+   #pragma omp flush(next_Sequence_Number_To_Output)
    while(sequence_Number!=next_Sequence_Number_To_Output){
       #pragma omp flush(next_Sequence_Number_To_Output)
    }
    fwrite(sequence, 1, sequence_Size, stdout);
    next_Sequence_Number_To_Output++;
+   #pragma omp flush(next_Sequence_Number_To_Output)
 
    // Free the memory for the altered sequence.
    free(sequence);
