@@ -1,0 +1,84 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   contributed by Roman Pletnev, a port of Petr Prokhorenkov's C program
+ */
+
+'use strict';
+
+var IM = 139968, IA = 3877, IC = 29573, last = 42;
+var LINE_LEN = 60, LOOKUP_SIZE = 4096, LOOKUP_SCALE = LOOKUP_SIZE - 1;
+
+function random() {
+    last = (last*IA + IC)%IM;
+    return last*LOOKUP_SCALE/IM;
+}
+
+function repeat(alu, title, n){
+    var len = alu.length, pos = 0, buffer = alu, line = '';
+    for (var i=0; i<LINE_LEN; ++i) buffer += alu.charAt(i);
+    console.log(title);
+    while (n) {
+        var bytes = n>LINE_LEN ? LINE_LEN : n;
+        for (var i=0; i<bytes; ++i) line += buffer.charAt(pos+i);
+        console.log(line);
+        line = '';
+        pos += bytes;
+        if (pos>len) pos -= len;
+        n -= bytes;
+    }
+}
+
+function fill_lookup(lookup, ac){
+    var p = 0;
+    for (var i=0; i<ac.length; ++i) {
+        p += ac[i].p;
+        ac[i].c = p*LOOKUP_SCALE;
+    }
+    ac[ac.length-1].c = LOOKUP_SIZE-1;
+    for (var i=0, j=0; i<LOOKUP_SIZE; ++i) {
+        while (ac[j].c<i) ++j;
+        lookup.push(ac[j]);
+    }
+}
+
+function randomize(ac, title, n){
+    var lookup = [], line_buffer = '';
+    fill_lookup(lookup, ac);
+    console.log(title);
+    for (var i=0, j=0; i<n; ++i, ++j) {
+        if (j === LINE_LEN) {
+            console.log(line_buffer);
+            j = 0;
+            line_buffer = '';
+        }
+        for(var r=random(), k=~~r; lookup[k].c<r; ++k) {}
+        line_buffer += lookup[k].s;
+    }
+    console.log(line_buffer);
+}
+
+var ac = [{s: 'a', p: 0.27, c: 0}, {s: 'c', p: 0.12, c: 0},
+    {s: 'g', p: 0.12, c: 0}, {s: 't', p: 0.27, c: 0}, {s: 'B', p: 0.02, c: 0},
+    {s: 'D', p: 0.02, c: 0}, {s: 'H', p: 0.02, c: 0}, {s: 'K', p: 0.02, c: 0},
+    {s: 'M', p: 0.02, c: 0}, {s: 'N', p: 0.02, c: 0}, {s: 'R', p: 0.02, c: 0},
+    {s: 'S', p: 0.02, c: 0}, {s: 'V', p: 0.02, c: 0}, {s: 'W', p: 0.02, c: 0},
+    {s: 'Y', p: 0.02, c: 0}];
+
+var hs = [{s: 'a', p: 0.3029549426680, c: 0},
+    {s: 'c', p: 0.1979883004921, c: 0}, {s: 'g', p: 0.1975473066391, c: 0},
+    {s: 't', p: 0.3015094502008, c: 0}];
+
+var alu = 'GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTG'
+   +'GGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGA'
+   +'GACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAA'
+   +'AATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAAT'
+   +'CCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAAC'
+   +'CCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTG'
+   +'CACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA';
+
+var n = process.argv[2] ? parseInt(process.argv[2]) : 512;
+
+repeat(alu, '>ONE Homo sapiens alu', n*2);
+randomize(ac, '>TWO IUB ambiguity codes', n*3);
+randomize(hs, '>THREE Homo sapiens frequency', n*5);
