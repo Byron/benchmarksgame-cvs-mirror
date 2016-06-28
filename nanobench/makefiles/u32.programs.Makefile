@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u32.programs.Makefile,v 1.20 2016/05/19 17:34:06 igouy-guest Exp $
+# $Id: u32.programs.Makefile,v 1.21 2016/06/28 21:42:43 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -194,11 +194,12 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 # Mono (C#)
 ########################################
 
-%.cs: %.csharp $(MONOC)
+%.cs: %.csharpllvm $(MONOC)
 	-mv $< $@
 
-%.csharp_run: %.cs
+%.csharpllvm_run: %.cs
 	-$(MONOC) $(MONOOPTS) -optimize+ -platform:x86 -out:$@ $<
+
 
 
 ########################################
