@@ -1,0 +1,57 @@
+# The Computer Language Benchmarks Game
+# http://benchmarksgame.alioth.debian.org
+#
+# contributed by Aaron Tavistock
+
+def find_frequencies(keys)
+  counts = Hash.new(0)
+  threads = []
+  keys.each do |key|
+    threads << Thread.new do
+      key_string = key.to_s.freeze
+      last_index = 0
+      while last_index = @seq.index(key_string, last_index+1)
+        counts[key] += 1
+      end
+    end
+  end
+  threads.each(&:join)
+  counts
+end
+
+def frequency(keys)
+  @frequencies.select { |k,_| keys.include?(k) }
+end
+
+def percentage(keys)
+  frequency(keys).sort { |a,b| b[1] <=> a[1] }.map do |key, value|
+    "%s %.3f" % [ key.upcase, ( (value*100).to_f / @seq.size) ]
+  end
+end
+
+def count(keys)
+  frequency(keys).sort_by { |a| a[0].size }.map do |key, value|
+    "#{value.to_s}\t#{key.upcase}"
+  end
+end
+
+def load_sequence(marker)
+  input = STDIN.read
+  start_idx = input.index(marker) + marker.size
+  seq = input[start_idx, input.size - 1]
+  seq.delete!(' ')
+  seq.delete!("\n")
+  seq.freeze
+  seq
+end
+
+singles = %i(a t c g)
+doubles = %i(aa at ac ag ta tt tc tg ca ct cc cg ga gt gc gg)
+chains  = %i(ggt ggta ggtatt ggtattttaatt ggtattttaatttatagt)
+
+@seq = load_sequence('>THREE Homo sapiens frequency')
+@frequencies = find_frequencies(singles + doubles + chains)
+
+print "#{percentage(singles).join("\n")}\n\n"
+print "#{percentage(doubles).join("\n")}\n\n"
+print "#{count(chains).join("\n")}\n"
