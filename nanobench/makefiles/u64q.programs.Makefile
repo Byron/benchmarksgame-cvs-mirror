@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.30 2016/07/11 19:10:15 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.31 2016/07/11 20:51:49 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -654,8 +654,7 @@ SBCL_TRACE :=
 %.typescript_run: %.typescript $(TYPSCRIPT)
 	-mv $< $*.ts
 	-$(TYPSCRIPT) $(TSOPTS) $*.ts
-	-mv $*.js $*.js0
-	-/usr/local/src/node-v6.3.0-linux-x64/lib/node_modules/babel-cli/bin/babel.js --plugins transform-es2015-modules-commonjs $*.js0 -o $*.js
+	-/usr/local/src/node-v6.3.0-linux-x64/lib/node_modules/babel-cli/bin/babel.js --plugins transform-es2015-modules-commonjs $*.js -o $*.js
 
 
 
