@@ -5,8 +5,6 @@
    TypeScript adaptation by Josh Goldfoot
 */
 
-"use strict";
-
 /// <reference path="/usr/local/src/typescript/node.d.ts" />
 
 class LinkedArray {
