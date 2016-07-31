@@ -153,7 +153,7 @@ func advance(dt: Double) {
    }		
 
    for i in 0..<bodies.count {
-      bodies[i].advance(dt)
+      bodies[i].advance(dt: dt)
    }	
 }
 
@@ -162,7 +162,7 @@ let n: Int = Int(Process.arguments[1])!
 offsetMomentum()
 print( energy() )
 for _ in 1...n {
-   advance(0.01)
+   advance(dt: 0.01)
 }
 print( energy() )
 
