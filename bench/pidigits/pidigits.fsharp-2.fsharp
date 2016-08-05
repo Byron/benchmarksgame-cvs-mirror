@@ -1,0 +1,59 @@
+(* The Computer Language Benchmarks Game
+ * http://benchmarksgame.alioth.debian.org/
+ *
+ * Contributed by Udo Zallmann
+ *)
+
+type 'a stream = Stream of 'a * (unit -> 'a stream)
+
+type LFT = LFT of bigint * bigint * bigint
+
+let streamCalc (next : 'b -> 'c)
+               (safe : 'b -> 'c -> bool)
+               (prod : 'b -> 'c -> 'b)
+               (cons : 'b -> 'a -> 'b) z s =
+    let rec streamCalcInt z (Stream (x, xs) as s) =
+        let y = next z
+        if safe z y
+        then Stream (y, fun () -> streamCalcInt (prod z y) s)
+        else streamCalcInt (cons z x) (xs ())
+    streamCalcInt z s
+
+let rec toSeq s = s |> Seq.unfold (fun (Stream (x, xs)) -> Some (x, xs ()))
+
+let comp (LFT (q, r, t)) (LFT (u, v, x)) = LFT (q * u, q * v + r * x, t * x)
+
+let extr (LFT (q, r, t)) x = (q * x + r) / t
+
+let rec lfts k =
+    Stream (let m = 2I * k + 1I in LFT (k, 2I * m, m), fun () -> lfts (k + 1I))
+
+let printLine l t a =
+    let inline chr x = char (48 + x)
+    let s = ((Core.string (Array.map chr a)).Substring (0, l)).PadRight a.Length
+    printfn "%s\t:%d" s t
+
+let printLinesOf n tot s =
+    let r = Array.zeroCreate n
+    (1, s) ||> Seq.fold (fun t x ->
+                let i = t % n
+                let u = if i = 0 then n else i
+                r.[u - 1] <- x
+                if t = tot then printLine u t r
+                elif i = 0 then printLine n t r
+                t + 1)
+           |> ignore
+
+let print n s = toSeq s |> Seq.map int |> Seq.take n |> printLinesOf 10 n
+
+[<EntryPoint>]
+let main args =
+    let n = try int args.[0] with _ -> 27
+    streamCalc (fun z -> extr z 3I)
+               (fun z n -> n = extr z 4I)
+               (fun z n -> comp (LFT (10I, -10I * n, 1I)) z)
+               comp
+               (LFT (1I, 0I, 1I))
+               (lfts 1I)
+    |> print n
+    0
