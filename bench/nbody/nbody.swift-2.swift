@@ -8,19 +8,19 @@ import Glibc
 struct Body {
    var x, y, z, vx, vy, vz, mass : Double
 
-   mutating func advance(dt: Double) {
+   mutating func advance(_ dt: Double) {
       x += dt * vx
       y += dt * vy
       z += dt * vz
    }
 
-   mutating func dec(vx: Double, _ vy: Double, _ vz: Double) {
+   mutating func dec(_ vx: Double, _ vy: Double, _ vz: Double) {
       self.vx -= vx
       self.vy -= vy
       self.vz -= vz
    }
 
-   mutating func inc(vx: Double, _ vy: Double, _ vz: Double) {
+   mutating func inc(_ vx: Double, _ vy: Double, _ vz: Double) {
       self.vx += vx
       self.vy += vy
       self.vz += vz
@@ -126,7 +126,7 @@ func energy() -> Double {
 }
 
 
-func advance(dt: Double) {
+func advance(_ dt: Double) {
    var dx, dy, dz, distance, mag: Double	
 	
    for i in 0..<bodies.count {
@@ -153,7 +153,7 @@ func advance(dt: Double) {
    }		
 
    for i in 0..<bodies.count {
-      bodies[i].advance(dt: dt)
+      bodies[i].advance(dt)
    }	
 }
 
@@ -162,8 +162,9 @@ let n: Int = Int(Process.arguments[1])!
 offsetMomentum()
 print( energy() )
 for _ in 1...n {
-   advance(dt: 0.01)
+   advance(0.01)
 }
 print( energy() )
+
 
 

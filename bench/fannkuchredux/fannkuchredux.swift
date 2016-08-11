@@ -6,11 +6,11 @@
 */
 
 
-func fannkuch(n: Int) -> Int {
-   var perm = Array(count: n, repeatedValue: 0),
-      count = Array(count: n, repeatedValue: 0)
+func fannkuch(_ n: Int) -> Int {
+   var perm = Array(repeating: 0, count: n),
+      count = Array(repeating: 0, count: n)
 
-   var perm1 = Array(count: n, repeatedValue: 0)
+   var perm1 = Array(repeating: 0, count: n)
    for j in 0...n-1 { perm1[j] = j }
 
    var f = 0, i = 0, k = 0, r = 0, flips = 0, nperm = 0, checksum = 0

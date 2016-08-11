@@ -5,10 +5,10 @@
 
 import Glibc
 
-func approximate(n: Int) -> Double {
-   var u = Array(count: n, repeatedValue: 1.0) 
+func approximate(_ n: Int) -> Double {
+   var u = Array(repeating: 1.0, count: n) 
 
-   var v = Array(count: n, repeatedValue: 0.0) 
+   var v = Array(repeating: 0.0, count: n)
    for _ in 1...10 {
       multiplyAtAv(n,u,&v)
       multiplyAtAv(n,v,&u)
@@ -23,12 +23,12 @@ func approximate(n: Int) -> Double {
    return sqrt(vBv/vv)
 }
 
-func a(i: Int, _ j: Int) -> Double {
+func a(_ i: Int, _ j: Int) -> Double {
    let ij = i+j
    return 1.0 / Double( ij*(ij+1)/2 + i+1 ) 
 }
 
-func multiplyAv(n: Int, _ v: [Double], inout _ av: [Double]) {
+func multiplyAv(_ n: Int, _ v: [Double], _ av: inout [Double]) {
    for i in 0..<n {
       av[i] = 0.0;
       for j in 0..<n {
@@ -37,7 +37,7 @@ func multiplyAv(n: Int, _ v: [Double], inout _ av: [Double]) {
    }
 }
 
-func multiplyAtv(n: Int, _ v: [Double], inout _ atv: [Double]) {
+func multiplyAtv(_ n: Int, _ v: [Double], _ atv: inout [Double]) {
    for i in 0..<n {
       atv[i] = 0;
       for j in 0..<n {
@@ -46,8 +46,8 @@ func multiplyAtv(n: Int, _ v: [Double], inout _ atv: [Double]) {
    }
 }
 
-func multiplyAtAv(n: Int, _ v: [Double], inout _ atAv: [Double]) {
-   var u = Array(count: n, repeatedValue: 0.0) 
+func multiplyAtAv(_ n: Int, _ v: [Double], _ atAv: inout [Double]) {
+   var u = Array(repeating: 0.0, count: n) 
    multiplyAv(n,v,&u)
    multiplyAtv(n,u,&atAv)
 }

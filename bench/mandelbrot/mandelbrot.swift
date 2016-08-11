@@ -25,7 +25,7 @@ for y in 0..<h {
 
       i = 0
       while i < iter && (Tr+Ti <= limit*limit) {
-         ++i
+         i += 1
          Zi = 2.0*Zr*Zi + Ci
          Zr = Tr - Ti + Cr
          Tr = Zr * Zr
@@ -35,7 +35,7 @@ for y in 0..<h {
       byte_acc <<= 1
       if Tr+Ti <= limit*limit { byte_acc |= 0x01 }
 
-      ++bit_num
+      bit_num += 1
 
       if bit_num == 8 {
          putc(byte_acc,stdout) // Glibc

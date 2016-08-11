@@ -107,7 +107,7 @@ func energy() -> Double {
 }
 
 
-func advance(dt: Double) {
+func advance(_ dt: Double) {
     var dx, dy, dz, distance, mag: Double
 
     for i in 0..<bodies.count {
@@ -141,6 +141,7 @@ let n = Int(Process.arguments[1])!
 offsetMomentum()
 print( energy() )
 for _ in 1...n {
-    advance(dt: 0.01)
+    advance(0.01)
 }
 print( energy() )
+

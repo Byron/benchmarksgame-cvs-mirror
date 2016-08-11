@@ -22,7 +22,7 @@ class TreeNode {
    }
 }
 
-func bottomUpTree(item: Int, _ depth: Int) -> TreeNode {
+func bottomUpTree(_ item: Int, _ depth: Int) -> TreeNode {
    if depth > 0 {
       return 
          TreeNode(
