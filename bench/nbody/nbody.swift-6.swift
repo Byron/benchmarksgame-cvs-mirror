@@ -40,7 +40,7 @@ var neptune = ( (1.53796971148509165e+01,
 
 var bodies = [sun, jupiter, saturn, uranus, neptune]
 
-func advance(inout bodies: [((Double,Double,Double),
+func advance(_ bodies: inout [((Double,Double,Double),
 			     (Double,Double,Double),
 			    Double)], dt: Double) {
     for i in 0..<bodies.count {
@@ -68,11 +68,11 @@ func advance(inout bodies: [((Double,Double,Double),
     }
 }
 
-func energy(bodies: [((Double,Double,Double),
+func energy(_ bodies: [((Double,Double,Double),
 		      (Double,Double,Double),
 		      Double)]) -> Double {
     var energy = 0.0
-    for (i, body) in bodies.enumerate() {
+    for (i, body) in bodies.enumerated() {
         energy += 0.5 * body.2 * ( body.1.0*body.1.0
 				 + body.1.1*body.1.1
 				 + body.1.2*body.1.2)

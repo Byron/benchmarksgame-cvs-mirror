@@ -48,16 +48,16 @@ public func + (lhs: BigInt, rhs: BigInt) -> BigInt {
     return ret
 }
 
-public func += (inout lhs: BigInt, rhs: BigInt) {
+public func += (lhs: inout BigInt, rhs: BigInt) {
     __gmpz_add(&lhs.i, &lhs.i, &rhs.i)
 }
 
-public func += (inout lhs: BigInt, rhs: Int) {
+public func += (lhs: inout BigInt, rhs: Int) {
     let tmp = BigInt(rhs)
     __gmpz_add(&lhs.i, &lhs.i, &tmp.i)
 }
 
-public func *= (inout lhs: BigInt, rhs: BigInt) {
+public func *= (lhs: inout BigInt, rhs: BigInt) {
     __gmpz_mul(&lhs.i, &lhs.i, &rhs.i)
 }
 
@@ -95,27 +95,27 @@ func * (lhs: Matrix, rhs: Matrix) -> Matrix {
             (lhs.2*rhs.1)+(lhs.3*rhs.3))
 }
 
-func generate( k: Int) -> Matrix {
+func generate(_ k: Int) -> Matrix {
     return (BigInt(k), BigInt(4)*BigInt(k)+BigInt(2),
             BigInt(0), BigInt(2)*BigInt(k)+BigInt(1))
 }
 
-func extr(m: Matrix, x: BigInt ) -> BigInt {
+func extr(_ m: Matrix, x: BigInt ) -> BigInt {
     let a = (m.0 * x) + m.1
     let b = (m.2 * x) + m.3
     return a/b
 }
 
-func safe(z: Matrix, n: BigInt) -> Bool {
+func safe(_ z: Matrix, n: BigInt) -> Bool {
     return n == extr(z, x: BigInt(4))
 }
 
-func prod(z: Matrix, n: BigInt) -> Matrix {
+func prod(_ z: Matrix, n: BigInt) -> Matrix {
     return (BigInt(10), BigInt(-10)*n,
             BigInt(0), BigInt(1)) * z
 }
 
-func next (z: Matrix) -> BigInt {
+func next (_ z: Matrix) -> BigInt {
     return extr(z, x: BigInt(3))
 }
 
@@ -126,7 +126,7 @@ func computePi(withDigits digits: Int) {
     var k = 1
     var j = 0
 
-    var buffer = [Int](count: 10, repeatedValue: 0 )
+    var buffer = [Int](repeating: 0, count: 10 )
 
     while n < digits {
 
@@ -160,7 +160,7 @@ func computePi(withDigits digits: Int) {
     }
 }
 
-func printOutput( buffer: [Int], n: Int) {
+func printOutput(_ buffer: [Int], n: Int) {
     var output = ""
     var count = 0
 

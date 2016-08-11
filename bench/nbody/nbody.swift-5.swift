@@ -118,7 +118,7 @@ func energy() -> Double {
 }
 
 
-func advance(dt: Double) {
+func advance(_ dt: Double) {
    var dx, dy, dz, distance, mag: Double	
    let arrPtr = UnsafeMutablePointer<Body>(bodies)
    for i in 0..<bodies.count {
