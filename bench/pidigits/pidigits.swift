@@ -2,6 +2,7 @@
  The Computer Language Benchmarks Game
  http://benchmarksgame.alioth.debian.org/
  contributed by Robert F. Dickerson
+ fixed by Isaac Gouy
 */
 
 import CGMP
@@ -180,4 +181,5 @@ func printOutput(_ buffer: [Int], n: Int) {
     print(output)
 }
 
-computePi(withDigits: 10000)
+let n: Int = Int(Process.arguments[1])!
+computePi(withDigits: n)
