@@ -181,5 +181,5 @@ func printOutput(_ buffer: [Int], n: Int) {
     print(output)
 }
 
-let n: Int = Int(Process.arguments[1])!
+let n: Int = Int(CommandLine.arguments[1])!
 computePi(withDigits: n)

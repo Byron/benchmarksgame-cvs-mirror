@@ -9,8 +9,8 @@ import CBlock
 
 // Get matrix dimension
 let n: Int
-if Process.arguments.count > 1 {
-    n = Int(Process.arguments[1]) ?? 100
+if CommandLine.arguments.count > 1 {
+    n = Int(CommandLine.arguments[1]) ?? 100
 } else {
     n = 100
 }

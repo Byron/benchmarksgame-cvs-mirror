@@ -170,8 +170,8 @@ struct RepeatFasta {
 }
 
 var n = 25000000
-if Process.argc > 1 {
-    n = Int(Process.arguments[1])!
+if CommandLine.argc > 1 {
+    n = Int(CommandLine.arguments[1])!
 }
 sumAndScale(&IUB)
 sumAndScale(&HomoSapiens)

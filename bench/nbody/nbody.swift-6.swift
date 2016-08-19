@@ -89,8 +89,8 @@ func energy(_ bodies: [((Double,Double,Double),
 }
 
 let n: Int
-if Process.argc > 1 {
-    n = Int(Process.arguments[1]) ?? 1000
+if CommandLine.argc > 1 {
+    n = Int(CommandLine.arguments[1]) ?? 1000
 } else {
     n = 1000
 }

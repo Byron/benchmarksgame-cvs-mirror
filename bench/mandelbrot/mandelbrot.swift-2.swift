@@ -131,8 +131,8 @@ func mand8(cr: Vec8, _ ci: Double) -> UInt8 {
 
 // Parse command line arguments
 let n: Int
-if Process.arguments.count > 1 {
-    n = Int(Process.arguments[1]) ?? 200
+if CommandLine.arguments.count > 1 {
+    n = Int(CommandLine.arguments[1]) ?? 200
 } else {
     n = 200
 }

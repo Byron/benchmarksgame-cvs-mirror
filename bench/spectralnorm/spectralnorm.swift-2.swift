@@ -86,5 +86,5 @@ func formatDouble(_ f: Double, precision: Int = 2) -> String {
 }
 
 
-let n: Int = Int(Process.arguments[1])!
+let n: Int = Int(CommandLine.arguments[1])!
 print("\(formatDouble(approximate(n), precision: 9))")

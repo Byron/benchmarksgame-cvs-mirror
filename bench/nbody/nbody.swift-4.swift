@@ -137,7 +137,7 @@ func advance(_ dt: Double) {
 }
 
 
-let n = Int(Process.arguments[1])!
+let n = Int(CommandLine.arguments[1])!
 offsetMomentum()
 print( energy() )
 for _ in 1...n {

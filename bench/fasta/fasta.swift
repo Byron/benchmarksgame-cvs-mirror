@@ -13,8 +13,8 @@ let IC = 29573
 var seed = 42
 
 let n: Int
-if Process.arguments.count > 1 {
-    n = Int(Process.arguments[1]) ?? 1000
+if CommandLine.arguments.count > 1 {
+    n = Int(CommandLine.arguments[1]) ?? 1000
 } else {
     n = 1000
 }

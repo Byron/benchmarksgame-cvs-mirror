@@ -9,8 +9,8 @@ import CBlock
 
 // Get number of elements to permute
 let n: Int
-if Process.arguments.count > 1 {
-    n = Int(Process.arguments[1]) ?? 12
+if CommandLine.arguments.count > 1 {
+    n = Int(CommandLine.arguments[1]) ?? 12
 } else {
     n = 12
 }

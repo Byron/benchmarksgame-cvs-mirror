@@ -67,7 +67,7 @@ func worker_thread(tdata:UnsafeMutablePointer<Void>) -> UnsafeMutablePointer<Voi
 }
 
 
-let n: Int = Int(Process.arguments[1])!
+let n: Int = Int(CommandLine.arguments[1])!
 let minDepth = 4
 let maxDepth = n
 let stretchDepth = n + 1

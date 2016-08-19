@@ -7,7 +7,7 @@
 
 import Glibc
 
-let w: Int = Int(Process.arguments[1])!
+let w: Int = Int(CommandLine.arguments[1])!
 let h = w
 
 var bit_num = 0, i = 0, byte_acc: Int32 = 0

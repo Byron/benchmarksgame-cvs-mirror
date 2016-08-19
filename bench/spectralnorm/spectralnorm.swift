@@ -53,6 +53,6 @@ func multiplyAtAv(_ n: Int, _ v: [Double], _ atAv: inout [Double]) {
 }
 
 
-let n: Int = Int(Process.arguments[1])!
+let n: Int = Int(CommandLine.arguments[1])!
 print( String(format: "%.9f", approximate(n)) )
 

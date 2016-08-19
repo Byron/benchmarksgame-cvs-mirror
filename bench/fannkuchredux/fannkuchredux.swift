@@ -61,7 +61,7 @@ func fannkuch(_ n: Int) -> Int {
 }
 
 
-let n: Int = Int(Process.arguments[1])!
+let n: Int = Int(CommandLine.arguments[1])!
 print("Pfannkuchen(\(n)) = \(fannkuch(n))")
 
 
