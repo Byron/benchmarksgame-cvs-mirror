@@ -13,7 +13,7 @@ let ntasks = 20
 let queue = dispatch_get_global_queue(Int(DISPATCH_QUEUE_PRIORITY_DEFAULT), 0)
 let mQueue = dispatch_queue_create("mergeQueue", nil)
 
-func compress(n: Int, seq: ArraySlice<Int8>) -> Int {
+func compress(_ n: Int, seq: ArraySlice<Int8>) -> Int {
     var res = 0
     for i in seq.indices {
         res = (res << 2) | Int(seq[i])
@@ -67,7 +67,7 @@ func roundDouble(num: Double, precision: Int) -> String {
     return numberStr
 }
 
-func readInput(inStream: UnsafeMutablePointer<FILE>) -> [Int8] {
+func readInput(_ inStream: UnsafeMutablePointer<FILE>) -> [Int8] {
     var seq = [Int8]()
     var buf = UnsafeMutablePointer<Int8>.alloc(100)
     defer {

@@ -1,6 +1,7 @@
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
    contributed by Ralph Ganszky
+   converted to Swift 3 by Isaac Gouy
 */
 
 import Glibc
@@ -16,7 +17,7 @@ if CommandLine.arguments.count > 1 {
 }
 
 // Calculate factorials
-var fact = UnsafeMutablePointer<Int>.alloc(n+1)
+var fact = UnsafeMutablePointer<Int>.allocate(capacity: n+1)
 fact[0] = 1
 for i in 1...n {
     fact[i] = fact[i-1] * i
@@ -28,8 +29,8 @@ let chunksz = (fact[n] + nchunks - 1) / nchunks
 let ntasks = (fact[n] + chunksz - 1) / chunksz
 
 // Allocate result vectors
-var maxFlips = [Int](count: ntasks, repeatedValue: 0)
-var chkSums = [Int](count: ntasks, repeatedValue: 0)
+var maxFlips = [Int](repeating: 0, count: ntasks)
+var chkSums = [Int](repeating: 0, count: ntasks)
 
 struct Fannkuch {
     let n: Int
@@ -40,24 +41,24 @@ struct Fannkuch {
     init(n: Int) {
         self.n = n
         // Allocate buffers of this instance
-        p = UnsafeMutablePointer<Int>.alloc(n)
-        pp = UnsafeMutablePointer<Int>.alloc(n)
-        count = UnsafeMutablePointer<Int>.alloc(n)
+        p = UnsafeMutablePointer<Int>.allocate(capacity: n)
+        pp = UnsafeMutablePointer<Int>.allocate(capacity: n)
+        count = UnsafeMutablePointer<Int>.allocate(capacity: n)
     }
     
-    mutating func firstPermutation(idx: Int) {
+    mutating func firstPermutation(_ idx: Int) {
         for i in 0..<n {
             p[i] = i
         }
         
         let start = n - 1
         var indx = idx
-        for i in start.stride(to: 0, by: -1) {
+        for i in stride(from: start, to: 0, by: -1) {
             let d = indx / fact[i]
             count[i] = d
             indx = indx % fact[i]
             
-            pp.assignFrom(p, count: i+1)
+            pp.assign(from: p, count: i+1)
             for j in 0...i {
                 p[j] = j+d <= i ? pp[j+d] : pp[j+d-i-1]
             }
@@ -90,7 +91,7 @@ struct Fannkuch {
         var flips = 1
         var first = p[0]
         if p[first] != 0 {
-            pp.assignFrom(p, count: n)
+            pp.assign(from: p, count: n)
             repeat {
                 flips += 1
                 var lo = 1
@@ -110,7 +111,7 @@ struct Fannkuch {
         return flips
     }
     
-    mutating func runTask(task: Int) {
+    mutating func runTask(_ task: Int) {
         let idxMin = task * chunksz
         let idxMax = (fact[n] < idxMin + chunksz) ? fact[n] : idxMin + chunksz
         
@@ -136,14 +137,14 @@ struct Fannkuch {
         }
         maxFlips[task] = maxflips
         chkSums[task] = chksum
-        p.dealloc(n)
-        pp.dealloc(n)
-        count.dealloc(n)
+        p.deallocate(capacity: n)
+        pp.deallocate(capacity: n)
+        count.deallocate(capacity: n)
         
     }
 }
 
-func printResult(n: Int, res: Int, chk: Int) {
+func printResult(_ n: Int, res: Int, chk: Int) {
     print("\(chk)\nPfannkuchen(\(n)) = \(res)")
 }
 
@@ -171,5 +172,5 @@ for chk in chkSums {
 
 printResult(n, res: res, chk: chksum)
 
-fact.dealloc(n+1)
+fact.deallocate(capacity: n+1)
 

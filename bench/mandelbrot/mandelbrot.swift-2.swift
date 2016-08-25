@@ -102,7 +102,7 @@ func >(lhs: Vec8, rhs: Double) -> Bool {
 }
 
 // Calculate mandelbrot set for one Vec8 into one byte
-func mand8(cr: Vec8, _ ci: Double) -> UInt8 {
+func mand8(_ cr: Vec8, _ ci: Double) -> UInt8 {
     var Zr = Zero
     var Zi = Zero
     var Tr = Zero
@@ -138,19 +138,19 @@ if CommandLine.arguments.count > 1 {
 }
 let N = (n + 7) & ~0x7
 let inv = 2.0 / Double(n)
-var xvals = [Double](count: N, repeatedValue: 0.0)
-var yvals = [Double](count: n, repeatedValue: 0.0)
+var xvals = [Double](repeating: 0.0, count: N)
+var yvals = [Double](repeating: 0.0, count: n)
 
 for i in 0..<N {
     xvals[i] = Double(i) * inv - 1.5
     yvals[i] = Double(i) * inv - 1.0
 }
 
-var rows = [UInt8](count: n*N/8, repeatedValue: 0)
+var rows = [UInt8](repeating: 0, count: n*N/8)
 let queue = dispatch_get_global_queue(Int(DISPATCH_QUEUE_PRIORITY_DEFAULT), 0)
 dispatch_apply(n, queue) { y in
     let ci = yvals[y]
-    for x in 0.stride(to: N, by: 8) {
+    for x in stride(from: 0, to: N, by: 8) {
 	var cr = Vec8(xvals[x+0], xvals[x+1], xvals[x+2], xvals[x+3],
 	    xvals[x+4], xvals[x+5], xvals[x+6], xvals[x+7])
 	rows[y*N/8+x/8] = mand8(cr, ci)

@@ -1,6 +1,7 @@
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
    contributed by Ralph Ganszky 
+   converted to Swift 3 by Isaac Gouy
 */
 
 import Glibc
@@ -17,12 +18,12 @@ if CommandLine.arguments.count > 1 {
 
 let queue = dispatch_get_global_queue(Int(DISPATCH_QUEUE_PRIORITY_DEFAULT), 0)
 
-func A(i: Int, _ j: Int) -> Double {
+func A(_ i: Int, _ j: Int) -> Double {
     return 1.0 / Double((i+j)*(i+j+1)/2 + (i+1))
 }
 
-func multiplyAv(n: Int, _ v: [Double]) -> [Double] {
-    var Av = [Double](count: n, repeatedValue: 0.0)
+func multiplyAv(_ n: Int, _ v: [Double]) -> [Double] {
+    var Av = [Double](repeating: 0.0, count: n)
     dispatch_apply(n, queue) { i in
         var AvTemp = 0.0
         for j in 0..<n {
@@ -35,8 +36,8 @@ func multiplyAv(n: Int, _ v: [Double]) -> [Double] {
     return Av
 }
 
-func multiplyAtv(n: Int, _ v: [Double]) -> [Double] {
-    var Atv = [Double](count: n, repeatedValue: 0.0)
+func multiplyAtv(_ n: Int, _ v: [Double]) -> [Double] {
+    var Atv = [Double](repeating: 0.0, count: n)
     dispatch_apply(n, queue) { i in
         var AtvTemp = 0.0
         for j in 0..<n {
@@ -47,13 +48,13 @@ func multiplyAtv(n: Int, _ v: [Double]) -> [Double] {
     return Atv
 }
 
-func multiplyAtAv(n: Int, _ v: [Double]) -> [Double] {
+func multiplyAtAv(_ n: Int, _ v: [Double]) -> [Double] {
     let u = multiplyAv(n, v)
     return multiplyAtv(n, u)
 }
 
-func approximate(n: Int) -> Double {
-    var u = [Double](count: n, repeatedValue: 1.0)
+func approximate(_ n: Int) -> Double {
+    var u = [Double](repeating: 1.0, count: n)
     var v = [Double]()
     for _ in 0..<10 {
         v = multiplyAtAv(n, u)
@@ -68,7 +69,7 @@ func approximate(n: Int) -> Double {
     return sqrt(vBv/vv)
 }
 
-func roundDouble(num: Double, precision: Int) -> String {
+func roundDouble(_ num: Double, precision: Int) -> String {
     let exponent = pow(10.0, Double(precision))
     let number = Double(Int(num * exponent + 0.5))/exponent
     return "\(number)"
