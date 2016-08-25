@@ -1,9 +1,10 @@
 /* The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/
-   contributed by Ian Partridge
-
-   Swift port of Java #3 implementation
-*/
+ http://benchmarksgame.alioth.debian.org/
+ contributed by Ian Partridge
+ converted to Swift 3 by Sergo Beruashvili
+ 
+ Swift port of Java #3 implementation
+ */
 
 let LINE_LENGTH = 60
 let OUT_BUFFER_SIZE = 256*1024
@@ -20,12 +21,12 @@ struct Freq {
 }
 
 let ALU =
-"GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTG" +
-"GGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGA" +
-"GACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAA" +
-"AATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAAT" +
-"CCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAAC" +
-"CCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTG" +
+    "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTG" +
+        "GGAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGA" +
+        "GACCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAA" +
+        "AATACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAAT" +
+        "CCCAGCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAAC" +
+        "CCGGGAGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTG" +
 "CACTCCAGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
 
 var IUB =
@@ -33,7 +34,7 @@ var IUB =
      Freq("c", 0.12),
      Freq("g", 0.12),
      Freq("t", 0.27),
-    
+     
      Freq("B", 0.02),
      Freq("D", 0.02),
      Freq("H", 0.02),
@@ -52,7 +53,7 @@ var HomoSapiens =
      Freq("g", 0.1975473066391),
      Freq("t", 0.3015094502008)]
 
-func sumAndScale(inout a: [Freq]) {
+func sumAndScale( a: inout [Freq]) {
     var p = 0.0
     for i in 0..<a.count {
         p += a[i].p
@@ -99,7 +100,7 @@ class Out {
 struct RandomFasta {
     var lookup = [Freq]()
     
-    mutating func makeLookup(inout a: [Freq]) {
+    mutating func makeLookup( a: inout [Freq]) {
         lookup = []
         var j = 0
         for i in 0..<LOOKUP_SIZE {
@@ -130,14 +131,14 @@ struct RandomFasta {
     mutating func make (desc: String, a: [Freq], n: Int) {
         var a = a
         var n = n
-        makeLookup(&a)
+        makeLookup(a: &a)
         
-        Out.buf.appendContentsOf(desc)
+        Out.buf.append(desc)
         Out.ct += desc.characters.count
         
         while (n > 0) {
             let bytes = min(LINE_LENGTH, n)
-            addLine(bytes)
+            addLine(bytes: bytes)
             n -= bytes
         }
     }
@@ -146,21 +147,22 @@ struct RandomFasta {
 struct RepeatFasta {
     static func make(desc: String, alu: String, n: Int) {
         var n = n
-        Out.buf.appendContentsOf(desc)
+        Out.buf.append(desc)
         Out.ct += desc.characters.count
         
         let len = alu.characters.count
         var buf = alu
-        buf.appendContentsOf(alu[Range<String.CharacterView.Index>(start: alu.startIndex, end: alu.startIndex.advancedBy(LINE_LENGTH))])
+        
+        buf.append(alu[alu.startIndex..<alu.index(alu.startIndex, offsetBy: LINE_LENGTH)])
         
         var pos = 0
         while (n > 0) {
             let bytes = min(LINE_LENGTH, n)
             Out.checkFlush()
-            let startIndex = buf.startIndex.advancedBy(pos)
-            let endIndex = startIndex.advancedBy(bytes)
-            let towrite = buf[Range<String.CharacterView.Index>(start: startIndex, end: endIndex)]
-            Out.buf.appendContentsOf(towrite)
+            let startIndex = buf.index(buf.startIndex, offsetBy: pos)
+            let endIndex = buf.index(startIndex, offsetBy: bytes)
+            let towrite = buf[startIndex..<endIndex]
+            Out.buf.append(towrite)
             Out.buf.append(Character("\n"))
             Out.ct += bytes + 1
             pos = (pos + bytes) % len
@@ -173,11 +175,11 @@ var n = 25000000
 if CommandLine.argc > 1 {
     n = Int(CommandLine.arguments[1])!
 }
-sumAndScale(&IUB)
-sumAndScale(&HomoSapiens)
+sumAndScale(a: &IUB)
+sumAndScale(a: &HomoSapiens)
 
-RepeatFasta.make(">ONE Homo sapiens alu\n", alu: ALU, n: n * 2)
+RepeatFasta.make(desc: ">ONE Homo sapiens alu\n", alu: ALU, n: n * 2)
 var randomFasta = RandomFasta()
-randomFasta.make(">TWO IUB ambiguity codes\n", a: IUB, n: n * 3)
-randomFasta.make(">THREE Homo sapiens frequency\n", a: HomoSapiens, n: n * 5)
+randomFasta.make(desc: ">TWO IUB ambiguity codes\n", a: IUB, n: n * 3)
+randomFasta.make(desc: ">THREE Homo sapiens frequency\n", a: HomoSapiens, n: n * 5)
 Out.close()

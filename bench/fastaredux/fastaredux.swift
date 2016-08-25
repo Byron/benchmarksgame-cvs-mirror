@@ -1,11 +1,13 @@
 /* The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/
-   contributed by Ralph Ganszky
-
-   Swift port of Go #3 implementation
-*/
+ http://benchmarksgame.alioth.debian.org/
+ contributed by Ralph Ganszky
+ converted to Swift 3 by Sergo Beruashvili
+ 
+ Swift port of Go #3 implementation
+ */
 
 import Glibc
+//import Darwin
 
 struct AminoAcid {
     var sym: UInt8
@@ -20,8 +22,8 @@ struct AminoAcid {
     
     init(_ probability: Double, _ symbol: String) {
         prob = probability
-	sym = symbol.nulTerminatedUTF8[0]
-	cprob = 0
+        sym = UInt8(symbol.utf8CString[0])
+        cprob = 0
     }
 }
 
@@ -43,13 +45,13 @@ let lookupSize = 4096
 let lookupScale: Double = Double(lookupSize - 1)
 
 let aluString = "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG" +
-                "GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA" +
-                "CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT" +
-                "ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA" +
-                "GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG" +
-                "AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC" +
-                "AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
-var alu = aluString.nulTerminatedUTF8
+    "GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA" +
+    "CCAGCCTGGCCAACATGGTGAAACCCCGTCTCTACTAAAAAT" +
+    "ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA" +
+    "GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG" +
+    "AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC" +
+"AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
+var alu = aluString.utf8CString.map({ UInt8($0) })
 alu.popLast()	// Remove trailing 0-byte
 
 var iub = [
@@ -77,17 +79,17 @@ var homosapiens = [
     AminoAcid(0.3015094502008, "t"),
 ]
 
-func computeLookup(inout acid: [AminoAcid]) -> [Int] {
-    var lookup = [Int](count: lookupSize, repeatedValue: 0)
+func computeLookup( acid: inout [AminoAcid]) -> [Int] {
+    var lookup = [Int](repeating: 0, count: lookupSize)
     var p = 0.0
-    for (i, _) in acid.enumerate() {
+    for (i, _) in acid.enumerated() {
         p += acid[i].prob
         acid[i].cprob = p * lookupScale
     }
     acid[acid.count-1].cprob = 1.0 * lookupScale
     
     var j = 0
-    for (i, _) in lookup.enumerate() {
+    for (i, _) in lookup.enumerated() {
         while acid[j].cprob < Double(i) {
             j += 1
         }
@@ -96,26 +98,26 @@ func computeLookup(inout acid: [AminoAcid]) -> [Int] {
     return lookup
 }
 
-func writeRBuffer(buffer: UnsafePointer<Int8>, _ len: Int) {
-    writeBuffer(UnsafeMutablePointer<UInt8>(buffer), len)
+func writeRBuffer(buffer: UnsafePointer<UInt8>, len: Int) {
+    writeBuffer(buffer: UnsafeMutablePointer<UInt8>(mutating: buffer), len: len)
 }
 
-func writeBuffer(buffer: UnsafeMutablePointer<UInt8>, _ len: Int) {
-    let iov = UnsafeMutablePointer<iovec>.alloc(1)
+func writeBuffer(buffer: UnsafeMutablePointer<UInt8>,len: Int) {
+    let iov = UnsafeMutablePointer<iovec>.allocate(capacity: 1)
     defer {
-	iov.dealloc(1)
+        iov.deallocate(capacity: 1)
     }
-    iov[0].iov_base = unsafeBitCast(buffer, UnsafeMutablePointer<()>.self)
+    iov[0].iov_base = unsafeBitCast(buffer, to: UnsafeMutableRawPointer.self)
     iov[0].iov_len = len
     writev(STDOUT_FILENO, iov, 1)
 }
 
-func randomFasta(inout acid: [AminoAcid], _ n: Int) {
+func randomFasta( acid: inout [AminoAcid], n: Int) {
     var cnt = n
-    let lookup = computeLookup(&acid)
-    let buffer = UnsafeMutablePointer<UInt8>.alloc(bufferSize)
+    let lookup = computeLookup(acid: &acid)
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
     defer {
-	buffer.dealloc(bufferSize)
+        buffer.deallocate(capacity: bufferSize)
     }
     var pos = 0
     while cnt > 0 {
@@ -135,7 +137,7 @@ func randomFasta(inout acid: [AminoAcid], _ n: Int) {
             buffer[pos] = acid[a].sym
             pos += 1
             if pos == bufferSize {
-                writeBuffer(buffer, pos)
+                writeBuffer(buffer: buffer, len: pos)
                 pos = 0
             }
         }
@@ -143,21 +145,21 @@ func randomFasta(inout acid: [AminoAcid], _ n: Int) {
         buffer[pos] = 10
         pos += 1
         if pos == bufferSize {
-            writeBuffer(buffer, pos)
+            writeBuffer(buffer: buffer, len: pos)
             pos = 0
         }
         cnt -= m
     }
     if pos > 0 {
-        writeBuffer(buffer, pos)
+        writeBuffer(buffer: buffer, len: pos)
     }
 }
 
-func repeatFasta(gene: ContiguousArray<UInt8>, _ n: Int) {
+func repeatFasta(gene: [UInt8], n: Int) {
     let gene2 = gene + gene
-    let buffer = UnsafeMutablePointer<UInt8>.alloc(bufferSize)
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
     defer {
-	buffer.dealloc(bufferSize)
+        buffer.deallocate(capacity: bufferSize)
     }
     var pos = 0
     var rpos = 0
@@ -165,7 +167,7 @@ func repeatFasta(gene: ContiguousArray<UInt8>, _ n: Int) {
     var lwidth = width
     while cnt > 0 {
         if pos + lwidth > bufferSize {
-            writeBuffer(buffer, pos)
+            writeBuffer(buffer: buffer, len: pos)
             pos = 0
         }
         if rpos + lwidth > gene.count {
@@ -174,9 +176,9 @@ func repeatFasta(gene: ContiguousArray<UInt8>, _ n: Int) {
         if cnt < lwidth {
             lwidth = cnt
         }
-	for i in 0..<lwidth {
-	    buffer[pos+i] = gene2[rpos+i]
-	}
+        for i in 0..<lwidth {
+            buffer[pos+i] = gene2[rpos+i]
+        }
         buffer[pos+lwidth] = 10
         pos += lwidth + 1
         rpos += lwidth
@@ -184,22 +186,24 @@ func repeatFasta(gene: ContiguousArray<UInt8>, _ n: Int) {
     }
     if pos > 0 && pos < bufferSize {
         buffer[pos] = 10
-	writeBuffer(buffer, pos)
+        writeBuffer(buffer: buffer, len: pos)
     } else if pos == bufferSize {
-	writeBuffer(buffer, pos)
+        writeBuffer(buffer: buffer, len: pos)
         buffer[0] = 10
-	writeBuffer(buffer, 1)
+        writeBuffer(buffer: buffer, len: 1)
     }
 }
 
 let one = ">ONE Homo sapiens alu\n"
-writeRBuffer(one.withCString({ s in s }), one.nulTerminatedUTF8.count - 1)
-repeatFasta(alu, 2*n)
+
+writeRBuffer(buffer: one.utf8CString.map({ UInt8($0) }), len: one.utf8CString.count - 1)
+repeatFasta(gene: alu, n: 2*n)
 
 let two = ">TWO IUB ambiguity codes\n"
-writeRBuffer(two.withCString({ s in s }), two.nulTerminatedUTF8.count - 1)
-randomFasta(&iub, 3*n)
+writeRBuffer(buffer: two.utf8CString.map({ UInt8($0) }), len: two.utf8CString.count - 1)
+randomFasta(acid: &iub, n: 3*n)
 
 let three = ">THREE Homo sapiens frequency\n"
-writeRBuffer(three.withCString({ s in s }), three.nulTerminatedUTF8.count - 1)
-randomFasta(&homosapiens, 5*n)
+writeRBuffer(buffer: three.utf8CString.map({ UInt8($0) }), len: three.utf8CString.count - 1)
+randomFasta(acid: &homosapiens, n: 5*n)
+
