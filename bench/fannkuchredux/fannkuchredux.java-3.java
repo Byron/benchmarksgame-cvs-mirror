@@ -3,6 +3,7 @@
  * http://benchmarksgame.alioth.debian.org/
  *
  * Contributed by Oleg Mazurov, June 2010
+ * configured for just one worker thread
  *
  */
 
