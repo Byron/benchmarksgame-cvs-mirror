@@ -24,7 +24,7 @@ fn item_check(t: &Option<&Tree>) -> i32 {
 
 fn bottom_up_tree<'r>(arena: &'r Arena<Tree<'r>>, item: i32, depth: i32)
                   -> Option<&'r Tree<'r>> {
-    if depth > 0 {
+    if depth >= 0 {
         let t: &Tree<'r> = arena.alloc(Tree {
             l: bottom_up_tree(arena, 2 * item - 1, depth - 1),
             r: bottom_up_tree(arena, 2 * item, depth - 1),
