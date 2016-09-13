@@ -19,10 +19,15 @@ object pidigits {
   }
 
   def pi_digits = {
+
+/*  uses only ONE bigint division instead of TWO 
+
     def digits(z: LFT, k: Int): Stream[Int] = z extract match {
       case Some(y) => Stream.cons(y,digits(z next y,k))
       case None    => digits(z compose k,k+1)
     }
+*/
+
     digits(new LFT(1,0,1),1)
   }
 
