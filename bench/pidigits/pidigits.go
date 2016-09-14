@@ -36,6 +36,9 @@ var (
    ten   = big.NewInt(10)
 )
 
+
+/* Uses only one bigint division instead of two when checking a produced digit's validity.
+
 func extract_digit() int64 {
    if numer.Cmp(accum) > 0 {
       return -1
@@ -57,6 +60,7 @@ func extract_digit() int64 {
 
    return tmp1.Int64()
 }
+*/
 
 func next_term(k int64) {
    y2.SetInt64(k*2 + 1)
