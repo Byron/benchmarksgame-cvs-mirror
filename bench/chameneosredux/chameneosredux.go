@@ -17,22 +17,43 @@ import (
 )
 
 const (
-    blue = iota
+    // three colors in alphabetic order
+    blue = 1 + iota
     red
     yellow
-    ncol
 )
 
-var complement = [...]int{
-    red | red<<2:       red,
-    red | yellow<<2:    blue,
-    red | blue<<2:      yellow,
-    yellow | red<<2:    blue,
-    yellow | yellow<<2: yellow,
-    yellow | blue<<2:   red,
-    blue | red<<2:      yellow,
-    blue | yellow<<2:   red,
-    blue | blue<<2:     blue,
+func complement(col1, col2 int) int {
+    switch col1 {
+    case blue:
+        switch col2 {
+        case blue:
+            return blue
+        case red:
+            return yellow
+        case yellow:
+            return red
+        }
+    case red:
+        switch col2 {
+        case blue:
+            return yellow
+        case red:
+            return red
+        case yellow:
+            return blue
+        }
+    case yellow:
+        switch col2 {
+        case blue:
+            return red
+        case red:
+            return blue
+        case yellow:
+            return yellow
+        }
+    }
+    panic("Invalid colour in complement")
 }
 
 var colname = [...]string{
@@ -65,17 +86,15 @@ type mall struct {
 var meetings = 600
 
 func main() {
-    runtime.GOMAXPROCS(runtime.NumCPU())
-
     if flag.Parse(); flag.NArg() > 0 {
         meetings, _ = strconv.Atoi(flag.Arg(0))
     }
 
-    for c0 := 0; c0 < ncol; c0++ {
-        for c1 := 0; c1 < ncol; c1++ {
+    for col1 := blue; col1 <= yellow; col1++ {
+        for col2 := blue; col2 <= yellow; col2++ {
             fmt.Printf("%s + %s -> %s\n",
-                colname[c0], colname[c1],
-                colname[complement[c0|c1<<2]])
+                colname[col1], colname[col2],
+                colname[complement(col1, col2)])
         }
     }
     fmt.Print("\n")
@@ -125,18 +144,15 @@ func play(selfName int, startColour int, mall *mall, ended chan<- result) {
                 // nobody is waiting; try to become the first to enter
                 if atom.CompareAndSwapUint32(mall.waiter, noone, atomName) {
                     // success; now wait for second creature
-                    for i := 0; ; i++ {
-                        other = atom.LoadUint32(self.handshake)
-                        if other != noone {
-                            // second creature is done; clear flag
-                            *self.handshake = noone
-                            break
-                        }
-                        if i > 15 {
+                    for i := 0; other == noone; i++ {
+                        if i >= 50 {
                             // limit idle spinning
                             runtime.Gosched()
                         }
+                        other = atom.LoadUint32(self.handshake)
                     }
+                    // second creature is done; clear flag
+                    *self.handshake = noone
                     break
                 }
             } else if atom.CompareAndSwapUint32(mall.waiter, other, noone) {
@@ -149,7 +165,7 @@ func play(selfName int, startColour int, mall *mall, ended chan<- result) {
                 break
             }
         }
-        self.selfColour = complement[self.selfColour|self.mateColour<<2]
+        self.selfColour = complement(self.selfColour, self.mateColour)
         if other == atomName {
             result.same++
         }

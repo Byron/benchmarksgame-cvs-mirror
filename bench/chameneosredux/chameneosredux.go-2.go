@@ -17,25 +17,46 @@ import (
 )
 
 const (
-    blue = iota
+    // three colors in alphabetic order
+    blue uint32 = 1 + iota
     red
     yellow
-    ncol
     colBits = 2
     colMask = 1<<colBits - 1
     noone   = 0
 )
 
-var complement = [...]int{
-    red | red<<2:       red,
-    red | yellow<<2:    blue,
-    red | blue<<2:      yellow,
-    yellow | red<<2:    blue,
-    yellow | yellow<<2: yellow,
-    yellow | blue<<2:   red,
-    blue | red<<2:      yellow,
-    blue | yellow<<2:   red,
-    blue | blue<<2:     blue,
+func complement(col1, col2 uint32) uint32 {
+    switch col1 {
+    case blue:
+        switch col2 {
+        case blue:
+            return blue
+        case red:
+            return yellow
+        case yellow:
+            return red
+        }
+    case red:
+        switch col2 {
+        case blue:
+            return yellow
+        case red:
+            return red
+        case yellow:
+            return blue
+        }
+    case yellow:
+        switch col2 {
+        case blue:
+            return red
+        case red:
+            return blue
+        case yellow:
+            return yellow
+        }
+    }
+    panic("Invalid colour in complement")
 }
 
 var colname = [...]string{
@@ -47,8 +68,8 @@ var colname = [...]string{
 // A creature is a naming identifier + a colour
 type creature uint32
 
-func newCreature(name, col int) creature {
-    return creature(uint32(name)<<colBits | uint32(col))
+func newCreature(name, col uint32) creature {
+    return creature(name<<colBits | col)
 }
 
 func (crea creature) name() uint32 {
@@ -61,7 +82,7 @@ func (crea creature) colour() uint32 {
 
 // mutate updates the colour after a mate was found
 func (crea creature) mutate(mate creature) creature {
-    newColour := complement[crea.colour()|mate.colour()<<colBits]
+    newColour := complement(crea.colour(), mate.colour())
     return creature(uint32(crea)&^colMask | uint32(newColour))
 }
 
@@ -85,7 +106,7 @@ type result struct {
 
 // game configuration
 type game struct {
-    colours []int
+    colours []uint32
     results chan result
 }
 
@@ -100,10 +121,10 @@ func init() {
 
 // main starts two games and outputs results
 func main() {
-    game1 := &game{[]int{blue, red, yellow}, make(chan result)}
+    game1 := &game{[]uint32{blue, red, yellow}, make(chan result)}
     go game1.pallmall()
 
-    game2 := &game{[]int{blue, red, yellow, red, yellow,
+    game2 := &game{[]uint32{blue, red, yellow, red, yellow,
         blue, red, yellow, red, blue}, make(chan result)}
     go game2.pallmall()
 
@@ -114,11 +135,11 @@ func main() {
 
 // printColours prints colour complements.
 func printColours() {
-    for c0 := 0; c0 < ncol; c0++ {
-        for c1 := 0; c1 < ncol; c1++ {
+    for col1 := blue; col1 <= yellow; col1++ {
+        for col2 := blue; col2 <= yellow; col2++ {
             fmt.Printf("%s + %s -> %s\n",
-                colname[c0], colname[c1],
-                colname[complement[c0|c1<<2]])
+                colname[col1], colname[col2],
+                colname[complement(uint32(col1), uint32(col2))])
         }
     }
     fmt.Print("\n")
@@ -138,9 +159,9 @@ func (game *game) report() {
     for _ = range game.colours {
         result := <-game.results
         total += result.met
-        fmt.Printf("%v%v\n", result.met, spell(result.same))
+        fmt.Printf("%d%s\n", result.met, spell(result.same))
     }
-    fmt.Printf("%v\n\n", spell(total))
+    fmt.Printf("%s\n\n", spell(total))
 }
 
 // pallmall starts a new game
@@ -153,7 +174,7 @@ func (game *game) pallmall() {
     // each colour is one new creature
     for i, col := range game.colours {
         handshakes[i+1] = &slab[(3+i)*16]
-        creature := newCreature(i+1, col)
+        creature := newCreature(uint32(i+1), col)
         go creature.play(mall, game.results)
     }
 }
@@ -173,7 +194,7 @@ func (crea creature) play(mall *mall, ended chan<- result) {
                 if atom.CompareAndSwapUint32(mall.waiter, noone, crea.word()) {
                     // we got in first; now wait for second creature
                     for i := 0; other == noone; i++ {
-                        if i >= 53 {
+                        if i >= 50 {
                             // limit idle spinning
                             runtime.Gosched()
                         }
