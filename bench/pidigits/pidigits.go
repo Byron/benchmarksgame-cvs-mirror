@@ -8,119 +8,103 @@
  * flag.Arg hack by Isaac Gouy
  * line printer hack by Sean Lake
  * "math/big" package replaced by "github.com/ncw/gmp" by pav5000
+ * modified by Bert Gijsbers
  */
 
 package main
 
 import (
-   "bufio"
-   "flag"
-   "fmt"
-   big "github.com/ncw/gmp"
-   "os"
-   "strconv"
+    "bufio"
+    "flag"
+    "fmt"
+    big "github.com/ncw/gmp"
+    "os"
+    "strconv"
 )
 
 var n = 0
 var silent = false
 
 var (
-   tmp1  = big.NewInt(0)
-   tmp2  = big.NewInt(0)
-   tmp3  = big.NewInt(0)
-   y2    = big.NewInt(0)
-   bigk  = big.NewInt(0)
-   numer = big.NewInt(1)
-   accum = big.NewInt(0)
-   denom = big.NewInt(1)
-   ten   = big.NewInt(10)
+    tmp1  = big.NewInt(0)
+    tmp2  = big.NewInt(0)
+    y2    = big.NewInt(1)
+    bigk  = big.NewInt(0)
+    accum = big.NewInt(0)
+    denom = big.NewInt(1)
+    numer = big.NewInt(1)
+    ten   = big.NewInt(10)
+    three = big.NewInt(3)
+    four  = big.NewInt(4)
 )
 
+func next_term(k int64) int64 {
+    for {
+        k++
+        y2.SetInt64(k*2 + 1)
+        bigk.SetInt64(k)
 
-/* Uses only one bigint division instead of two when checking a produced digit's validity.
+        tmp1.Lsh(numer, 1)
+        accum.Add(accum, tmp1)
+        accum.Mul(accum, y2)
+        denom.Mul(denom, y2)
+        numer.Mul(numer, bigk)
 
-func extract_digit() int64 {
-   if numer.Cmp(accum) > 0 {
-      return -1
-   }
-
-   // Compute (numer * 3 + accum) / denom
-   tmp1.Lsh(numer, 1)
-   tmp1.Add(tmp1, numer)
-   tmp1.Add(tmp1, accum)
-   tmp1.DivMod(tmp1, denom, tmp2)
-
-   // Now, if (numer * 4 + accum) % denom...
-   tmp2.Add(tmp2, numer)
-
-   // ... is normalized, then the two divisions have the same result.
-   if tmp2.Cmp(denom) >= 0 {
-      return -1
-   }
-
-   return tmp1.Int64()
+        if accum.Cmp(numer) > 0 {
+            return k
+        }
+    }
 }
-*/
 
-func next_term(k int64) {
-   y2.SetInt64(k*2 + 1)
-   bigk.SetInt64(k)
+func extract_digit(nth *big.Int) int64 {
+    tmp1.Mul(nth, numer)
+    tmp2.Add(tmp1, accum)
+    tmp1.Div(tmp2, denom)
+    return tmp1.Int64()
+}
 
-   tmp1.Lsh(numer, 1)
-   accum.Add(accum, tmp1)
-   accum.Mul(accum, y2)
-   numer.Mul(numer, bigk)
-   denom.Mul(denom, y2)
+func next_digit(k int64) (int64, int64) {
+    for {
+        k = next_term(k)
+        d3 := extract_digit(three)
+        d4 := extract_digit(four)
+        if d3 == d4 {
+            return d3, k
+        }
+    }
 }
 
 func eliminate_digit(d int64) {
-   tmp3.SetInt64(d)
-   accum.Sub(accum, tmp3.Mul(denom, tmp3))
-   accum.Mul(accum, ten)
-   numer.Mul(numer, ten)
+    tmp1.SetInt64(d)
+    accum.Sub(accum, tmp1.Mul(denom, tmp1))
+    accum.Mul(accum, ten)
+    numer.Mul(numer, ten)
+}
+
+func init() {
+    flag.Parse()
+    if flag.NArg() > 0 {
+        n, _ = strconv.Atoi(flag.Arg(0))
+    }
 }
 
 func main() {
-   flag.Parse()
-   if flag.NArg() > 0 {
-      n, _ = strconv.Atoi(flag.Arg(0))
-   }
-
-   w := bufio.NewWriter(os.Stdout)
-   defer w.Flush()
-
-   line := make([]byte, 0, 10)
-   i := int(0)
-   for k := int64(0); ; {
-      d := int64(-1)
-      for d < 0 {
-         k++
-         next_term(k)
-         d = extract_digit()
-      }
-
-      i++
-
-      line = append(line, byte(d)+'0')
-      if len(line) == 10 {
-         if silent != true {
-            fmt.Fprintf(w, string(line))
-            fmt.Fprintf(w, "\t:%d\n", i)
-         }
-
-         line = line[:0]
-      }
-
-      if i >= n {
-         break
-      }
-      eliminate_digit(d)
-   }
-
-   if len(line) > 0 {
-      fmt.Fprintf(w, string(line))
-      fmt.Fprintf(w, "%s\t:%d\n", "          "[len(line):], i)
-   }
-
-   return
+    w := bufio.NewWriter(os.Stdout)
+    defer w.Flush()
+    line := make([]byte, 0, 10)
+    var d, k int64
+    for i := 1; i <= n; i++ {
+        d, k = next_digit(k)
+        line = append(line, byte(d)+'0')
+        if len(line) == 10 {
+            if silent != true {
+                fmt.Fprintf(w, "%s\t:%d\n", string(line), i)
+            }
+            line = line[:0]
+        }
+        eliminate_digit(d)
+    }
+    if len(line) > 0 && silent != true {
+        fmt.Fprintf(w, "%-10s\t:%d\n", string(line), n)
+    }
 }
