@@ -2,6 +2,7 @@
  * http://benchmarksgame.alioth.debian.org/
  *
  * contributed by K P anonymous
+ * corrected by Isaac Gouy
  */
 
 package main
@@ -24,7 +25,7 @@ func (v Vec) Times(ii, n int, u Vec, c chan int) {
    for i := ii; i < n; i++ {
       var vi float64
       for j := 0; j < ul; j++ {
-         vi += u[j] / float64(((i+j)*(i+j+1)/2 + i + 1))
+         vi += u[j] / float64(A(i, j))
       }
       v[i] = vi
    }
@@ -36,7 +37,7 @@ func (v Vec) TimesTransp(ii, n int, u Vec, c chan int) {
    for i := ii; i < n; i++ {
       var vi float64
       for j := 0; j < ul; j++ {
-         vi += u[j] / float64(((j+i)*(j+i+1)/2 + j + 1))
+         vi += u[j] / float64(A(j, i))
       }
       v[i] = vi
    }
@@ -62,6 +63,9 @@ func (v Vec) ATimesTransp(u Vec) {
    wait(c)
 }
 
+func A(i, j int) int {
+   return ((i+j)*(i+j+1)/2 + i + 1)
+}
 
 func main() {
    flag.Parse()
