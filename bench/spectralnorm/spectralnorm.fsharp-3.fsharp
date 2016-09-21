@@ -41,7 +41,7 @@ let inline barrierHandle () =
         handle <- new ManualResetEvent (false)
         Interlocked.Exchange (current, nthread) |> ignore
         h.Set () |> ignore
-        h.Close ()
+        h.Dispose ()
 
 let mutable tmp = null
 let inline multiplyAtAv (v : double[]) (out : double[]) r1 r2 =

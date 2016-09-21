@@ -19,7 +19,7 @@ type BarrierHandle(threads:int) =
             handle <- new ManualResetEvent(false);
             Interlocked.Exchange(&current, threads) |> ignore;
             h.Set() |> ignore;
-            h.Close();
+            h.Dispose();
 
 let Approximate(u:double[], v:double[], tmp:double[], rbegin, rend, barrier: BarrierHandle) =
 
