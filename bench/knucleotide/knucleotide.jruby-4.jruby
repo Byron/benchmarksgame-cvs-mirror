@@ -32,7 +32,9 @@ seq.gsub!(/\s/, '')
 
 singles = %w(a t c g)
 doubles = singles.map { |a| singles.map { |b| "#{a}#{b}" }}.flatten
-chains  = %w(ggt ggta ggtatt ggtattttaatt ggtattttaatttatagt)
+
+# count ALL the 3- 4- 6- 12- and 18-nucleotide sequences
+#chains  = %w(ggt ggta ggtatt ggtattttaatt ggtattttaatttatagt)
 
 print "#{percentage(seq, singles).join("\n")}\n\n"
 print "#{percentage(seq, doubles).join("\n")}\n\n"

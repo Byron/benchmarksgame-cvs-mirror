@@ -47,7 +47,9 @@ end
 
 singles = %i(a t c g)
 doubles = %i(aa at ac ag ta tt tc tg ca ct cc cg ga gt gc gg)
-chains  = %i(ggt ggta ggtatt ggtattttaatt ggtattttaatttatagt)
+
+# count ALL the 3- 4- 6- 12- and 18-nucleotide sequences
+#chains  = %i(ggt ggta ggtatt ggtattttaatt ggtattttaatttatagt)
 
 @seq = load_sequence('>THREE Homo sapiens frequency')
 @frequencies = find_frequencies(singles + doubles + chains)
