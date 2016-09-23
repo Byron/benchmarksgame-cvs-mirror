@@ -5,8 +5,7 @@
 */
 
 import Glibc
-import Cdispatch
-import CBlock
+import Dispatch
 
 // Get matrix dimension
 let n: Int

@@ -4,8 +4,7 @@
 */
 
 import Glibc
-import Cdispatch
-import CBlock
+import Dispatch
 
 let Iter = 50
 

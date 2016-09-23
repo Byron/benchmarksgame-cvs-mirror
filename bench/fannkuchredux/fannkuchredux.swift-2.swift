@@ -5,8 +5,7 @@
 */
 
 import Glibc
-import Cdispatch
-import CBlock
+import Dispatch
 
 // Get number of elements to permute
 let n: Int
