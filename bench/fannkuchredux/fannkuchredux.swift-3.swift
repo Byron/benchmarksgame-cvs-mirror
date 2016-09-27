@@ -146,6 +146,8 @@ func printResult(_ n: Int, res: Int, chk: Int) {
    print("\(chk)\nPfannkuchen(\(n)) = \(res)")
 }
 
+
+let queue = DispatchQueue.global(qos: .default)
 DispatchQueue.concurrentPerform(iterations: ntasks) { i in
    var fannkuch = Fannkuch(n: n)
    fannkuch.runTask(i)

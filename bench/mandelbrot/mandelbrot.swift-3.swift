@@ -151,6 +151,7 @@ for i in 0..<N {
 
 var rows = [UInt8](repeating: 0, count: n*N/8)
 
+let queue = DispatchQueue.global(qos: .default)
 DispatchQueue.concurrentPerform(iterations: n) { y in
    let ci = yvals[y]
    for x in stride(from: 0, to: N, by: 8) {
