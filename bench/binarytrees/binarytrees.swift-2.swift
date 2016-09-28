@@ -32,7 +32,13 @@ func bottomUpTree(_ item: Int, _ depth: Int) -> BinaryTree {
    return BinaryTree.empty
 }
 
-let n: Int = 20 // Int(CommandLine.arguments[1])!
+let n: Int
+if CommandLine.arguments.count > 1 {
+   n = Int(CommandLine.arguments[1]) ?? 20
+} else {
+   n = 20
+}
+
 let minDepth = 4
 let maxDepth = n
 let stretchDepth = n + 1
@@ -41,13 +47,20 @@ print("stretch tree of depth \(stretchDepth)\t check: \(bottomUpTree(0,stretchDe
 
 let longLivedTree = bottomUpTree(0,maxDepth)
 let queue = DispatchQueue.global(qos: .default)
+let group = DispatchGroup()
 
 for depth in stride(from:minDepth, to: maxDepth+1, by: 2) {
    let iterations = 1 << (maxDepth - depth + minDepth)
    var check = 0
-   DispatchQueue.concurrentPerform(iterations: iterations) { i in
-      check += bottomUpTree(i,depth).check() + bottomUpTree(-i,depth).check()
+   let semaphore = DispatchSemaphore(value: 1)
+   for i in 0..<iterations {
+      queue.async(group: group) {
+         semaphore.wait()
+         check += bottomUpTree(i,depth).check() + bottomUpTree(-i,depth).check()
+         semaphore.signal()
+      }
    }
+   let _ = group.wait(timeout: .distantFuture)
    print("\(iterations*2)\t trees of depth \(depth)\t check: \(check)")
 }
 
