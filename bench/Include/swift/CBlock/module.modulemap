@@ -1,6 +1,0 @@
-module CBlock [system] {
-    header "/usr/include/Block.h"
-    link "BlocksRuntime"
-    export *
-}
-
