@@ -7,7 +7,6 @@
 
 import Glibc
 import Dispatch
-
 typealias AminoAcid = (prob: Double, sym: UInt8)
 
 let IM = 139968
@@ -17,11 +16,12 @@ var seed = 42
 
 let n: Int
 if CommandLine.arguments.count > 1 {
-   n = Int(CommandLine.arguments[1]) ?? 1000
+	n = Int(CommandLine.arguments[1]) ?? 1000
 } else {
-   n = 1000
+	n = 1000
 }
 
+let queue = DispatchQueue.global(qos: .default)
 let bufferSize = 256*1024
 let width = 60
 let lookupSize = 4096
@@ -33,8 +33,8 @@ let aluString = "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG" +
    "ACAAAAATTAGCCGGGCGTGGTGGCGCGCGCCTGTAATCCCA" +
    "GCTACTCGGGAGGCTGAGGCAGGAGAATCGCTTGAACCCGGG" +
    "AGGCGGAGGTTGCAGTGAGCCGAGATCGCGCCACTGCACTCC" +
-   "AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
-var alu = aluString.utf8CString.map { UInt8($0) }
+"AGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAA"
+var alu = aluString.utf8CString.map({ UInt8($0) })
 let _ = alu.popLast()
 
 var iub = [
@@ -131,71 +131,49 @@ func search(rnd: Double, within arr: [AminoAcid]) -> UInt8 {
    return arr[high+1].sym
 }
 
-func accumulateProbabilities(acid: inout [AminoAcid]) {
+func accumulateProbabilities( acid: inout [AminoAcid]) {
    for i in 1..<acid.count {
-            acid[i].prob += acid[i-1].prob
+      acid[i].prob += acid[i-1].prob
    }
 }
 
-func randomFasta(acid: [AminoAcid], _ n: Int) {
-   var cnt = n
+func randomFasta( acid: [AminoAcid], _ n: Int) {
    var acid = acid
    accumulateProbabilities(acid: &acid)
-   var buffer = [UInt8](repeating: 10, count: bufferSize)
-   var pos = 0
-
-   let queue = DispatchQueue.global(qos: .default)
-   let group = DispatchGroup()
-   while cnt > 0 {
-      var m = cnt
-      if m > width {
-         m = width
-      }
+   let steps = (n / width) + 1
+   let tail = n % width
+	let s = DispatchSemaphore(value: 0)
+   DispatchQueue.concurrentPerform(iterations: steps) { y in
+		s.signal()
+      let m = y == steps - 1 ? tail : width
       let f = 1.0 / Double(IM)
       var myrand = seed
-      let semaphore = DispatchSemaphore(value: 1)
-      
+      var buffer = [UInt8]()
+		buffer.reserveCapacity(m)
       for _ in 0..<m {
-         queue.async(group: group) {
-            semaphore.wait()
-            myrand = (myrand * IA + IC) % IM
-            let r = Double(myrand) * f
-            buffer[pos] = search(rnd: r, within: acid)
-            pos += 1
-            if pos == buffer.count {
-               write(array: buffer, ofLen: pos)
-               pos = 0
-            }
-            semaphore.signal()
-         }
+         myrand = (myrand * IA + IC) % IM
+         let r = Double(myrand) * f
+         buffer.append(search(rnd: r, within: acid))
       }
-      let _ = group.wait(timeout: .distantFuture)
       seed = myrand
-      buffer[pos] = 10
-      pos += 1
-      if pos == buffer.count {
-         write(array: buffer, ofLen: pos)
-         pos = 0
-      }
-      cnt -= m
-   }
-   if pos > 0 {
-      write(array: buffer, ofLen: pos)
+      if y < steps - 1 { buffer.append(10) }
+      write(array: buffer, ofLen: buffer.count)
+		s.wait()
    }
 }
 
 let one = ">ONE Homo sapiens alu\n"
-let oneStr = one.withCString { s in s }
+let oneStr = one.withCString({ s in s })
 write(buffer: oneStr, ofLen: one.utf8CString.count - 1)
 repeatFasta(gene: alu, n: 2*n)
 
 let two = ">TWO IUB ambiguity codes\n"
-let twoStr = two.withCString { s in s }
+let twoStr = two.withCString({ s in s })
 write(buffer: twoStr, ofLen: two.utf8CString.count - 1)
 randomFasta(acid: iub,3*n)
 
 let three = ">THREE Homo sapiens frequency\n"
-let threeStr = three.withCString { s in s }
+let threeStr = three.withCString({ s in s })
 write(buffer: threeStr, ofLen: three.utf8CString.count - 1)
 randomFasta(acid: homosapiens,5*n)
-
+write(buffer: [10], ofLen: 1)
