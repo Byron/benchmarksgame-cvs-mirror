@@ -24,8 +24,6 @@ if CommandLine.arguments.count > 1 {
 let queue = DispatchQueue.global(qos: .default)
 let bufferSize = 256*1024
 let width = 60
-let lookupSize = 4096
-let lookupScale: Double = Double(lookupSize - 1)
 
 let aluString = "GGCCGGGCGCGGTGGCTCACGCCTGTAATCCCAGCACTTTGG" +
    "GAGGCCGAGGCGGGCGGATCACCTGAGGTCAGGAGTTCGAGA" +
