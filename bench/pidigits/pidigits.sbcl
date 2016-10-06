@@ -143,7 +143,10 @@
 	  (loop
 		(incf k)
 		(next-term k)
-		(setf d (extract-digit))
+
+;; Uses only one bigint division instead of two when checking a produced digit's validity.
+
+;;		(setf d (extract-digit))
 		(unless (= d -1)
 		  (return)))
 	  (format t "~D" d)
