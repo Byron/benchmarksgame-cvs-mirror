@@ -32,7 +32,9 @@ public:
     tmp1 += get<0>(nad);
     tmp1 += get<1>(nad);
 
-    mpz_fdiv_qr(tmp1.get_mpz_t(), tmp2.get_mpz_t(), tmp1.get_mpz_t(), get<2>(nad).get_mpz_t());
+// "Uses only one bigint division instead of two when checking a produced digit's validity."
+
+//    mpz_fdiv_qr(tmp1.get_mpz_t(), tmp2.get_mpz_t(), tmp1.get_mpz_t(), get<2>(nad).get_mpz_t());
 
     tmp2 += get<0>(nad);
 
