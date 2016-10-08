@@ -3,6 +3,10 @@
 
    contributed by Ralph Ganszky
    modified by Michael Morrell
+
+   No match for key (for example "GGTATTTTAATT") causes --
+   "fatal error: unexpectedly found nil while unwrapping an Optional value"
+   -- which is masked by -Ounchecked
 */
 
 import Glibc
