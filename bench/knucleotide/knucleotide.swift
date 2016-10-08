@@ -2,17 +2,18 @@
    http://benchmarksgame.alioth.debian.org/
 
    contributed by Ralph Ganszky
+   modified by Michael Morrell
 */
 
 import Glibc
 import Dispatch
 
-let ntasks = 20
+let ENABLED_THREAD_COUNT = 4
+let ntasks = ENABLED_THREAD_COUNT
 
-let queue = dispatch_get_global_queue(Int(DISPATCH_QUEUE_PRIORITY_DEFAULT), 0)
-let mQueue = dispatch_queue_create("mergeQueue", nil)
+let mQueue = DispatchQueue(label: "mergeQueue")
 
-func compress(_ n: Int, seq: ArraySlice<Int8>) -> Int {
+func compress(_ seq: ArraySlice<UInt8>) -> Int {
     var res = 0
     for i in seq.indices {
         res = (res << 2) | Int(seq[i])
@@ -20,17 +21,22 @@ func compress(_ n: Int, seq: ArraySlice<Int8>) -> Int {
     return res
 }
 
-func getSequenceHash(n: Int, seq: [Int8]) -> [Int:Int] {
+func getSequenceHash(_ n: Int, seq: [UInt8]) -> [Int:Int] {
     var hash = [Int:Int]()
     let slice = (seq.count-(n-1)) / ntasks
     let remainder = (seq.count-(n-1)) % ntasks
-    dispatch_apply(ntasks, queue) { i in
+    let mask = n > 1 ? ((1 << (2*(n-1))) - 1) : 0
+    DispatchQueue.concurrentPerform(iterations: ntasks) { i in
         var lHash = [Int:Int](minimumCapacity: 1 << min(n, 12))
-        for l in i*slice..<(i+1)*slice {
-            let idx = compress(n, seq: seq[l..<(l+n)])
+        var idx = compress(seq[i*slice..<i*slice+n])
+        lHash[idx] = (lHash[idx] ?? 0) + 1
+        let startIdx = i*slice+n
+        let endIdx = startIdx + slice - 1
+        for l in startIdx..<endIdx {
+            idx = ((idx & mask) << 2) | Int(seq[l])
             lHash[idx] = (lHash[idx] ?? 0) + 1
         }
-        dispatch_sync(mQueue) {
+        mQueue.sync {
             for (key, value) in lHash {
                 hash[key] = (hash[key] ?? 0) + value
             }
@@ -39,7 +45,7 @@ func getSequenceHash(n: Int, seq: [Int8]) -> [Int:Int] {
     let startIdx = seq.count - remainder - (n - 1)
     let endIdx = seq.count - (n - 1)
     for i in startIdx..<endIdx {
-        let idx = compress(n, seq: seq[i..<(i+n)])
+        let idx = compress(seq[i..<i+n])
         hash[idx] = (hash[idx] ?? 0) + 1
     }
     return hash
@@ -47,7 +53,7 @@ func getSequenceHash(n: Int, seq: [Int8]) -> [Int:Int] {
 
 let c2i: [Character:Int] = [ "A": 0, "C": 1, "T": 2, "G": 3 ]
 
-func encode(seq: String) ->  Int {
+func encode(_ seq: String) -> Int {
     let cSeq = seq.characters
     var res = 0
     for c in cSeq {
@@ -56,7 +62,7 @@ func encode(seq: String) ->  Int {
     return res
 }
 
-func roundDouble(num: Double, precision: Int) -> String {
+func roundDouble(_ num: Double, precision: Int) -> String {
     let exponent = pow(10.0, Double(precision))
     let number = Double(Int(num * exponent + 0.5)) / exponent
     var numberStr = "\(number)"
@@ -66,39 +72,25 @@ func roundDouble(num: Double, precision: Int) -> String {
     return numberStr
 }
 
-func readInput(_ inStream: UnsafeMutablePointer<FILE>) -> [Int8] {
-    var seq = [Int8]()
-    var buf = UnsafeMutablePointer<Int8>.alloc(100)
-    defer {
-        buf.dealloc(100)
-    }
+func readInput() -> [UInt8] {
+    var seq = [UInt8]()
     let pattern = ">THREE Homo sapiens frequency"
-    let pat = pattern.withCString({ s in s })
-    let patLen = pattern.nulTerminatedUTF8.count - 1
-    while memcmp(buf, pat, patLen) != 0  {
-        buf = fgets(buf, 100, inStream)
+
+    while let line = readLine() {
+        if line == pattern {
+            break
+        }
     }
-    buf = fgets(buf, 100, inStream)
-    while buf != nil {
-        seq.appendContentsOf(UnsafeMutableBufferPointer(start: buf, count: 60))
-        buf = fgets(buf, 100, inStream)
+
+    while let line = readLine() {
+        seq += Array(line.utf8)
     }
+
     return seq
 }
 
 // Read sequence
-let ins = stdin
-var sequence = readInput(ins)
-
-// Check if last line ended premature
-let offset = sequence.count - 60
-for i in 0..<60 {
-    if sequence[offset + i] == 10 {
-        let remain = 60 - i
-        sequence.removeLast(remain)
-        break
-    }
-}
+var sequence = readInput()
 
 // rewrite bytes with 2bit code
 for i in 0..<sequence.count {
@@ -109,16 +101,16 @@ let hash = getSequenceHash(1, seq: sequence)
 
 let i2c = [ 0: "A", 1: "C", 2: "T", 3: "G" ]
 
-let total = hash.reduce(0, combine: { $0 + $1.1 })
-for k in hash.keys.sort({hash[$1] < hash[$0]}) {
+let total = hash.reduce(0) { $0 + $1.1 }
+for k in hash.keys.sorted(by: {hash[$1]! < hash[$0]!}) {
     print("\(i2c[k]!) \(roundDouble(100.0*Double(hash[k]!)/Double(total), precision: 3))")
 }
 print()
 
 let hash2 = getSequenceHash(2, seq: sequence)
 
-let total2 = hash2.reduce(0, combine: { $0 + $1.1 })
-for k in hash2.keys.sort({hash2[$1] < hash2[$0]}) {
+let total2 = hash2.reduce(0) { $0 + $1.1 }
+for k in hash2.keys.sorted(by: {hash2[$1]! < hash2[$0]!}) {
     print("\(i2c[k>>2]!)\(i2c[k&3]!) \(roundDouble(100.0*Double(hash2[k]!)/Double(total2), precision: 3))")
 }
 print()
