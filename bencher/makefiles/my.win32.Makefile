@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: my.win32.Makefile,v 1.1 2012/12/29 19:19:32 igouy-guest Exp $
+# $Id: my.win32.Makefile,v 1.2 2016/11/29 22:09:41 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -27,10 +27,10 @@ COPTS := -O3 -fomit-frame-pointer
 
 %.java_run: %.java 
 	-copy $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 
 %.javaxint_run: %.javaxint
 	-copy $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 

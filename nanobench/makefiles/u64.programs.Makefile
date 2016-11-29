@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64.programs.Makefile,v 1.13 2015/08/26 19:16:16 igouy-guest Exp $
+# $Id: u64.programs.Makefile,v 1.14 2016/11/29 22:09:42 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -303,27 +303,27 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 
 %.java_run: %.java $(JDKRUN)
 	-mv $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 %.javaxx_run: %.javaxx $(JDKRUN)
 	-mv $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 %.javaxint_run: %.javaxint $(JDKRUN)
 	-mv $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 %.javaclient_run: %.javaclient $(JDKRUN)
 	-mv $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 %.java14_run: %.java14 $(JDKOLDRUN)
 	-mv $< $(TEST).java
-	-$(JDKOLDC) $(TEST).java
+	-$(JDKOLDC) -d . $(TEST).java
 
 %.java5_run: %.java5 $(JDK5RUN)
 	-mv $< $(TEST).java
-	-$(JDK5C) $(TEST).java
+	-$(JDK5C) -d . $(TEST).java
 
 %.ibmjava_run: %.ibmjava $(IBMJDKRUN)
 	-mv $< $(TEST).java
@@ -331,7 +331,7 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 
 %.javasteady_run: %.javasteady $(JDKRUN)
 	-mv $< $(TEST).java
-	-$(JDKC) $(TEST).java
+	-$(JDKC) -d . $(TEST).java
 
 
 ########################################
