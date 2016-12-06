@@ -12,7 +12,7 @@
 
 int Iter = 50;
 
-typedef double Vec __attribute__ ((vector_size(32)));
+typedef double Vec __attribute__ ((vector_size(16)));
 const int Vec__size = sizeof(Vec)/sizeof(double);
 typedef unsigned char Byte;
 
@@ -24,7 +24,7 @@ int bt(Vec lhs, double rhs) {
 }
 
 // Calculate mandelbrot set for one Vec into one byte
-Byte mand(Vec* __restrict__ cr, Vec* __restrict__ ci) {
+Byte mand(Vec cr, Vec ci) {
   Vec Zr = {0.0};
   Vec Zi = {0.0};
   Vec Tr = {0.0};
@@ -32,8 +32,8 @@ Byte mand(Vec* __restrict__ cr, Vec* __restrict__ ci) {
 
   for (int i = 0; i < Iter/5; i++) {
     for (int j = 0; j < 5; j++) {
-      Zi = (Zr + Zr) * Zi + *ci;
-      Zr = Tr - Ti + *cr;
+      Zi = (Zr + Zr) * Zi + ci;
+      Zr = Tr - Ti + cr;
       Tr = Zr * Zr;
       Ti = Zi * Zi;
     }
@@ -68,11 +68,12 @@ int main(int argc, char* argv[])
 
 #pragma omp parallel for schedule(guided)
   for (int y = 0; y < n; y++) {
-    for (int x = 0; x < N/Vec__size; x+=2) {
+    for (int x = 0; x < N/Vec__size; x+=8/Vec__size) {
       Byte b = 0;
-      b |= mand(xvals + x + 0, yvals + y) >> 0;
-      b |= mand(xvals + x + 1, yvals + y) >> 4;
-      rows[y*N/8+x/2] = b;
+      for (int v = 0; v < 8/Vec__size; v++) {
+        b |= mand(xvals[x + v], yvals[y]) >> (v*Vec__size);
+      }
+      rows[y*N/8+x/(8/Vec__size)] = b;
     }
   }
 
@@ -84,5 +85,6 @@ int main(int argc, char* argv[])
   {
       fclose(out);
   }
+  free(rows);
   return 0;
 }
