@@ -1,7 +1,7 @@
 # The Computer Language Benchmarks Game
-# $Id: readme.txt,v 1.6 2013/04/21 15:40:58 igouy-guest Exp $
+# $Id: readme.txt,v 1.7 2016/12/12 21:21:06 igouy-guest Exp $
 
-	bencher - June 2011, April 2013
+	bencher - June 2011, April 2013, December 2016
 
 
 

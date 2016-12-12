@@ -1,0 +1,46 @@
+Description="C#"
+
+Keywords={
+  { Id=1,
+    List={"class", "deinit", "enum", "extension", "func", "import", "init", "internal", "let", "operator", "private", "protocol", "public", "static",
+    "struct", "subscript", "typealias", "var", "break", "case", "continue", "default", "do", "else", "fallthrough", "for",
+    "if", "in", "return", "switch", "where", "while", "as", "dynamicType", "false", "is", "nil", "self",
+    "Self", "super", "true", "this", "associativity", "convenience", "dynamic", "didSet", "final", "get", "infix", "inout", "lazy", "left", "mutating", "none", "nonmutating", "optional", "override", "postfix", "precedence", "prefix", "Protocol", "required", "right", "set", "Type", "unowned", "weak", "catch", "guard", "repeat", "throws", "try", "willset" },
+  },
+  { Id=2,
+    List={"Array", "Bool", "Dictionary", "ErrorType", "Int?", "Int", "Set", "String?", "String", "Double?", "Double", "Float?", "Float", "Tuple", "UnicodeScalar", "COLUMN", "FILE", "FUNCTION", "LINE" },
+  },
+  { Id=3,
+    Regex=[[^\s*(\w+):]],
+  },
+  { Id=4,
+    Regex=[[(\w+)\s*\(]],
+  },
+}
+
+Strings={
+  Delimiter=[["|']],
+  RawPrefix="@",
+  Interpolation=[[ \{\d+\} ]]
+}
+
+IgnoreCase=false
+
+Comments={
+  { Block=false,
+    Delimiter= { [[//]] },
+  },
+  { Block=true,
+    Nested=false,
+    Delimiter= { [[\/\*]],[[\*\/]],}
+  }
+}
+
+PreProcessor={
+  Prefix=[[#]],
+  Continuation="\\",
+}
+
+Operators=None
+
+EnableIndentation=true
