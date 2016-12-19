@@ -1,6 +1,7 @@
 -- The Computer Language Benchmarks Game
 -- http://benchmarksgame.alioth.debian.org/
 -- contributed by Mike Pall
+-- Updated for Lua 5.3 by Robin
 
 -- Generate a decision tree based solver for the meteor puzzle.
 local function generatesolver(countinit)
@@ -147,7 +148,7 @@ local f93 = f91
   end
 
   -- Compile and return solver function and result getter.
-  return loadstring(s.."return f0, printresult\n", "solver")(countinit)
+  return load(s.."return f0, printresult\n", "solver")(countinit)
 end
 
 -- Run the solver protected to get partial results (max count or ctrl-c).

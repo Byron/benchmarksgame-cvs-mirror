@@ -1,6 +1,7 @@
 -- The Computer Language Benchmarks Game
 -- http://benchmarksgame.alioth.debian.org/
 -- contributed by Mike Pall
+-- modified for Lua 5.3 by Robin
 
 local Last = 42
 local function random(max)
@@ -23,8 +24,8 @@ end
 
 local function make_random_fasta(id, desc, bs, n)
   io.write(">", id, " ", desc, "\n")
-  loadstring([=[
-    local write, char, unpack, n, random = io.write, string.char, unpack, ...
+  load([=[
+    local write, char, unpack, n, random = io.write, string.char, table.unpack, ...
     local buf, p = {}, 1
     for i=60,n,60 do
       for j=p,p+59 do ]=]..bs..[=[ end

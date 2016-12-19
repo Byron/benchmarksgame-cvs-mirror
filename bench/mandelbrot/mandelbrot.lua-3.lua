@@ -1,6 +1,7 @@
 -- The Computer Language Benchmarks Game
 -- http://benchmarksgame.alioth.debian.org/
 -- contributed by Mike Pall
+-- Updated for Lua 5.3 by Robin
 
 local write, char, unpack = io.write, string.char, unpack
 local N = tonumber(arg and arg[1]) or 100
@@ -22,5 +23,5 @@ for y=0,N-1 do
     if b >= 256 then p = p + 1; buf[p] = 511 - b; b = 1; end
   end
   if b ~= 1 then p = p + 1; buf[p] = (ba-b)*bb; end
-  write(char(unpack(buf, 1, p)))
+  write(char(table.unpack(buf, 1, p)))
 end

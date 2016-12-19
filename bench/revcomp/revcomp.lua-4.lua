@@ -2,9 +2,10 @@
 -- http://benchmarksgame.alioth.debian.org/
 -- contributed by Mike Pall (with ideas from Rici Lake)
 -- modified by Sokolov Yura
+-- modified for Lua 5.2 by Robin
 
 local len, sub, concat = string.len, string.sub, table.concat
-local write, mod = io.write, math.mod
+local write, mod = io.write, math.fmod
 
 local function writerev(p, np, f, lo, hi)
   if lo <= hi then np = np + 1; p[np] = concat(f, "", lo, hi) end
