@@ -29,7 +29,7 @@ func decode(_ n: Int, _ len: Int) -> String {
     var val = n
     var s = ""
     for _ in 0..<len {
-        s += i2c[val & 0x3]!
+        s = i2c[val & 0x3]! + s
         val >>= 2
     }
     return s
