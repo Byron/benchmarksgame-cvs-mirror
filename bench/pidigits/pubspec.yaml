@@ -1,0 +1,4 @@
+name: benchmarksgame
+dependencies:
+  bignum: any
+  args: any

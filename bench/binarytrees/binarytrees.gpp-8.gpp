@@ -6,6 +6,7 @@
  * modified by Andreas Schäfer
  * very minor omp tweak by The Anh Tran
  * modified by Maxime Coste
+ * "tree nodes all the way down-to depth 0" by Isaac Gouy
  */
 
 #include <iostream>
@@ -32,7 +33,11 @@ typedef boost::object_pool<Node> NodePool;
 
 Node *make(int i, int d, NodePool &store) 
 {
-    return (d == 0) ? nullptr : store.construct(Node{make(2*i-1, d-1, store), make(2*i, d-1, store), i});
+//    return (d == 0) ? nullptr : store.construct(Node{make(2*i-1, d-1, store), make(2*i, d-1, store), i});
+
+    return (d == 0) 
+        ? store.construct(Node{nullptr, nullptr, i})
+        : store.construct(Node{make(2*i-1, d-1, store), make(2*i, d-1, store), i});
 }
 
 int GetThreadCount()
