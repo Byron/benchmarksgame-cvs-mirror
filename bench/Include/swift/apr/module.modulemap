@@ -1,0 +1,5 @@
+module apr [system] {
+  header "/usr/include/apr-1.0/apr_pools.h"
+  link "apr-1"
+  export *
+}
