@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.38 2017/02/01 06:04:22 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.39 2017/02/02 01:02:28 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -188,6 +188,7 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 %.fsharpcore_run: %.fsharpcore $(DOTNETCORE)
 	-cp $< Program.fs
 	-cp Include/fsharpcore/tmp.fsproj .
+	-cp Include/fsharpcore/runtimeconfig.template.json .
 	-mkdir obj
 	-cp Include/fsharpcore/project.assets.json ./obj
 	-cp Include/fsharpcore/tmp.fsproj.nuget.g.props ./obj
@@ -222,6 +223,7 @@ CHICKENOPTS := -O2 -d0 -no-trace -no-lambda-info -optimize-level 3 -disable-inte
 %.csharpcore_run: %.csharpcore $(DOTNETCORE)
 	-cp $< Program.cs
 	-cp Include/csharpcore/tmp.csproj .
+	-cp Include/csharpcore/runtimeconfig.template.json .
 	-mkdir obj
 	-cp Include/csharpcore/project.assets.json ./obj
 	-cp Include/csharpcore/tmp.csproj.nuget.g.props ./obj
