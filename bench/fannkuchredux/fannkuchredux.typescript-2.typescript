@@ -3,8 +3,6 @@
    contributed by Isaac Gouy 
 */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
 
 function fannkuch(n: number): number {
    const perm = new Int32Array(n), count = new Int32Array(n)

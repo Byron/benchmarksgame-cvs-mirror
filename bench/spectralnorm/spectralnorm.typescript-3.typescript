@@ -3,8 +3,6 @@
    contributed by Isaac Gouy 
 */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
 
 function approximate(n: number): number {
    let u = new Float64Array(n), v = new Float64Array(n)

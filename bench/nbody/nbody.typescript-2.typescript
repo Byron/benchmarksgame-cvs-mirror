@@ -5,8 +5,6 @@
    Transliterated from Smalltalk program
 */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
 
 class PlanetarySystem {
    private bodies: Body[]

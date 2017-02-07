@@ -3,8 +3,6 @@
    contributed by Isaac Gouy 
 */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
 
 class TreeNode {
 

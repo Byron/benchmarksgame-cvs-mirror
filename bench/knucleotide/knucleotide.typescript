@@ -4,9 +4,6 @@
    contributed by Josh Goldfoot
 */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
-"use strict";
 
 import { createInterface } from "readline";
 

@@ -6,9 +6,6 @@
 */
 
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
-
-
 const w = +process.argv[2]
 const h = w
 

@@ -6,7 +6,6 @@
    which was in turn based on C/Dart programs by Petr Prokhorenkov/Jos Hirth et al.
  */
 
-/// <reference path="/usr/local/src/typescript/node.d.ts" />
 
 type Freq = { s: string; p: number; c: number; sc: number };
 
