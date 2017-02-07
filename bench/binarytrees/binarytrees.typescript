@@ -4,6 +4,8 @@
 */
 
 
+/// <reference path="/usr/local/src/node-v7.5.0-linux-x64/lib/node_modules/@types/node/index.d.ts" />
+
 class TreeNode {
 
    constructor(
