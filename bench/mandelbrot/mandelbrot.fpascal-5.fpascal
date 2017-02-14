@@ -30,7 +30,7 @@ var
   Cr, Ci : Double;
   x, y, bits, bit, buf_index: Longint;
   
-   function CalculatePoint(Cx, Cy : double): boolean; nostackframe; inline;
+   function CalculatePoint(Cx, Cy : double): boolean; inline;
    var
      Limit : double = double(4);
      Two   : double = double(2);
