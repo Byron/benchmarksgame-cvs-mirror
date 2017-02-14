@@ -1,0 +1,36 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   based on the node.js version
+   contributed by Josh Goldfoot
+*/
+
+/// <reference path="/usr/local/src/node-v7.5.0-linux-x64/lib/node_modules/@types/node/index.d.ts" />
+
+import fs = require("fs");
+var i = fs.readFileSync("/dev/stdin", "ascii");
+var ilen = i.length;
+i = i.replace(/^>.*\n|\n/mg, "");
+var clen = i.length;
+
+var q : RegExp[] = [/agggtaaa|tttaccct/ig, /[cgt]gggtaaa|tttaccc[acg]/ig,
+    /a[act]ggtaaa|tttacc[agt]t/ig, /ag[act]gtaaa|tttac[agt]ct/ig,
+    /agg[act]taaa|ttta[agt]cct/ig, /aggg[acg]aaa|ttt[cgt]ccct/ig,
+    /agggt[cgt]aa|tt[acg]accct/ig, /agggta[cgt]a|t[acg]taccct/ig,
+    /agggtaa[cgt]|[acg]ttaccct/ig];
+
+q.forEach(qj => {
+    var m: RegExpMatchArray = i.match(qj);
+    console.log(qj.source, m ? m.length : 0);
+});
+
+var iub: string[] = ["(c|t)", "(a|t)", "(a|c|g)", "(c|g)", "(a|g)", "(a|c|g|t)", "(a|c)", "(g|t)", "(a|c|t)", "(a|g|t)", "(c|g|t)"];
+var iubR: RegExp[] = [/Y/g, /W/g, /V/g, /S/g, /R/g, /N/g, /M/g, /K/g, /H/g, /D/g, /B/g];
+
+while (iub.length)
+    i = i.replace(iubR.pop(), iub.pop())
+
+console.log();
+console.log(ilen);
+console.log(clen);
+console.log(i.length);
