@@ -293,7 +293,7 @@ object meteor {
       val allSolutions = Solver.solve()
       val howMany = {
         if (args.length == 1)
-          args.first.toInt
+          args(0).toInt
         else
           allSolutions.length
       }
