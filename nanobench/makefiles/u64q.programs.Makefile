@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.43 2017/02/08 18:43:48 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.44 2017/02/15 22:04:05 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -683,8 +683,7 @@ SBCL_TRACE :=
 # Dart
 ########################################
 
-%.dart_run: %.dart $(DARTPUB)
-	-mv $< $(TEST).dart
-	-$(DARTPUB) get
+%.dart_run: %.dart 
+	-$(DARTPUBGET)
 
 
