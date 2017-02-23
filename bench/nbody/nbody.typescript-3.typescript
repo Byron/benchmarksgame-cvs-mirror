@@ -6,7 +6,7 @@
 */
 
 
-/// <reference path="/usr/local/src/node-v7.5.0-linux-x64/lib/node_modules/@types/node/index.d.ts" />
+/// <reference path="./Include/node/index.d.ts" />
 
 class NBodySystem {
    private bodies: Body[];

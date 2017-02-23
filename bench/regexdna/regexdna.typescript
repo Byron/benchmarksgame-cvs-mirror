@@ -5,7 +5,7 @@
    contributed by Josh Goldfoot
 */
 
-/// <reference path="/usr/local/src/node-v7.6.0-linux-x64/lib/node_modules/@types/node/index.d.ts" />
+/// <reference path="./Include/node/index.d.ts" />
 
 var fs = require("fs");
 
