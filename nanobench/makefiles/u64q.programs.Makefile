@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.44 2017/02/15 22:04:05 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.45 2017/03/03 17:18:47 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -449,7 +449,7 @@ SBCL_TRACE :=
 	-mv $< $@
 
 %.fpascal_run: %.pas
-	-$(FPASCAL) -FuInclude/fpascal -XXs -O3 -Tlinux $(FPCOPTS) -oFPASCAL_RUN $<
+	-$(FPASCAL) -FuInclude/fpascal -XXs -O4 -Tlinux $(FPCOPTS) -oFPASCAL_RUN $<
 	-mv FPASCAL_RUN $@
 
 
@@ -618,7 +618,7 @@ SBCL_TRACE :=
 	-@mv $< $(TEST).rs
 
 %.rust_run: %.rs $(RUST)
-	-$(RUST) -C opt-level=3 -C target-cpu=core2 $(RUSTLOPTS) $(TEST).rs -o $@
+	-$(RUST) -C opt-level=3 -C target-cpu=core2 -C lto $(RUSTLOPTS) $(TEST).rs -o $@
 
 
 ########################################
