@@ -28,16 +28,6 @@ clen = seq.length
 /V/ => '(a|c|g)', /W/ => '(a|t)', /Y/ => '(c|t)'
 }.each { |f,r| seq.gsub!(f,r) }
 
-
-# Not using regex just string substitution
-#
-# {
-# 'B' => '(c|g|t)', 'D' => '(a|g|t)', 'H' => '(a|c|t)', 'K' => '(g|t)',
-# 'M' => '(a|c)', 'N' => '(a|c|g|t)', 'R' => '(a|g)', 'S' => '(c|t)',
-# 'V' => '(a|c|g)', 'W' => '(a|t)', 'Y' => '(c|t)'
-# }.each { |f,r| seq.gsub!(f,r) }
-
-
 puts
 puts ilen
 puts clen
