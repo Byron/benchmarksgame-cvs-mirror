@@ -2,7 +2,7 @@
 # http://benchmarksgame.alioth.debian.org
 #
 # contributed by jose fco. gonzalez
-# corrected to use regex
+# corrected to use regex instead of string substitution
 
 seq = STDIN.readlines.join
 ilen = seq.size
