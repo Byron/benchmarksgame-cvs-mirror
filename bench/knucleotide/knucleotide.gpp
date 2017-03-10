@@ -11,9 +11,9 @@
 #include <string>
 #include <cstring>
 #include <algorithm>
-#include <map>
 #include <future>
 #include <unistd.h>
+#include <vector>
 #include <ext/pb_ds/assoc_container.hpp>
 
 constexpr const unsigned char tochar[8] =
@@ -133,50 +133,11 @@ HashMap calculate(const char * begin, const char * end, unsigned size)
    return frequencies;
 }
 
-// calls the above function on multiple threads
-HashMap tcalculate(const std::string& input,unsigned size)
+void write_frequencies(const HashMap & f, unsigned input_size, unsigned size)
 {
-#ifdef MULTI_THREADED
-   // number of processors minus one because we have a background
-   unsigned NUM_THREADS = sysconf(_SC_NPROCESSORS_ONLN) - 1;
-#else
-   unsigned NUM_THREADS = 1;
-#endif
-
-   std::vector<std::future<HashMap>> ft(NUM_THREADS);
-   const char * begin = input.c_str();
-   const char * end = input.c_str() + input.size();
-   unsigned per_thread = input.size() / NUM_THREADS;
-   // launch n-1 threads
-   for(unsigned i = 1; i < NUM_THREADS; ++i)
-   {
-      // the end pointer needs to overlap by (size - 1) with the next range
-      // because the next range will ignore the first (size - 1) characters
-      const char * this_end = begin + per_thread + size - 1;
-      ft[i] = std::async(launch_policy, &calculate, begin, this_end, size);
-      begin += per_thread;
-   }
-
-   // do the remaining work on this thread
-   auto frequencies = calculate(begin, end, size);
-
-   // merge all the results
-   for(unsigned i = 1; i < NUM_THREADS; ++i)
-   {
-      for(auto && j : ft[i].get())
-      {
-         frequencies[j.first] += j.second;
-      }
-   }
-   return frequencies;
-}
-
-void write_frequencies(const std::string & input, unsigned size)
-{
-   auto frequencies = tcalculate(input,size);
    std::vector<std::pair<unsigned, std::string>> freq_sorted;
-   freq_sorted.reserve(frequencies.size());
-   for(auto && i: frequencies)
+   freq_sorted.reserve(f.size());
+   for(auto && i: f)
    {
       freq_sorted.emplace_back(i.second, i.first.to_string(size));
    }
@@ -185,7 +146,7 @@ void write_frequencies(const std::string & input, unsigned size)
    {
       return l.first > r.first;
    });
-   unsigned sum = input.size() + 1 - size;
+   unsigned sum = input_size + 1 - size;
    for(auto && i : freq_sorted)
       std::cout << i.second << ' ' << (double(100 * i.first) / sum) << '\n';
    std::cout << '\n';
@@ -197,13 +158,6 @@ unsigned compute_count(const std::string & input, const std::string& string)
    // requires that we compute all values
    const char * c_str_end = input.c_str() + input.size();
    return calculate(input.c_str(), c_str_end, string.size())[string];
-}
-
-unsigned compute_count_parallel(const std::string & input, const std::string& string)
-{
-   // compute all values, but then only read one value. the problem description
-   // requires that we compute all values
-   return tcalculate(input, string.size())[string];
 }
 
 void write_single_count(unsigned count, const char * string)
@@ -228,14 +182,7 @@ int main()
 
    std::cout << std::setprecision(3) << std::setiosflags(std::ios::fixed);
 
-   // there are a bunch of tasks to be done and they can all run in parallel.
-   // until C++ has a good task system, we'll have to do some manual
-   // scheduling. the functions above allow me to run things on multiple
-   // threads or on a single thread. I decided on a combination where some
-   // run on multiple threads and some on a single thread. this happens to be
-   // fast on my machine
-
-   // start long-running tasks on background thread
+   // start all tasks at once on background threads
    std::future<unsigned> GGTATTTTAATTTATAGT
       = std::async(launch_policy, compute_count, input, "GGTATTTTAATTTATAGT");
    std::future<unsigned> GGTATTTTAATT
@@ -244,14 +191,19 @@ int main()
       = std::async(launch_policy, compute_count, input, "GGTATT");
    std::future<unsigned> GGTA
       = std::async(launch_policy, compute_count, input, "GGTA");
-   // compute these on multiple threads, including the main thread
-   write_frequencies(input,1);
-   write_frequencies(input,2);
-   write_single_count(compute_count_parallel(input, "GGT"), "GGT");
+   std::future<unsigned> GGT
+      = std::async(launch_policy, compute_count, input, "GGT");
+   const char * begin = input.data();
+   const char * end = input.data() + input.size();
+   std::future<HashMap> freq2
+      = std::async(launch_policy, calculate, begin, end, 2);
+   // do one task on the main thread
+   write_frequencies(calculate(begin, end, 1), input.size(), 1);
    // get and write results from background threads
+   write_frequencies(freq2.get(), input.size(), 2);
+   write_single_count(GGT.get(), "GGT");
    write_single_count(GGTA.get(), "GGTA");
    write_single_count(GGTATT.get(), "GGTATT");
    write_single_count(GGTATTTTAATT.get(), "GGTATTTTAATT");
    write_single_count(GGTATTTTAATTTATAGT.get(), "GGTATTTTAATTTATAGT");
 }
-
