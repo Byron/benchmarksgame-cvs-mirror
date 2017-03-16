@@ -126,9 +126,6 @@ int main(int argc, char **argv)
   for (pp = variants; *pp; pp++)
     printf("%s %d\n", *pp, fb_countmatches(&seq[1], *pp));
 
-  struct timeval startTime, finishTime;
-  gettimeofday(&startTime, NULL);
-
   for (slen = 0, flip = 1, pp = subst; *pp; pp += 2, flip = 1-flip)
     slen = fb_subst(&seq[1-flip], &seq[flip], *pp, pp[1]);
 
