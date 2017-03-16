@@ -4,7 +4,7 @@
 ;;   regex-dna program contributed by: Alex Miller
 ;;   converted from regex-dna program
 
-(ns regexdna
+(ns regexredux
   (:import [java.io FileInputStream FileDescriptor]
            [java.nio ByteBuffer]
            [java.util.regex Pattern])

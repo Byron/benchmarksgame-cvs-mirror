@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class regexdna {
+public final class regexredux {
 
    private static final Map<String, String> replacements = new HashMap<String, String>();
 

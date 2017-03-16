@@ -9,7 +9,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-class regexdna
+class regexredux
 {
    static void Main(string[] args){
                    

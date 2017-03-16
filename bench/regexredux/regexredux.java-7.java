@@ -23,7 +23,7 @@ import com.basistech.tclre.PatternFlags;
 import com.basistech.tclre.ReMatcher;
 import com.basistech.tclre.RegexException;
 
-public final class regexdna {
+public final class regexredux {
 
     private static String getReplacement(final String in) {
         switch (in.charAt(0)) {

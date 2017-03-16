@@ -14,7 +14,7 @@ import java.util.regex.*;
 import java.util.*;
 
 
-public class regexdna
+public class regexredux
 {
     // source data is duplicated into 2 arrays
     static ArrayList<StringBuilder> source_as_segments = new ArrayList<StringBuilder>();;

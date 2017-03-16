@@ -4,7 +4,7 @@
 ;; regex-dna program contributed by Andy Fingerhut
 ;; converted from regex-dna program
 
-(ns regexdna
+(ns regexredux
   (:gen-class)
   (:require [clojure.string :as str])
   (:import (java.util.regex Pattern)))
