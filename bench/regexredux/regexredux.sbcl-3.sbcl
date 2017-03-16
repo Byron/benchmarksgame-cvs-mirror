@@ -30,7 +30,7 @@
 (defconstant  +alternatives+
   '(("tHa[Nt]" "<4>")  ("aND|caN|Ha[DS]|WaS" "<3>")
     ("a[NSt]|BY" "<2>")  ("<[^>]*>" "|")
-    ("[^|][^|]*"" "")))
+    ("[^|][^|]*" "")))
 
 #+sb-thread
 (progn

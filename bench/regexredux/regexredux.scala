@@ -1,5 +1,6 @@
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
+
   regex-dna program contributed by Isaac Gouy
   modified and updated for 2.8 by Rex Kerr
   converted from regex-dna program
@@ -7,7 +8,7 @@
 
 import java.io._
 
-object regexdna {
+object regexredux {
   def main(args: Array[String]) {
 
     var sequence = readFully()
