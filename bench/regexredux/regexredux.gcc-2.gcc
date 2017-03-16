@@ -2,7 +2,7 @@
  * http://benchmarksgame.alioth.debian.org/
 **
 ** regex-dna program contributed by Mike Pall
-** converted from regex-dna program
+** converted from regex-dna program by Jeremy Zerfas
 **
 */
 
@@ -110,7 +110,6 @@ static const char *subst[] = {
   "a[NSt]|BY", "<2>",
   "<[^>]*>", "|",
   "[^|][^|]*", "",
-
   NULL
 };
 

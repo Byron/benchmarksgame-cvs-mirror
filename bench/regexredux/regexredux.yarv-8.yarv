@@ -1,0 +1,63 @@
+# The Computer Language Benchmarks Game
+# http://benchmarksgame.alioth.debian.org
+#
+# regex-dna program contributed contributed by jose fco. gonzalez
+# optimized & parallelized by Rick Branson
+# optimized & parallelized by Aaron Tavistock
+# converted from regex-dna program
+
+def count_pattern_matches(seq, matchers)
+  threads = []
+  results = {}
+  matchers.each do |matcher|
+    threads << Thread.new do
+      read, write = IO.pipe
+      Process.fork do
+        read.close
+        count = 0
+        seq.scan( Regexp.new(matcher) ) { count += 1 }
+        write.print(count)
+      end
+      Process.wait
+      write.close
+      results[matcher] = read.read.to_i
+    end
+  end
+  threads.each { |t| t.join }
+  results
+end
+
+seq = STDIN.read
+origin_len = seq.size
+
+seq.gsub!(/>[^\n]+\n|\n/,'')
+clean_len = seq.size
+
+matchers = [
+  'agggtaaa|tttaccct',
+  '[cgt]gggtaaa|tttaccc[acg]',
+  'a[act]ggtaaa|tttacc[agt]t',
+  'ag[act]gtaaa|tttac[agt]ct',
+  'agg[act]taaa|ttta[agt]cct',
+  'aggg[acg]aaa|ttt[cgt]ccct',
+  'agggt[cgt]aa|tt[acg]accct',
+  'agggta[cgt]a|t[acg]taccct',
+  'agggtaa[cgt]|[acg]ttaccct'
+]
+
+match_counts = count_pattern_matches(seq, matchers)
+
+replacements = {
+  'tHa[Nt]' => '<4>',
+  'aND|caN|Ha[DS]|WaS' => '<3>',
+  'a[NSt]|BY' => '<2>',
+  '<[^>]*>' => '|',
+  '[^|][^|]*' => ''
+}
+
+seq.gsub!(/[BDHKMNRSVWY]/, replacements)
+
+matchers.each do |matcher|
+  print "#{matcher} #{match_counts[matcher]}\n"
+end
+print "\n#{origin_len}\n#{clean_len}\n#{seq.size}\n"

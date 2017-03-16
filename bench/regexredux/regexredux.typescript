@@ -1,0 +1,37 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   regex-dna program contributed by Josh Goldfoot
+   converted from regex-dna program
+*/
+
+/// <reference path="./Include/node/index.d.ts" />
+
+var fs = require("fs");
+
+var i = fs.readFileSync("/dev/stdin", "ascii");
+var ilen = i.length;
+i = i.replace(/^>.*\n|\n/mg, "");
+var clen = i.length;
+
+var q : RegExp[] = [/agggtaaa|tttaccct/ig, /[cgt]gggtaaa|tttaccc[acg]/ig,
+    /a[act]ggtaaa|tttacc[agt]t/ig, /ag[act]gtaaa|tttac[agt]ct/ig,
+    /agg[act]taaa|ttta[agt]cct/ig, /aggg[acg]aaa|ttt[cgt]ccct/ig,
+    /agggt[cgt]aa|tt[acg]accct/ig, /agggta[cgt]a|t[acg]taccct/ig,
+    /agggtaa[cgt]|[acg]ttaccct/ig];
+
+q.forEach(qj => {
+    var m: RegExpMatchArray = i.match(qj);
+    console.log(qj.source, m ? m.length : 0);
+});
+
+var iub: string[] = ["<4>", "<3>", "<2>", "|", ""];
+var iubR: RegExp[] = [/tHa[Nt]/g, /aND|caN|Ha[DS]|WaS/g, /a[NSt]|BY/g, /<[^>]*>/g, /[^|][^|]*/g];
+
+while (iub.length)
+    i = i.replace(iubR.pop(), iub.pop())
+
+console.log();
+console.log(ilen);
+console.log(clen);
+console.log(i.length);
