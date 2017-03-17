@@ -17,8 +17,8 @@ let variants = ["agggtaaa\\|tttaccct";          "[cgt]gggtaaa\\|tttaccc[acg]";
 let re_bs = Str.regexp_string "\\"
 let to_string = Str.global_replace re_bs ""
 
-let subst = ["tHa[Nt]", "<4>"; "aND|caN|Ha[DS]|WaS", "<3>";
-             "a[NSt]|BY", "<2>"; "<[^>]*>", "|"; "<[^>]*>", ""]
+let subst = ["tHa[Nt]", "<4>"; "aND\\|caN|Ha[DS]\\|WaS", "<3>";
+             "a[NSt]\\|BY", "<2>"; "<[^>]*>", "\\|"; "[^\\|][^\\|]*", ""]
 
 (* Read all of a redirected FASTA format file from stdin. *)
 let file_data, file_length =
@@ -44,5 +44,5 @@ let () =
   List.iter (fun re -> printf "%s %i\n" (to_string re) (count re dna)) variants;
   let b = ref dna in
   List.iter (fun (re, s) ->
-               b := Str.global_replace (Str.regexp_case_fold re) s !b) subst;
+               b := Str.global_replace (Str.regexp re) s !b) subst;
   printf "\n%i\n%i\n%i\n" file_length code_length (String.length !b)

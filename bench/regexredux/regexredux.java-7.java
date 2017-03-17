@@ -85,7 +85,7 @@ public final class regexredux {
             results.put(v, pool.submit(new Callable<Integer>() {
                 @Override
                 public Integer call() throws RegexException {
-                    ReMatcher m = HsrePattern.compile(v, PatternFlags.ICASE,
+                    ReMatcher m = HsrePattern.compile(v,
                             PatternFlags.ADVANCED, PatternFlags.NOSUB).matcher(cb);
                     int count = 0;
                     while (m.find()) {

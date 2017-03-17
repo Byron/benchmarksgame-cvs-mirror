@@ -13,7 +13,7 @@
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
   <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)microsoft.diasymreader.native/1.4.0/build/Microsoft.DiaSymReader.Native.props" Condition="Exists('$(NuGetPackageRoot)microsoft.diasymreader.native/1.4.0/build/Microsoft.DiaSymReader.Native.props')" />
-    <Import Project="$(NuGetPackageRoot)fsharp.net.sdk/1.0.0-beta-050000/build/FSharp.NET.Sdk.props" Condition="Exists('$(NuGetPackageRoot)fsharp.net.sdk/1.0.0-beta-050000/build/FSharp.NET.Sdk.props')" />
+    <Import Project="$(NuGetPackageRoot)fsharp.compiler.tools/4.1.0/build/FSharp.Compiler.Tools.props" Condition="Exists('$(NuGetPackageRoot)fsharp.compiler.tools/4.1.0/build/FSharp.Compiler.Tools.props')" />
+    <Import Project="$(NuGetPackageRoot)fsharp.net.sdk/1.0.0/build/FSharp.NET.Sdk.props" Condition="Exists('$(NuGetPackageRoot)fsharp.net.sdk/1.0.0/build/FSharp.NET.Sdk.props')" />
   </ImportGroup>
 </Project>

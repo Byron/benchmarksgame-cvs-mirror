@@ -30,12 +30,12 @@ let variants, variants_to_string =
   Array.map (Str.global_replace re_bs "") variants
 
 let iupacs =
-  Array.map (fun (re, s) -> Str.regexp_case_fold re, s) [|
+  Array.map (fun (re, s) -> Str.regexp re, s) [|
     "tHa[Nt]", "<4>";
-    "aND|caN|Ha[DS]|WaS", "<3>";
-    "a[NSt]|BY", "<2>";
-    "<[^>]*>", "|";
-    "[^|][^|]*", ""
+    "aND\\|caN\\|Ha[DS]\\|WaS", "<3>";
+    "a[NSt]\\|BY", "<2>";
+    "<[^>]*>", "\\|";
+    "[^\\|][^\\|]*", ""
   |]
 
 (* Read all of a redirected FASTA format file from stdin *)
