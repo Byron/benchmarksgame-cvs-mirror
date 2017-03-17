@@ -2,7 +2,7 @@
   "version": 2,
   "targets": {
     ".NETCoreApp,Version=v1.1": {
-      "FSharp.Compiler.Tools/4.1.0": {
+      "FSharp.Compiler.Tools/4.1.1": {
         "type": "package",
         "build": {
           "build/FSharp.Compiler.Tools.props": {}
@@ -45,10 +45,10 @@
           "lib/netstandard1.6/FSharp.Core.dll": {}
         }
       },
-      "FSharp.NET.Sdk/1.0.1": {
+      "FSharp.NET.Sdk/1.0.2": {
         "type": "package",
         "dependencies": {
-          "FSharp.Compiler.Tools": "4.1.0"
+          "FSharp.Compiler.Tools": "4.1.1"
         },
         "build": {
           "build/FSharp.NET.Sdk.props": {}
@@ -2323,10 +2323,10 @@
     }
   },
   "libraries": {
-    "FSharp.Compiler.Tools/4.1.0": {
-      "sha512": "M3/yiilHXZivgdmDtclMb7GKyC4x53/EIpuw1niB9L0w2XiVLvmnBdO5WnDngUE2Qarn3ldZn/tWGE7eYXLQHQ==",
+    "FSharp.Compiler.Tools/4.1.1": {
+      "sha512": "mOQgbcuD3RxEmQFHYI/dsOgt3QC6DtKH93cIoVjtsRuMYp0tYJqPkxMCoWPP1s3c7N/Sh/eT/yh+bR36bEXxwQ==",
       "type": "package",
-      "path": "fsharp.compiler.tools/4.1.0",
+      "path": "fsharp.compiler.tools/4.1.1",
       "files": [
         "build/FSharp.Compiler.Tools.props",
         "build/netcoreapp1.0/FSharp.Build.dll",
@@ -2343,7 +2343,7 @@
         "build/netcoreapp1.0/runtimes/unix/lib/netstandard1.3/System.Diagnostics.TraceSource.dll",
         "build/netcoreapp1.0/runtimes/win/lib/netstandard1.3/System.Diagnostics.TraceSource.dll",
         "buildCrossTargeting/FSharp.Compiler.Tools.props",
-        "fsharp.compiler.tools.4.1.0.nupkg.sha512",
+        "fsharp.compiler.tools.4.1.1.nupkg.sha512",
         "fsharp.compiler.tools.nuspec",
         "tools/FSharp.Build.dll",
         "tools/FSharp.Build.xml",
@@ -2362,6 +2362,8 @@
         "tools/Microsoft.Build.Tasks.v12.0.dll",
         "tools/Microsoft.Build.Utilities.v12.0.dll",
         "tools/Microsoft.Build.dll",
+        "tools/Microsoft.DiaSymReader.PortablePdb.dll",
+        "tools/Microsoft.DiaSymReader.dll",
         "tools/Microsoft.FSharp.Targets",
         "tools/System.Collections.Immutable.dll",
         "tools/System.Reflection.Metadata.dll",
@@ -2421,16 +2423,16 @@
         "lib/portable-net45+sl5+netcore45/FSharp.Core.xml"
       ]
     },
-    "FSharp.NET.Sdk/1.0.1": {
-      "sha512": "1bvVT9qpLxqgVnu5rICDG4I/X/2al37dja75FixoY3p8pqtAcS6qC0Bnostq9IQs+Vr6VAt+04DNfUamwPoLBw==",
+    "FSharp.NET.Sdk/1.0.2": {
+      "sha512": "LpAn0GSb8evbnq0W8shiygU/fwyPKCXf8fgCNsrmrahDgIrvKy10ugKt+tSlFvk80QUJbXXUrpFsy7nB59Cy+w==",
       "type": "package",
-      "path": "fsharp.net.sdk/1.0.1",
+      "path": "fsharp.net.sdk/1.0.2",
       "files": [
         "build/FSharp.NET.Core.Sdk.targets",
         "build/FSharp.NET.Current.Sdk.targets",
         "build/FSharp.NET.Sdk.props",
         "buildCrossTargeting/FSharp.NET.Sdk.targets",
-        "fsharp.net.sdk.1.0.1.nupkg.sha512",
+        "fsharp.net.sdk.1.0.2.nupkg.sha512",
         "fsharp.net.sdk.nuspec"
       ]
     },
