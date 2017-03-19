@@ -5,6 +5,7 @@
 -- optimized & replaced inefficient use of gsub with gmatch
 -- partitioned sequence to prevent extraneous redundant string copy
 -- converted from regex-dna program
+-- fixed by saito tanaka 
 
 seq = io.read("*a")
 ilen, seq = #seq, seq:gsub('>[^%c]*%c*', ''):gsub('%c+', '')
@@ -20,8 +21,10 @@ local variants = { 'agggtaaa|tttaccct',
                    'agggta[cgt]a|t[acg]taccct',
                    'agggtaa[cgt]|[acg]ttaccct', }
 
-local subst = { 'tHa[Nt]'='<4>', 'aND|caN|Ha[DS]|WaS'='<3>', 'a[NSt]|BY'='<2>', 
-                '<[^>]*>'='|', '[^|][^|]*'='' }
+            	-- illegal key names should by between [] like a={['@&!']=4}
+
+local subst = { ['tHa[Nt]']='<4>', ['aND|caN|Ha[DS]|WaS']='<3>', ['a[NSt]|BY']='<2>', 
+                ['<[^>]*>']='|', ['[^|][^|]*']='' ,}
 
 function countmatches(variant)
    local n = 0
@@ -56,3 +59,5 @@ for k, v in pairs(subst) do
 end
 seq = table.concat(seq)
 io.write(string.format('\n%d\n%d\n%d\n', ilen, clen, #seq))
+    
+

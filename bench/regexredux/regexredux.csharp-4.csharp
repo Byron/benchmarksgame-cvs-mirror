@@ -1,16 +1,16 @@
-/* The Computer Language Benchmarks Game
+﻿/* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
  * 
- * regex-dna program contributed by Isaac Gouy 
- * converted from regex-dna program
- * Parallel stuff, Josh Goldfoot
+ * Regex-Redux
+ * by Josh Goldfoot
  *
 */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 class regexredux
 {
@@ -18,31 +18,67 @@ class regexredux
     {
 
         // read FASTA sequence
-        string sequence = Console.In.ReadToEnd();
+        String sequence = Console.In.ReadToEnd();
         int initialLength = sequence.Length;
 
         // remove FASTA sequence descriptions and new-lines
         sequence = Regex.Replace(sequence, ">.*\n|\n", "");
         int codeLength = sequence.Length;
 
-        var three = Task.Run(() => {
+        Task<int> substitution = Task.Run(() => {
             // regex substitution
-            IUB[] codes = {
-                  new IUB("tHa[Nt]", "<4>")
-                 ,new IUB("aND|caN|Ha[DS]|WaS", "<3>")
-                 ,new IUB("a[NSt]|BY", "<2>")
-                 ,new IUB("<[^>]*>", "|")
-                 ,new IUB("[^|][^|]*", "")
-            };
-            string s2 = sequence + "";
-            foreach (IUB iub in codes)
-                s2 = Regex.Replace(s2, iub.code, iub.alternatives);
-            return s2.Length;
+            string newseq = Regex.Replace(sequence, "tHa[Nt]", "<4>");
+            newseq = Regex.Replace(newseq, "aND|caN|Ha[DS]|WaS", "<3>");
+            newseq = Regex.Replace(newseq, "a[NSt]|BY", "<2>");
+            newseq = Regex.Replace(newseq, "<[^>]*>", "|");
+            newseq = Regex.Replace(newseq, "[^|][^|]*", "");
+            return newseq.Length;
         });
 
+        // divide large sequence into chunks (one per core) and search each in parallel
+        int[][] sums = Chunks(sequence).AsParallel().Select(CountRegexes).ToArray();
+
+        var variants = Variants.variantsCopy();
+        for (int i = 0; i < 9; i++)
+            Console.WriteLine("{0} {1}", variants[i], sums.Sum(a => a[i]));
+
+        Console.WriteLine("\n{0}\n{1}\n{2}",
+           initialLength, codeLength, substitution.Result);
+    }
+
+    private static IEnumerable<string> Chunks(string sequence)
+    {
+        int numChunks = Environment.ProcessorCount;
+        int start = 0;
+        int chunkSize = sequence.Length / numChunks;
+        while (--numChunks >= 0)
+        {
+            if (numChunks > 0)
+                yield return sequence.Substring(start, chunkSize);
+            else
+                yield return sequence.Substring(start);
+            start += chunkSize;
+        }
+    }
+
+    private static int[] CountRegexes(string chunk)
+    {
         // regex match
-        string[] variants = {
-         "agggtaaa|tttaccct"
+        int[] counts = new int[9];
+        string[] variants = Variants.variantsCopy();
+
+        for (int i = 0; i < 9; i++)
+            for (var m = Regex.Match(chunk, variants[i]); m.Success; m = m.NextMatch()) counts[i]++;
+        return counts;
+    }
+}
+
+public class Variants
+{
+    public static string[] variantsCopy()
+    {
+        return new string[] {
+          "agggtaaa|tttaccct"
          ,"[cgt]gggtaaa|tttaccc[acg]"
          ,"a[act]ggtaaa|tttacc[agt]t"
          ,"ag[act]gtaaa|tttac[agt]ct"
@@ -52,30 +88,5 @@ class regexredux
          ,"agggta[cgt]a|t[acg]taccct"
          ,"agggtaa[cgt]|[acg]ttaccct"
         };
-
-        var results = variants.AsParallel().AsOrdered().Select(v => {
-            int count = 0;
-            for (Match m = Regex.Match(sequence, v); m.Success; m = m.NextMatch()) count++;
-            return string.Format("{0} {1}", v, count);
-        });
-
-        foreach (var line in results)
-            Console.WriteLine(line); 
-        
-        Console.WriteLine("\n{0}\n{1}\n{2}",
-           initialLength, codeLength, three.Result);
-    }
-
-
-    struct IUB
-    {
-        public string code;
-        public string alternatives;
-
-        public IUB(string code, string alternatives)
-        {
-            this.code = code;
-            this.alternatives = alternatives;
-        }
     }
 }
