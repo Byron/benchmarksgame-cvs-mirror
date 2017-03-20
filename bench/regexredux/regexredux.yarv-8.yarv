@@ -48,11 +48,11 @@ matchers = [
 match_counts = count_pattern_matches(seq, matchers)
 
 replacements = {
-  'tHa[Nt]' => '<4>',
-  'aND|caN|Ha[DS]|WaS' => '<3>',
-  'a[NSt]|BY' => '<2>',
-  '<[^>]*>' => '|',
-  '\\|[^|][^|]*\\|' => '-'
+  /tHa[Nt]/ => '<4>',
+  /aND|caN|Ha[DS]|WaS/ => '<3>',
+  /a[NSt]|BY/ => '<2>',
+  /<[^>]*>/ => '|',
+  /\|[^|][^|]*\|/ => '-'
 }
 
 seq.gsub!(/[BDHKMNRSVWY]/, replacements)

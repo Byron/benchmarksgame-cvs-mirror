@@ -34,11 +34,11 @@ results = matchers.map do |matcher|
 end
 
 replacements = {
-  'tHa[Nt]' => '<2>',
-  'aND|caN|Ha[DS]|WaS' => '<2>',
-  'a[NSt]|BY' => '<2>',
-  '<[^>]*>' => '|',
-  '\\|[^|][^|]*\\|' => '-'
+  /tHa[Nt]/ => '<4>',
+  /aND|caN|Ha[DS]|WaS/ => '<3>',
+  /a[NSt]|BY/ => '<2>',
+  /<[^>]*>/ => '|',
+  /\|[^|][^|]*\|/ => '-'
 }
 seq.gsub!(Regexp.new(replacements.keys.join('|')), replacements)
 

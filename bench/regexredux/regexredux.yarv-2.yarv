@@ -39,11 +39,11 @@ match_results = threads.map do |t|
 end
 
 {
-  'tHa[Nt]' => '<4>', 
-  'aND|caN|Ha[DS]|WaS' => '<3>', 
-  'a[NSt]|BY' => '<2>', 
-  '<[^>]*>' => '|',
-  '\\|[^|][^|]*\\|' => '-'
+  /tHa[Nt]/ => '<4>', 
+  /aND|caN|Ha[DS]|WaS/ => '<3>', 
+  /a[NSt]|BY/ => '<2>', 
+  /<[^>]*>/ => '|',
+  /\|[^|][^|]*\|/ => '-'
 }.each { |f,r| seq.gsub!(f,r) }
 
 puts "#{match_results.join("\n")}\n\n#{ilen}\n#{clen}\n#{seq.length}"

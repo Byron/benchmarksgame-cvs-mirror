@@ -25,8 +25,8 @@ q.forEach(qj => {
     console.log(qj.source, m ? m.length : 0);
 });
 
-var iub: string[] = ["<4>", "<3>", "<2>", "|", "-"];
-var iubR: RegExp[] = [/tHa[Nt]/g, /aND|caN|Ha[DS]|WaS/g, /a[NSt]|BY/g, /<[^>]*>/g, /\\|[^|][^|]*\\|/g];
+var iub: string[] = ["-", "|", "<2>", "<3>", "<4>"];
+var iubR: RegExp[] = [/\|[^|][^|]*\|/g, /<[^>]*>/g, /a[NSt]|BY/g, /aND|caN|Ha[DS]|WaS/g, /tHa[Nt]/g];
 
 while (iub.length)
     i = i.replace(iubR.pop(), iub.pop())

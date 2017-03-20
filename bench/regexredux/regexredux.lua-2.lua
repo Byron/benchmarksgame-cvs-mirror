@@ -24,7 +24,7 @@ local variants = { 'agggtaaa|tttaccct',
             	-- illegal key names should by between [] like a={['@&!']=4}
 
 local subst = { ['<4>']='tHa[Nt]', ['<3>']='aND|caN|Ha[DS]|WaS', ['<2>']='a[NSt]|BY', 
-                ['|']='<[^>]*>', ['-']='\\|[^|][^|]*\\|' ,}
+                ['|']='<[^>]*>', ['-']='\|[^|][^|]*\|' ,}
 
 function countmatches(variant)
    local n = 0
