@@ -101,17 +101,12 @@ static const char *variants[] = {
 };
 
 static const char *subst[] = {
-    // regex-dna search patterns and replacement text.
-    //"B", "(c|g|t)", "D", "(a|g|t)",   "H", "(a|c|t)", "K", "(g|t)",
-    //"M", "(a|c)",   "N", "(a|c|g|t)", "R", "(a|g)",   "S", "(c|g)",
-    //"V", "(a|c|g)", "W", "(a|t)",     "Y", "(c|t)",   NULL
-
     // regex-redux search patterns and replacement text.
     "tHa[Nt]", "<4>",
     "aND|caN|Ha[DS]|WaS", "<3>",
     "a[NSt]|BY", "<2>",
     "<[^>]*>", "|",
-    "[^|][^|]*", "",
+    "\\|[^|][^|]*\\|", "-",
     NULL
 };
 

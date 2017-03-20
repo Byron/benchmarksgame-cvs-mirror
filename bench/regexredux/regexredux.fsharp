@@ -40,7 +40,7 @@ let newTextLength t =
      "aND|caN|Ha[DS]|WaS", "<3>"
      "a[NSt]|BY", "<2>"
      "<[^>]*>", "|"
-     "[^|][^|]*", ""]
+     "\\|[^|][^|]*\\|" , "-"]
      |> List.fold (fun s (code, alt) -> (regex code).Replace (s, alt)) t 
      |> String.length
 

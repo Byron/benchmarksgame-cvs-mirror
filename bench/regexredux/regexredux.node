@@ -16,7 +16,7 @@ var fs = require('fs'), i = fs.readFileSync('/dev/stdin', 'ascii'),
     /agggt[cgt]aa|tt[acg]accct/ig, /agggta[cgt]a|t[acg]taccct/ig,
     /agggtaa[cgt]|[acg]ttaccct/ig],
 
-  b = ["", /[^|][^|]*/g,
+  b = ["-", /\\|[^|][^|]*\\|/g,
       "|", /<[^>]*>/g,
       "<3>", /aND|caN|Ha[DS]|WaS/g,
         "<2>", /a[NSt]|BY/g,

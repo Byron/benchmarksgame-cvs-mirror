@@ -31,7 +31,7 @@ $IUB[]='/tHa[Nt]/S';            $IUBnew[]='<4>';
 $IUB[]='/aND|caN|Ha[DS]|WaS/S'; $IUBnew[]='<3>';
 $IUB[]='/a[NSt]|BY/S';          $IUBnew[]='<2>';
 $IUB[]='/<[^>]*>/S';            $IUBnew[]='|';
-$IUB[]='/[^|][^|]*/S';          $IUBnew[]='';
+$IUB[]='/\\|[^|][^|]*\\|/S';    $IUBnew[]='-';
 
 
 // read in file

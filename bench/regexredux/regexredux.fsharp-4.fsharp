@@ -69,7 +69,7 @@ let applyPatterns =
         replace "aND|caN|Ha[DS]|WaS" "<3>"
         replace "a[NSt]|BY" "<2>"
         replace "<[^>]*>" "|"
-        replace "[^|][^|]*" ""
+        replace "\\|[^|][^|]*\\|" "-"
     ]
     |> List.reduce (>>)
 

@@ -44,7 +44,7 @@ object regexredux {
       ("aND|caN|Ha[DS]|WaS", "<3>"),
       ("a[NSt]|BY", "<2>"),
       ("<[^>]*>", "|"),
-      ("[^|][^|]*", "")
+      ("\\|[^|][^|]*\\|", "-")
     ).foreach(iub => sequence = matching(iub._1).replaceAll(iub._2) )
 
     println("\n" + initialLength + "\n" + codeLength + "\n" + sequence.length)

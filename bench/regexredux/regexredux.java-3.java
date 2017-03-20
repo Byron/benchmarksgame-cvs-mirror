@@ -38,7 +38,7 @@ public class regexredux {
         iub.put("aND|caN|Ha[DS]|WaS", "<3>");
         iub.put("a[NSt]|BY", "<2>");
         iub.put("<[^>]*>", "|");
-        iub.put("[^|][^|]*", "");
+        iub.put("\\|[^|][^|]*\\|", "-");
 
         String buffer = sequence;
         for (Map.Entry<String, String> entry : iub.entrySet()) {

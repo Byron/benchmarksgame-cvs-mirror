@@ -38,7 +38,7 @@ replacements = {
   'aND|caN|Ha[DS]|WaS' => '<2>',
   'a[NSt]|BY' => '<2>',
   '<[^>]*>' => '|',
-  '[^|][^|]*' => ''
+  '\\|[^|][^|]*\\|' => '-'
 }
 seq.gsub!(Regexp.new(replacements.keys.join('|')), replacements)
 

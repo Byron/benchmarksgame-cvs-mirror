@@ -42,7 +42,7 @@ def main():
 
     subst = {
           'tHa[Nt]' : '<4>', 'aND|caN|Ha[DS]|WaS' : '<3>', 'a[NSt]|BY' : '<2>',
-          '<[^>]*>' : '|', '[^|][^|]*' : ''}
+          '<[^>]*>' : '|', '\\|[^|][^|]*\\|' : '-'}
     for f, r in list(subst.items()):
         seq = sub(f, r, seq)
 

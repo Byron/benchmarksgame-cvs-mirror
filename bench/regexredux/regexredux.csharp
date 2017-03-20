@@ -52,7 +52,7 @@ class regexredux
          ,new IUB("aND|caN|Ha[DS]|WaS", "<3>")
          ,new IUB("a[NSt]|BY", "<2>")
          ,new IUB("<[^>]*>", "|")
-         ,new IUB("[^|][^|]*", "")
+         ,new IUB("\\|[^|][^|]*\\|" , "-")
       }; 
 
       foreach (IUB iub in codes) {

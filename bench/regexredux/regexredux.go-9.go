@@ -48,7 +48,7 @@ var substs = []Substitution{
     {"aND|caN|Ha[DS]|WaS", "<3>", nil},
     {"a[NSt]|BY", "<2>", nil},
     {"<[^>]*>", "|", nil},
-    {"[^|][^|]*", "", nil},
+    {"\\|[^|][^|]*\\|", "-", nil},
 }
 
 func countMatches(pattern string, bytes []byte) (count int) {

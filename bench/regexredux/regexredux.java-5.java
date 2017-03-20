@@ -23,7 +23,7 @@ public final class regexredux {
       replacements.put("aND|caN|Ha[DS]|WaS", "<3>");
       replacements.put("a[NSt]|BY", "<2>");
       replacements.put("<[^>]*>", "|");
-      replacements.put("[^|][^|]*", "");
+      replacements.put("\\|[^|][^|]*\\|", "-");
    }
 
    public static void main(String[] args) throws IOException {

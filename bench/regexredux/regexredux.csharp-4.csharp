@@ -31,7 +31,7 @@ class regexredux
             newseq = Regex.Replace(newseq, "aND|caN|Ha[DS]|WaS", "<3>");
             newseq = Regex.Replace(newseq, "a[NSt]|BY", "<2>");
             newseq = Regex.Replace(newseq, "<[^>]*>", "|");
-            newseq = Regex.Replace(newseq, "[^|][^|]*", "");
+            newseq = Regex.Replace(newseq, "\\|[^|][^|]*\\|" , "-");
             return newseq.Length;
         });
 

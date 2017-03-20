@@ -39,7 +39,7 @@ int main(void)
 
     string const pattern2[] = {
         "tHa[Nt]", "<4>", "aND|caN|Ha[DS]|WaS", "<3>", "a[NSt]|BY", "<2>",
-        "<[^>]*>", "|", "[^|][^|]*", ""
+        "<[^>]*>", "|", "\\|[^|][^|]*\\|", "-"
     };
 
     fseek(stdin, 0, SEEK_END);

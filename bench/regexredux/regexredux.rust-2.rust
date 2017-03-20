@@ -47,7 +47,7 @@ fn main() {
         (regex!("aND|caN|Ha[DS]|WaS"), &b"<3>"[..]),
         (regex!("a[NSt]|BY"), &b"<2>"[..]),
         (regex!("<[^>]*>"), &b"|"[..]),
-        (regex!("[^|][^|]*"), &b""[..]),
+        (regex!("\\|[^|][^|]*\\|"), &b"-"[..]),
     ];
     let mut seq = seq;
     for (re, replacement) in substs.into_iter() {

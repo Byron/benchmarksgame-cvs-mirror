@@ -15,8 +15,8 @@ i = i.replace(/^>.*\n|\n/mg, "");
 var clen = i.length;
 
 var iubReplaceLen: Promise<number> = new Promise<number>(resolve => {
-    var iub: string[] = ["", "|", "<2>", "<3>", "<4>"];
-    var iubR: RegExp[] = [/[^|][^|]*/g, /<[^>]*>/g, /a[NSt]|BY/g, 
+    var iub: string[] = ["-", "|", "<2>", "<3>", "<4>"];
+    var iubR: RegExp[] = [/\\|[^|][^|]*\\|/g, /<[^>]*>/g, /a[NSt]|BY/g, 
         /aND|caN|Ha[DS]|WaS/g, /tHa[Nt]/g];
     var seq = i + "";
     while (iub.length)

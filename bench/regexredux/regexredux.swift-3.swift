@@ -62,7 +62,7 @@ let replacements = [
    (regex("aND|caN|Ha[DS]|WaS"), "<3>"),
    (regex("a[NSt]|BY"), "<2>"),
    (regex("<[^>]*>"), "|"),
-   (regex("[^|][^|]*"), ""),
+   (regex("\\|[^|][^|]*\\|"), "-"),
 	]
 
 for (re, replacement) in replacements {

@@ -16,7 +16,7 @@ var fs = require('fs'), i = fs.readFileSync('/dev/stdin', 'ascii'),
     /agggtaa[cgt]|[acg]ttaccct/ig],
 
   b = ["<4>", /tHa[Nt]/g, "<3>", /aND|caN|Ha[DS]|WaS/g, "<2>", /a[NSt]|BY/g,
-       "|", /<[^>]*>/g, "", /[^|][^|]*/g];
+       "|", /<[^>]*>/g, "", /\\|[^|][^|]*\\|/g];
 
 i = i.replace(/^>.*\n|\n/mg, '');
 clen = i.length;

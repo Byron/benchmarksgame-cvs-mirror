@@ -30,14 +30,14 @@ $IUB = array(
    '/aND|caN|Ha[DS]|WaS/S',
    '/a[NSt]|BY/S',
    '/<[^>]*>/S',
-   '/[^|][^|]*/S'
+   '/\\|[^|][^|]*\\|/S'
 );
 $IUBnew = array(
    '<4>',
    '<3>',
    '<2>',
    '|',
-   ''
+   '-'
 );
 
 // read in file

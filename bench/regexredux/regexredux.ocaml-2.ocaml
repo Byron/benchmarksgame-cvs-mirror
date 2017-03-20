@@ -18,7 +18,7 @@ let re_bs = Str.regexp_string "\\"
 let to_string = Str.global_replace re_bs ""
 
 let subst = ["tHa[Nt]", "<4>"; "aND\\|caN|Ha[DS]\\|WaS", "<3>";
-             "a[NSt]\\|BY", "<2>"; "<[^>]*>", "\\|"; "[^\\|][^\\|]*", ""]
+             "a[NSt]\\|BY", "<2>"; "<[^>]*>", "\\|"; "\\|[^|][^|]*\\|", "-"]
 
 (* Read all of a redirected FASTA format file from stdin. *)
 let file_data, file_length =

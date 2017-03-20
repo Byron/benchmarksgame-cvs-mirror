@@ -23,7 +23,7 @@
                                   "aND|caN|Ha[DS]|WaS" "<3>"
                                   "a[NSt]|BY" "<2>"
                                   "<[^>]*>" "|"
-                                  "[^|][^|]*" "")
+                                  "\\|[^|][^|]*\\|" "-")
           buflen (future-call #(let [buf (StringBuffer.)
                                      m (.matcher (Pattern/compile "[WYKMSRBDVHN]") sequence)]
                                  (loop []

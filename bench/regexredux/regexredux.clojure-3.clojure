@@ -43,7 +43,7 @@
 		  [ "aND|caN|Ha[DS]|WaS"  "<3>"   ]
 		  [ "a[NSt]|BY"  "<2>"   ]
 		  [ "<[^>]*>"  "|"     ]
-		  [ "[^|][^|]*"  ""     ] ))
+		  [ "\\|[^|][^|]*\\|"   "-"     ] ))
 
 
 (defn one-replacement [str [iub-str iub-replacement]]

@@ -35,7 +35,7 @@ let iupacs =
     "aND\\|caN\\|Ha[DS]\\|WaS", "<3>";
     "a[NSt]\\|BY", "<2>";
     "<[^>]*>", "\\|";
-    "[^\\|][^\\|]*", ""
+    "\\|[^|][^|]*\\|", "-"
   |]
 
 (* Read all of a redirected FASTA format file from stdin *)

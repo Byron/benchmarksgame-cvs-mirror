@@ -52,7 +52,7 @@ replacements = {
   'aND|caN|Ha[DS]|WaS' => '<3>',
   'a[NSt]|BY' => '<2>',
   '<[^>]*>' => '|',
-  '[^|][^|]*' => ''
+  '\\|[^|][^|]*\\|' => '-'
 }
 
 seq.gsub!(/[BDHKMNRSVWY]/, replacements)

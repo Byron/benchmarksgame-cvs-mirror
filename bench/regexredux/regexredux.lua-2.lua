@@ -23,8 +23,8 @@ local variants = { 'agggtaaa|tttaccct',
 
             	-- illegal key names should by between [] like a={['@&!']=4}
 
-local subst = { ['tHa[Nt]']='<4>', ['aND|caN|Ha[DS]|WaS']='<3>', ['a[NSt]|BY']='<2>', 
-                ['<[^>]*>']='|', ['[^|][^|]*']='' ,}
+local subst = { ['<4>']='tHa[Nt]', ['<3>']='aND|caN|Ha[DS]|WaS', ['<2>']='a[NSt]|BY', 
+                ['|']='<[^>]*>', ['-']='\\|[^|][^|]*\\|' ,}
 
 function countmatches(variant)
    local n = 0
@@ -59,5 +59,4 @@ for k, v in pairs(subst) do
 end
 seq = table.concat(seq)
 io.write(string.format('\n%d\n%d\n%d\n', ilen, clen, #seq))
-    
 

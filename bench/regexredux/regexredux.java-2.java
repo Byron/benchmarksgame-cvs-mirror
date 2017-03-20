@@ -152,12 +152,12 @@ public class regexredux
         final String[] pat_search = 
         {
             "tHa[Nt]", "aND|caN|Ha[DS]|WaS", "a[NSt]|BY", 
-            "<[^>]*>", "[^|][^|]*"
+            "<[^>]*>", "\\|[^|][^|]*\\|"
         };
         final String[] pat_replace = 
         {
             "<4>", "<3>", "<2>",
-            "|", ""
+            "|", "-"
         };
         
         final AtomicIntegerArray tasks = new AtomicIntegerArray(pat_search.length);
