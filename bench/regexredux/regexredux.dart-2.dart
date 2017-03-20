@@ -52,7 +52,7 @@ void regexAllTheThings (String fullText) {
     'aND|caN|Ha[DS]|WaS', '<3>',
     'a[NSt]|BY', '<2>',
     '<[^>]*>', '|',
-    '\\|[^|][^|]*\\|', '-'
+    '\|[^|][^|]*\|', '-'
   ];
 
   lengthA = fullText.length;
