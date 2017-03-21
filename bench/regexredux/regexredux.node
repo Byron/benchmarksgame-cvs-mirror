@@ -3,7 +3,7 @@
 //
 // regex-dna program contributed by Jesse Millikan
 // Base on the Ruby version by jose fco. gonzalez
-// fixed by Matthew Wilson 
+// fixed by Matthew Wilson
 // ported to Node.js and sped up by Roman Pletnev
 // converted from regex-dna program
 // fixed by Josh Goldfoot
@@ -16,19 +16,17 @@ var fs = require('fs'), i = fs.readFileSync('/dev/stdin', 'ascii'),
     /agggt[cgt]aa|tt[acg]accct/ig, /agggta[cgt]a|t[acg]taccct/ig,
     /agggtaa[cgt]|[acg]ttaccct/ig],
 
-  b = [
-    "-",   /\|[^|][^|]*\|/g,
-    "|",   /<[^>]*>/g,
-    "<2>", /aND|caN|Ha[DS]|WaS/g,
-    "<3>", /a[NSt]|BY/g,
-    "<4>", /tHa[Nt]/g
-    ];
-
 i = i.replace(/^>.*\n|\n/mg, '');
 clen = i.length;
 for(j = 0; j<q.length; ++j) {
   var qj = q[j], m = i.match(qj);
   console.log(qj.source, m ? m.length : 0);
 }
-while(b.length) i = i.replace(b.pop(), b.pop());
+
+i = i.replace(/tHa[Nt]/g, "<4>")
+     .replace(/aND|caN|Ha[DS]|WaS/g, "<3>")
+     .replace(/a[NSt]|BY/g, "<2>")
+     .replace(/<[^>]*>/g, "|")
+     .replace(/\|[^|][^|]*\|/g, "-");
+
 console.log(["", ilen, clen, i.length].join("\n"));
