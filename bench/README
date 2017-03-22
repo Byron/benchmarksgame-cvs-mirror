@@ -8,7 +8,7 @@ mandelbrot		ACTIVE
 meteor			obsolete
 nbody			ACTIVE
 pidigits		ACTIVE
-regexdna		obsolete
+regexdna		obsolete,removed
 regexredux		ACTIVE
 revcomp			ACTIVE
 spectralnorm		ACTIVE
