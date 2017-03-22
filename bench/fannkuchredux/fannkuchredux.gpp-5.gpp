@@ -1,168 +1,189 @@
-/* The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// Contributed by Dave Compton
+// Based on "fannkuch-redux C gcc #5", contributed by Jeremy Zerfas
+// which in turn was based on the Ada program by Jonathan Parker and 
+// Georg Bauhaus which in turn was based on code by Dave Fladebo, 
+// Eckehard Berns, Heiner Marxen, Hongwei Xi, and The Anh Tran and 
+// also the Java program by Oleg Mazurov.
 
-contributed by Miroslav Rubanets
-based on Java 6 source code by Oleg Mazurov.
-
-Building checked in Ubuntu 10.4 with g++ 4.4 (both x86 and amd64).
-   one needs to install libboost-thread-dev package to get this working 
-   g++ -c -O3 -pipe -pthread -fomit-frame-pointer -march=native f.cpp
-   g++ -lpthread -lboost_thread f.o
-*/
-//std stuff
-#include <cassert>
+#include <iostream>
+#include <vector>
 #include <algorithm>
-#include <cstdio>
-using std::copy;using std::max;using std::min; using std::atoi;
-using std::printf;using std::swap;
-//threads stuff
-#include <boost/thread.hpp>
-using boost::thread;using boost::thread_group;using boost::ref;
 
-struct P{//permutation
-    char data[16];
-    char& operator[](int i){ return data[i]; }
-    const char& operator[](int i)const{ return data[i]; }
-    void assign( const char* p, int len){ copy(p, p+len, &data[0] ); }
-    void rotate(int i){
-        int first = data[0];
-        for (int j=0; j<i; ++j)
-            data[j] = data[j+1];
-        data[i] = first;
-    }
-    void reverse(int n){
-        // following lines are very carefully written to meet both test 
-        // conditions and reasonable timings. 
-        char * lo = &data[0], * hi = &data[n];
-        for (; lo < hi; ++lo, --hi) 
-            swap( *lo, *hi );
-    }
-};
-class G{// permutation generator
-    P p;
-    int count[16];
-    union{//for alignment
-        struct{
-            const int * fact;
-            int len;
-        };
-        int padding[4];
-    };
-public:
-    G():fact(), len(){}
-    void init(const int*p, int n){
-        fact = p;
-        len = n;
-        std::fill(&count[0], &count[16], 0);
-    }
-    bool constructed()const{ return fact != 0;}
-    void first_permutation(int idx){
-        char p[16]={};
-        char pp[16]={};
-        for ( int i=0; i<len; ++i ) 
-           p[i] = i;
-        for ( int i=len-1; i>0; --i ) {
-            int d = idx / fact[i];
-            count[i] = d;
-            idx = idx % fact[i];
-            copy( &p[0], &p[i+1], &pp[0] );
-            for ( int j=0; j<=i; ++j ){
-                p[j] = j+d <= i ? pp[j+d] : pp[j+d-i-1];
-            }
-        }
-        this->p.assign(p, 16);
-    }
-    void next_permutation(){
-        p.rotate(1);
-        int i=1;
-        while (++count[i] > i){
-            count[i++] = 0;
-            p.rotate( i );
-        }
-    }
-    char get_first_item()const{ return p[0];}
-    void get_permutation( P & out ){ out = p;}
-};
-struct Fannkuchredux{
-    struct R{ int maxflips, checksum; };
-    R run(G* g, int i, int N){
-        R r = { 0, 0 };
-        g->first_permutation(i);
-        for(; i < N; ++i, g->next_permutation()){
-            //count flips
-            register int flips = 0;
-            register int f = g->get_first_item();
-            if(f){
-                P p;
-                g->get_permutation(p);
-                do{
-                    p.reverse(f);
-                    ++flips;
-                }while(f = p[0]);
-            }
-            int total_flips = flips;
-            r.maxflips = max(r.maxflips, total_flips);
-            r.checksum += i%2 ==0 ? total_flips : -total_flips;
-        }
-        return r;
-    }
-};
-//two phase construction to be default constructible
-class Task : public Fannkuchredux {
-    G g;
-    int first_index, last_index;
-    int padding[14];
-public:
-    Fannkuchredux::R r;
-    void init(const int *p, int n, int b, int e){
-        g.init( p, n );
-        first_index = b;
-        last_index = e;
-        r.checksum = r.maxflips = 0;
-    }
-    void operator()()
-    {
-        assert( g.constructed() );
-        r = run( &g, first_index, last_index );
-    }
-};
-const char* usage = "usage fannkuchredux number\n\
-number has to be in range [3-12]\n";
-int main(int argc, char* argv[])
+using namespace std;
+
+vector <int64_t> fact;
+
+void initializeFact(int n)
 {
-    if( argc < 2 ){
-        printf("%s", usage);
-        return 1;
-    }
-    int len = atoi(argv[1] ); 
-    if( len < 3 || len > 12 ){
-        printf("%s", usage);
-        return 2;
-    }
-    int fact[16];
+    fact.resize(n + 1);
     fact[0] = 1;
-    for(int i = 1; i<len+1; ++i)
-        fact[i] = fact[i-1]*i;
-    unsigned n_cpu = thread::hardware_concurrency();
-    Fannkuchredux::R r= { 0, 0};
-    const unsigned max_cpu_limit = 4;
-    Task parts[max_cpu_limit];
-    unsigned n = min(n_cpu, max_cpu_limit);
-    thread_group tg;
-    int index = 0;
-    int index_max = fact[len]; 
-    int index_step = (index_max + n-1)/n;
-    for(unsigned i = 0; i<n; ++i, index += index_step){
-        Task& p = parts[i];
-        p.init(fact, len, index, index + index_step);
-        tg.create_thread(ref(p));
+    for (auto i = 1; i <= n; ++i)
+        fact[i] = i * fact[i - 1];
+}
+
+class Permutation {
+
+  public:
+    Permutation(int n, int64_t start);
+    void advance();
+    int64_t countFlips() const;
+
+  private:
+     vector <int> count;
+     vector <int8_t> current;
+
+};
+
+// 
+// Initialize the current value of a permutation
+// and the cycle count values used to advance .
+// 
+Permutation::Permutation(int n, int64_t start)
+{
+    count.resize(n);
+    current.resize(n);
+
+    // Initialize count 
+    for (auto i = n - 1; i >= 0; --i) {
+        auto d = start / fact[i];
+        start = start % fact[i];
+        count[i] = d;
     }
-    tg.join_all();
-    for(unsigned i = 0; i<n; ++i){
-        Task const& p = parts[i];
-        r.maxflips = max( p.r.maxflips, r.maxflips );
-        r.checksum += p.r.checksum;
+
+    // Initialize current.
+    for (auto i = 0; i < n; ++i)
+        current[i] = i;
+
+    for (auto i = n - 1; i >= 0; --i) {
+        auto d = count[i];
+        auto b = current.begin();
+        rotate(b, b + d, b + i + 1);
     }
-    printf("%d\nPfannkuchen(%d) = %d\n", r.checksum, len, r.maxflips);
+}
+
+//
+// Advance the current permutation to the next in sequence.
+// 
+void Permutation::advance()
+{
+    for (auto i = 1; ;++i)
+    {
+        // Tried using std::rotate here but that was slower.
+        auto first = current[0];
+        for (auto j = 0; j < i;++j)
+            current[j] = current[j + 1];
+        current[i] = first;
+
+        ++(count[i]);
+        if (count[i] <= i) 
+            break;
+        count[i] = 0;
+    } 
+}
+
+//
+// Count the flips required to flip 0 to the front of the vector.
+//
+// Other than minor cosmetic changes, the following routine is
+// basically lifted from "fannkuch-redux C gcc #5"
+//
+inline int64_t Permutation::countFlips() const
+{
+    auto n = current.size();
+    auto flips = 0;
+    if (current[0] > 0) 
+    {
+        flips = 1;
+
+        int8_t temp[n];
+        // Make a copy of current to work on. 
+        for (size_t i = 0; i < n; ++i)
+            temp[i] = current[i];
+
+        // Flip temp until the element at the first index is 0
+        for (int64_t first = temp[0]; temp[first] > 0; ++flips) 
+        {
+            // Record the newFirst and restore the old
+            // first at its new flipped position.
+            const int8_t newFirst = temp[first];
+            temp[first] = first;
+
+            if (first > 2) 
+            {
+                int64_t low = 1, high = first - 1;
+                do 
+                {
+                    swap(temp[low], temp[high]);
+                    if (!((low) + 3 <= high))
+                        break;
+                    ++low;
+                    --high;
+                } while (1);
+            }
+            // Update first to newFirst that we recorded earlier.
+            first = newFirst;
+        }
+    }
+    return flips;
+}
+
+int main(int argc, char **argv)
+{
+    const auto n = atoi(argv[1]);
+
+    // Compute some factorials for later use.
+    initializeFact(n);
+
+    // blockCount works best if it is set to a multiple of the number
+    // of CPUs so that the same number of blocks gets distributed to
+    // each cpu.  The computer used for development (Intel i7-4700MQ)
+    // had 8 "CPU"s (4 cores with hyperthreading) so 8, 16 and 24 
+    // all worked well.
+
+    auto blockCount = 24;
+    if (blockCount > fact[n])
+        blockCount = 1;
+    const int64_t blockLength = fact[n] / blockCount;
+
+    int64_t maxFlips = 0, checksum = 0;
+
+    // Iterate over each block.
+    #pragma omp parallel for \
+        reduction(max:maxFlips) \
+        reduction(+:checksum)
+
+    for (int64_t blockStart = 0; 
+         blockStart < fact[n]; 
+         blockStart += blockLength) 
+    {
+        // first permutation for this block.
+        Permutation permutation(n, blockStart);
+
+        auto index = blockStart; 
+        while (1) 
+        {
+            auto flips = permutation.countFlips();
+
+            checksum += (index % 2 == 0) ? flips : -flips;
+
+            if (flips > maxFlips)
+                maxFlips = flips;
+
+            if (++index == blockStart + blockLength)
+                break;
+
+            // next permutation for this block.
+            permutation.advance();
+        }
+
+    }
+
+    // Output the results to stdout.
+    cout << checksum << endl;
+    cout << "Pfannkuchen(" << n << ") = " << maxFlips << endl;
+
     return 0;
 }
