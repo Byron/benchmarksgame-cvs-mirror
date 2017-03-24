@@ -213,7 +213,7 @@ begin
     writeln (patterns[i], ' ', counts[i]);
 
   writeln;
-  writeln(stderr, readLen);
+  writeln(readLen);
   writeln(seqLen);
 
 (* All IUB substitutes. *)

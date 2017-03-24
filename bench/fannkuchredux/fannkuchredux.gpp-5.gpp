@@ -14,18 +14,17 @@
 
 using namespace std;
 
-vector <int64_t> fact;
+static int64_t fact[32];
 
 void initializeFact(int n)
 {
-    fact.resize(n + 1);
     fact[0] = 1;
     for (auto i = 1; i <= n; ++i)
         fact[i] = i * fact[i - 1];
 }
 
-class Permutation {
-
+class Permutation 
+{
   public:
     Permutation(int n, int64_t start);
     void advance();
@@ -47,7 +46,8 @@ Permutation::Permutation(int n, int64_t start)
     current.resize(n);
 
     // Initialize count 
-    for (auto i = n - 1; i >= 0; --i) {
+    for (auto i = n - 1; i >= 0; --i) 
+    {
         auto d = start / fact[i];
         start = start % fact[i];
         count[i] = d;
@@ -57,7 +57,8 @@ Permutation::Permutation(int n, int64_t start)
     for (auto i = 0; i < n; ++i)
         current[i] = i;
 
-    for (auto i = n - 1; i >= 0; --i) {
+    for (auto i = n - 1; i >= 0; --i) 
+    {
         auto d = count[i];
         auto b = current.begin();
         rotate(b, b + d, b + i + 1);
@@ -69,19 +70,19 @@ Permutation::Permutation(int n, int64_t start)
 // 
 void Permutation::advance()
 {
-    for (auto i = 1; ;++i)
+    for (auto i = 1; ;++i) 
     {
         // Tried using std::rotate here but that was slower.
         auto first = current[0];
-        for (auto j = 0; j < i;++j)
+        for (auto j = 0; j < i; ++j)
             current[j] = current[j + 1];
         current[i] = first;
 
         ++(count[i]);
-        if (count[i] <= i) 
+        if (count[i] <= i)
             break;
         count[i] = 0;
-    } 
+    }
 }
 
 //
@@ -92,9 +93,10 @@ void Permutation::advance()
 //
 inline int64_t Permutation::countFlips() const
 {
-    auto n = current.size();
+    const auto n = current.size();
     auto flips = 0;
-    if (current[0] > 0) 
+    auto first = current[0];
+    if (first > 0) 
     {
         flips = 1;
 
@@ -103,8 +105,9 @@ inline int64_t Permutation::countFlips() const
         for (size_t i = 0; i < n; ++i)
             temp[i] = current[i];
 
+
         // Flip temp until the element at the first index is 0
-        for (int64_t first = temp[0]; temp[first] > 0; ++flips) 
+        for (; temp[first] > 0; ++flips) 
         {
             // Record the newFirst and restore the old
             // first at its new flipped position.
@@ -117,7 +120,7 @@ inline int64_t Permutation::countFlips() const
                 do 
                 {
                     swap(temp[low], temp[high]);
-                    if (!((low) + 3 <= high))
+                    if (!(low + 3 <= high && low < 16))
                         break;
                     ++low;
                     --high;
@@ -155,22 +158,29 @@ int main(int argc, char **argv)
         reduction(max:maxFlips) \
         reduction(+:checksum)
 
-    for (int64_t blockStart = 0; 
+    for (int64_t blockStart = 0;
          blockStart < fact[n]; 
          blockStart += blockLength) 
     {
         // first permutation for this block.
         Permutation permutation(n, blockStart);
 
-        auto index = blockStart; 
+        // Iterate over each permutation in the block.
+        auto index = blockStart;
         while (1) 
         {
-            auto flips = permutation.countFlips();
+            const auto flips = permutation.countFlips();
 
-            checksum += (index % 2 == 0) ? flips : -flips;
+            if (flips) 
+            {
+                if (index % 2 == 0)
+                    checksum += flips;
+                else
+                    checksum -= flips;
 
-            if (flips > maxFlips)
-                maxFlips = flips;
+                if (flips > maxFlips)
+                    maxFlips = flips;
+            }
 
             if (++index == blockStart + blockLength)
                 break;
@@ -178,7 +188,6 @@ int main(int argc, char **argv)
             // next permutation for this block.
             permutation.advance();
         }
-
     }
 
     // Output the results to stdout.
