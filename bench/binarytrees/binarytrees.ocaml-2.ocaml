@@ -3,16 +3,17 @@
  *
  * Contributed by Troestler Christophe
  * Rough parallelization by Mauricio Fernandez
+ * *reset*
  *)
 
-type 'a tree = Empty | Node of 'a tree * 'a * 'a tree
+type 'a tree = Empty | Node of 'a tree * 'a tree
 
-let rec make i d =
+let rec make d =
 (* if d = 0 then Empty *)
-  if d = 0 then Node(Empty, i, Empty)
-  else let i2 = 2 * i and d = d - 1 in Node(make (i2 - 1) d, i, make i2 d)
+  if d = 0 then Node(Empty, Empty)
+  else let d = d - 1 in Node(make d, make d)
 
-let rec check = function Empty -> 0 | Node(l, i, r) -> i + check l - check r
+let rec check = function Empty -> 0 | Node(l, r) -> 1 + check l + check r
 
 let min_depth = 4
 let max_depth = (let n = try int_of_string(Array.get Sys.argv 1) with _ -> 10 in
@@ -21,22 +22,22 @@ let stretch_depth = max_depth + 1
 
 let () =
   (* Gc.set { (Gc.get()) with Gc.minor_heap_size = 1024 * 1024; max_overhead = -1; }; *)
-  let c = check (make 0 stretch_depth) in
+  let c = check (make stretch_depth) in
   Printf.printf "stretch tree of depth %i\t check: %i\n" stretch_depth c
 
-let long_lived_tree = make 0 max_depth
+let long_lived_tree = make max_depth
 
 let rec loop_depths d =
   let worker d =
     let niter = 1 lsl (max_depth - d + min_depth) and c = ref 0 in
-    for i = 1 to niter do c := !c + check(make i d) + check(make (-i) d) done;
+    for i = 1 to niter do c := !c + check(make d) done;
     (niter, !c) in
   let workers = Array.init ((max_depth - d) / 2 + 1)
                   (fun i -> let d = d + i * 2 in (d, invoke worker d))
   in Array.iter
        (fun (d, w) ->
           let niter, c = w () in
-          Printf.printf "%i\t trees of depth %i\t check: %i\n" (2 * niter) d c)
+          Printf.printf "%i\t trees of depth %i\t check: %i\n" niter d c)
        workers
 
 (* function originally due to Jon D. Harrop *)
