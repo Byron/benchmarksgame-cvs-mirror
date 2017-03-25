@@ -5,6 +5,7 @@
 * Modified by Alex Mizrahi
 * Modified by Andreas Schäfer
 * Modified by aardsplat-guest
+*  *reset*
 */
 
 #include <iostream>
@@ -18,24 +19,23 @@ constexpr int threads{16};
 
 struct Node {
    Node *l,*r;
-   int i;
-   Node(int i) : l(0),r(0),i(i) {}
-   Node(Node *l,int i,Node *r) : l(l),r(r),i(i) {}
+   Node() : l(0),r(0) {}
+   Node(Node *l,Node *r) : l(l),r(r) {}
    int check() const
    {
       if (l)
-         return l->check() + i - r->check();
-      else return i;
+         return l->check() + 1 + r->check();
+      else return 1;
    }
 };
 
 using Node_pool = boost::object_pool<Node>;
 
-Node *make(int i,int d,Node_pool& pool)
+Node *make(int d,Node_pool& pool)
 {
    if (d==0)
-      return pool.construct(i);
-   return pool.construct(make(2*i-1,d-1,pool),i,make(2*i,d-1,pool));
+      return pool.construct();
+   return pool.construct(make(d-1,pool),make(d-1,pool));
 }
 
 int make_iteration(int from,int to,int d,bool thread)
@@ -55,8 +55,8 @@ int make_iteration(int from,int to,int d,bool thread)
    else {
       Node_pool pool;
       for (int i=from; i<=to; ++i) {
-         Node *a = make(i,d,pool),*b = make(-i,d,pool);
-         c += a->check() + b->check();
+         Node *a = make(d,pool);
+         c += a->check();
       }
    }
    return c;
@@ -71,19 +71,19 @@ int main(int argc,char *argv[])
 
    {
       Node_pool pool;
-      Node *c = make(0,stretch_depth,pool);
+      Node *c = make(stretch_depth,pool);
       std::cout << "stretch tree of depth " << stretch_depth << "\t "
          << "check: " << c->check() << std::endl;
    }
 
    Node_pool long_lived_pool;
-   Node *long_lived_tree=make(0,max_depth,long_lived_pool);
+   Node *long_lived_tree=make(max_depth,long_lived_pool);
 
    for (int d=min_depth; d<=max_depth; d+=2) {
       int iterations = 1 << (max_depth - d + min_depth);
       int   c=0;
       c = make_iteration(1,iterations,d,true);
-      std::cout << (2*iterations) << "\t trees of depth " << d << "\t "
+      std::cout << iterations << "\t trees of depth " << d << "\t "
          << "check: " << c << std::endl;
    }
 

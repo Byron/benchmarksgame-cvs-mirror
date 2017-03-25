@@ -3,6 +3,7 @@
 //
 // Contributed by Jeremy Zerfas
 // Based on the C++ program from Jon Harrop, Alex Mizrahi, and Bruno Coutinho.
+// *reset*
 
 // This controls the width of lines that are output by this program.
 #define MAXIMUM_LINE_WIDTH  60
@@ -19,29 +20,24 @@ typedef intptr_t intnative_t;
 
 typedef struct tree_node{
    struct tree_node   * left_Node, * right_Node;
-   int32_t            value;
 } tree_node;
 
 
 // Create a binary tree of depth tree_Depth in memory_Pool, set the root node's
 // value to root_Node_Value, and finally return a pointer to the created binary
 // tree.
-static inline tree_node * create_Tree(const intnative_t root_Node_Value,
-  const intnative_t tree_Depth, apr_pool_t * const memory_Pool){
+static inline tree_node * create_Tree(const intnative_t tree_Depth, 
+  apr_pool_t * const memory_Pool){
    tree_node * const root_Node=apr_palloc(memory_Pool, sizeof(tree_node));
 
    // If tree_Depth is one or more then recursively call create_Tree() in order
    // to create the left and right subtrees using 2*root_Node_Value-1 and
    // 2*root_Node_Value respectively as the root values for those subtrees.
    if(tree_Depth>0){
-      root_Node->left_Node=create_Tree(2*root_Node_Value-1, tree_Depth-1,
-        memory_Pool);
-      root_Node->right_Node=create_Tree(2*root_Node_Value, tree_Depth-1,
-        memory_Pool);
+      root_Node->left_Node=create_Tree(tree_Depth-1, memory_Pool);
+      root_Node->right_Node=create_Tree(tree_Depth-1, memory_Pool);
    }else
       root_Node->left_Node=root_Node->right_Node=NULL;
-
-   root_Node->value=root_Node_Value;
 
    return root_Node;
 }
@@ -55,10 +51,10 @@ static inline intnative_t compute_Tree_Checksum(
    // them and factor their values into the checksum, otherwise just return
    // the value of root_Node.
    if(root_Node->left_Node)
-      return compute_Tree_Checksum(root_Node->left_Node)-
-        compute_Tree_Checksum(root_Node->right_Node)+root_Node->value;
+      return compute_Tree_Checksum(root_Node->left_Node)+
+        compute_Tree_Checksum(root_Node->right_Node)+1;
    else
-      return root_Node->value;
+      return 1;
 }
 
 
@@ -77,7 +73,7 @@ int main(int argc, char ** argv){
    // compute the checksum of the binary tree, print the statistics, and then
    // delete the memory pool.
    apr_pool_create_unmanaged(&memory_Pool);
-   tree_node * stretch_Tree=create_Tree(0, maximum_Tree_Depth+1, memory_Pool);
+   tree_node * stretch_Tree=create_Tree(maximum_Tree_Depth+1, memory_Pool);
    printf("stretch tree of depth %jd\t check: %jd\n",
      (intmax_t)maximum_Tree_Depth+1,
      (intmax_t)compute_Tree_Checksum(stretch_Tree));
@@ -88,7 +84,7 @@ int main(int argc, char ** argv){
    // more binary trees get allocated and deallocaited as required by the
    // rules. We'll finish working with this later.
    apr_pool_create_unmanaged(&memory_Pool);
-   tree_node * long_Lived_Tree=create_Tree(0, maximum_Tree_Depth, memory_Pool);
+   tree_node * long_Lived_Tree=create_Tree(maximum_Tree_Depth, memory_Pool);
 
    // Create a lot of binary trees in parallel of depths ranging from
    // minimum_Tree_Depth to maximum_Tree_Depth, compute and tally up all their
@@ -108,18 +104,11 @@ int main(int argc, char ** argv){
 
       intnative_t i=1, total_Trees_Checksum=0;
       for(; i<=iterations; ++i){
-         // Create two binary trees of depth current_Tree_Depth but with one
-         // having a root node value of i and the other a root node value of
-         // -1.
-         tree_node * const tree_1=create_Tree(i, current_Tree_Depth,
-           thread_Memory_Pool);
-         tree_node * const tree_2=create_Tree(-i, current_Tree_Depth,
+         // Create a binary tree of depth current_Tree_Depth
+         tree_node * const tree_1=create_Tree(current_Tree_Depth,
            thread_Memory_Pool);
 
-         // Compute the checksums for both trees and add them to
-         // total_Trees_Checksum.
-         total_Trees_Checksum+=compute_Tree_Checksum(tree_1)+
-           compute_Tree_Checksum(tree_2);
+         total_Trees_Checksum+=compute_Tree_Checksum(tree_1);
 
          apr_pool_clear(thread_Memory_Pool);
       }
@@ -128,7 +117,7 @@ int main(int argc, char ** argv){
 
       // Record the statistics for the trees of depth current_Tree_Depth.
       sprintf(output_Buffer[current_Tree_Depth],
-        "%jd\t trees of depth %jd\t check: %jd\n", (intmax_t)2*iterations,
+        "%jd\t trees of depth %jd\t check: %jd\n", (intmax_t)iterations,
         (intmax_t)current_Tree_Depth, (intmax_t)total_Trees_Checksum);
    }
 

@@ -5,6 +5,7 @@
  * based on C program by Kevin Carson
  * flag.Arg hack by Isaac Gouy
  * goroutines by Atom
+ * *reset*
  */
 
 package main
@@ -21,60 +22,59 @@ const N_CPU = (1 << LOG2_N_CPU)
 const LOG2_WORK_UNIT = 8
 
 type Node struct {
-   item        int
    left, right *Node
 }
 
-func bottomUpTree(item, depth int) *Node {
+func bottomUpTree(depth int) *Node {
    if depth <= 0 {
-      return &Node{item: item}
+      return &Node{}
    }
-   return &Node{item, bottomUpTree(2*item-1, depth-1), bottomUpTree(2*item, depth-1)}
+   return &Node{bottomUpTree(depth-1), bottomUpTree(depth-1)}
 }
 
-func go_bottomUpTree(item, depth int, goroutine_depth int) *Node {
+func go_bottomUpTree(depth int, goroutine_depth int) *Node {
    if depth <= 0 {
-      return &Node{item: item}
+      return &Node{}
    }
 
    var left, right *Node
    if goroutine_depth <= 0 {
-      left = bottomUpTree(2*item-1, depth-1)
-      right = bottomUpTree(2*item, depth-1)
+      left = bottomUpTree(depth-1)
+      right = bottomUpTree(depth-1)
    } else {
       left_chan := make(chan *Node)
       right_chan := make(chan *Node)
       go func() {
-         left_chan <- go_bottomUpTree(2*item-1, depth-1, goroutine_depth-1)
+         left_chan <- go_bottomUpTree(depth-1, goroutine_depth-1)
       }()
       go func() {
-         right_chan <- go_bottomUpTree(2*item, depth-1, goroutine_depth-1)
+         right_chan <- go_bottomUpTree(depth-1, goroutine_depth-1)
       }()
       left, right = <-left_chan, <-right_chan
    }
 
-   return &Node{item, left, right}
+   return &Node{left, right}
 }
 
-func Go_bottomUpTree(item, depth int) *Node {
+func Go_bottomUpTree(depth int) *Node {
    // Not enough work per goroutine to amortize goroutine creation
    if depth < LOG2_N_CPU+LOG2_WORK_UNIT {
-      return bottomUpTree(item, depth)
+      return bottomUpTree(depth)
    }
 
-   return go_bottomUpTree(item, depth, LOG2_N_CPU)
+   return go_bottomUpTree(depth, LOG2_N_CPU)
 }
 
 func (n *Node) itemCheck() int {
    if n.left == nil {
-      return n.item
+      return 1
    }
-   return n.item + n.left.itemCheck() - n.right.itemCheck()
+   return 1 + n.left.itemCheck() + n.right.itemCheck()
 }
 
 func (n *Node) go_itemCheck(goroutine_depth int) int {
    if n.left == nil {
-      return n.item
+      return 1
    }
 
    var left, right int
@@ -92,7 +92,7 @@ func (n *Node) go_itemCheck(goroutine_depth int) int {
       }()
       left, right = <-left_chan, <-right_chan
    }
-   return n.item + left - right
+   return 1 + left + right
 }
 
 func (n *Node) Go_itemCheck() int {
@@ -119,11 +119,11 @@ func main() {
    stretchDepth := maxDepth + 1
 
    {
-      check := Go_bottomUpTree(0, stretchDepth).Go_itemCheck()
+      check := Go_bottomUpTree(stretchDepth).Go_itemCheck()
       fmt.Printf("stretch tree of depth %d\t check: %d\n", stretchDepth, check)
    }
 
-   longLivedTree := Go_bottomUpTree(0, maxDepth)
+   longLivedTree := Go_bottomUpTree(maxDepth)
 
    outputs := make(map[int]chan string)
    control := make(chan byte, N_CPU) // This 'control' also puts a cap on memory usage
@@ -139,18 +139,16 @@ func main() {
          if depth <= LOG2_N_CPU+LOG2_WORK_UNIT {
             // No goroutines
             for i := 1; i <= iterations; i++ {
-               check += bottomUpTree(i, depth).itemCheck()
-               check += bottomUpTree(-i, depth).itemCheck()
+               check += bottomUpTree(depth).itemCheck()
             }
          } else {
             // Use goroutines
             for i := 1; i <= iterations; i++ {
-               check += Go_bottomUpTree(i, depth).Go_itemCheck()
-               check += Go_bottomUpTree(-i, depth).Go_itemCheck()
+               check += Go_bottomUpTree(depth).Go_itemCheck()
             }
          }
          outputs[depth] <- fmt.Sprintf("%d\t trees of depth %d\t check: %d\n",
-            iterations*2, depth, check)
+            iterations, depth, check)
 
          <-control
       }(_depth)

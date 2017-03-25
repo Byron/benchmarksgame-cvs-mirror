@@ -8,6 +8,7 @@
  * contributed by Heikki Salokanto.
  * modified by Chandra Sekar
  * modified by Mike Krüger
+ * *reset*
  */
 
 public class binarytrees {
@@ -16,11 +17,11 @@ public class binarytrees {
         int minDepth = 4;
         int maxDepth = Math.max(minDepth + 2, n);
         int stretchDepth = maxDepth + 1;
-        int check = (TreeNode.create(0, stretchDepth)).check();
+        int check = (TreeNode.create(stretchDepth)).check();
         
         System.out.println("stretch tree of depth " + (maxDepth + 1) + "\t check: " + check);
 
-        TreeNode longLivedTree = TreeNode.create(0, maxDepth);
+        TreeNode longLivedTree = TreeNode.create(maxDepth);
         for (int depth = minDepth; depth <= maxDepth; depth += 2)
         {
            int iterations = 1 << (maxDepth - depth + minDepth);
@@ -28,42 +29,35 @@ public class binarytrees {
 
            for (int i = 1; i <= iterations; i++)
            {
-                check += (TreeNode.create(i, depth)).check();
-                check += (TreeNode.create(-i, depth)).check();
+                check += (TreeNode.create(depth)).check();
            }
-           System.out.println((iterations << 1) + "\t trees of depth " + depth + "\t check: " + check);
+           System.out.println(iterations + "\t trees of depth " + depth + "\t check: " + check);
         }
 
         System.out.println("long lived tree of depth " + maxDepth + "\t check: " + longLivedTree.check());
     }
 
     static class TreeNode {
-        int item;
         TreeNode left, right;
 
-        static TreeNode create(int item, int depth)
+        static TreeNode create(int depth)
         {
-            // return ChildTreeNodes(item, depth - 1);
-            return ChildTreeNodes(item, depth);
+            return ChildTreeNodes(depth);
         }
          
-        static TreeNode ChildTreeNodes(int item, int depth)
+        static TreeNode ChildTreeNodes(int depth)
         {
-            TreeNode node = new TreeNode(item);
+            TreeNode node = new TreeNode();
             if (depth > 0)
             {
-                node.left = ChildTreeNodes(2 * item - 1, depth - 1);
-                node.right = ChildTreeNodes(2 * item, depth - 1);
+                node.left = ChildTreeNodes(depth - 1);
+                node.right = ChildTreeNodes(depth - 1);
             }
             return node;
         }
 
-        TreeNode(int item) {
-            this.item = item;
-        }
-
         int check() {
-            return left == null ? item : left.check() - right.check() + item;
+            return left == null ? 1 : left.check() + right.check() + 1;
         }
     }
 }

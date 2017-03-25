@@ -3,6 +3,7 @@
 
    contributed by Marek Safar  
    concurrency added by Peperud
+   *reset*
 */
 
 using System;
@@ -23,8 +24,8 @@ class BinaryTrees
 
         Task<int>[] Tcheck =
         {
-                Task.Run(() => TreeNode.bottomUpTree(0, stretchDepth).itemCheck()),
-                Task.Run(() => TreeNode.bottomUpTree(0, maxDepth).itemCheck())
+                Task.Run(() => TreeNode.bottomUpTree(stretchDepth).itemCheck()),
+                Task.Run(() => TreeNode.bottomUpTree(maxDepth).itemCheck())
         };
 
         string[] results = new string[(maxDepth - MIN_DEPTH) / 2 + 1];
@@ -43,30 +44,34 @@ class BinaryTrees
                 {
                     Task<int>[] btm =
                     {
-                        Task.Run(() => TreeNode.bottomUpTree(i, depth).itemCheck()),
-                        Task.Run(() => TreeNode.bottomUpTree(-i, depth).itemCheck())
+                        Task.Run(() => TreeNode.bottomUpTree(depth).itemCheck())
                     };
 
                     Task.WaitAll(btm);
 
-                    check += btm[0].Result + btm[1].Result;
+                    check += btm[0].Result;
                 }
 
-                results[(depth - MIN_DEPTH) / 2] = (iterations * 2) + "\t trees of depth " + depth + "\t check: " + check;
+                results[(depth - MIN_DEPTH) / 2] = iterations + 
+                    "\t trees of depth " + depth + "\t check: " + check;
             });
         }
 
-        Parallel.Invoke(new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount + 1 }, depts.ToArray());
+        Parallel.Invoke(new ParallelOptions { 
+            MaxDegreeOfParallelism = Environment.ProcessorCount + 1 }, depts.ToArray());
 
         Task.WaitAll(Tcheck);
 
-        Console.WriteLine("stretch tree of depth {0}\t check: {1}", stretchDepth, Tcheck[0].Result);
+        Console.WriteLine("stretch tree of depth {0}\t check: {1}",
+            stretchDepth, Tcheck[0].Result);
+
         foreach (var result in results)
         {
             Console.WriteLine(result);
         }
 
-        Console.WriteLine("long lived tree of depth {0}\t check: {1}", maxDepth, Tcheck[1].Result);
+        Console.WriteLine("long lived tree of depth {0}\t check: {1}", 
+            maxDepth, Tcheck[1].Result);
     }
 
     struct TreeNode
@@ -78,39 +83,32 @@ class BinaryTrees
 
         private Next next;
 
-        private int item;
-
         TreeNode(int item)
         {
-            this.item = item;
             this.next = null;
         }
 
-        TreeNode(TreeNode left, TreeNode right, int item)
+        TreeNode(TreeNode left, TreeNode right)
         {
             this.next = new Next();
             this.next.left = left;
             this.next.right = right;
-            this.item = item;
         }
 
-        internal static TreeNode bottomUpTree(int item, int depth)
+        internal static TreeNode bottomUpTree(int depth)
         {
             if (depth > 0)
             {
-                int i1, i2, d;
-
-                i2 = 2 * item;
-                i1 = i2 - 1;
+                int d;
                 d = depth - 1;
 
-                var left = bottomUpTree(i1, d);
-                var right = bottomUpTree(i2, d);
-                return new TreeNode(left, right, item);
+                var left = bottomUpTree(d);
+                var right = bottomUpTree(d);
+                return new TreeNode(left, right);
             }
             else
             {
-                return new TreeNode(item);
+                return new TreeNode();
             }
         }
 
@@ -118,9 +116,9 @@ class BinaryTrees
         {
             if (next == null)
             {
-                return item;
+                return 1;
             }
-            return item + next.left.itemCheck() - next.right.itemCheck();
+            return 1 + next.left.itemCheck() + next.right.itemCheck();
         }
     }
 }

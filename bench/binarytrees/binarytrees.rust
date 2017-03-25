@@ -3,6 +3,7 @@
 //
 // contributed by the Rust Project Developers
 // contributed by TeXitoi
+// *reset*
 
 extern crate typed_arena;
 
@@ -12,23 +13,21 @@ use typed_arena::Arena;
 struct Tree<'a> {
     l: Option<&'a Tree<'a>>,
     r: Option<&'a Tree<'a>>,
-    i: i32
 }
 
 fn item_check(t: &Option<&Tree>) -> i32 {
     match *t {
         None => 0,
-        Some(&Tree { ref l, ref r, i }) => i + item_check(l) - item_check(r)
+        Some(&Tree { ref l, ref r }) => 1 + item_check(l) + item_check(r)
     }
 }
 
-fn bottom_up_tree<'r>(arena: &'r Arena<Tree<'r>>, item: i32, depth: i32)
+fn bottom_up_tree<'r>(arena: &'r Arena<Tree<'r>>, depth: i32)
                   -> Option<&'r Tree<'r>> {
     if depth >= 0 {
         let t: &Tree<'r> = arena.alloc(Tree {
-            l: bottom_up_tree(arena, 2 * item - 1, depth - 1),
-            r: bottom_up_tree(arena, 2 * item, depth - 1),
-            i: item
+            l: bottom_up_tree(arena, depth - 1),
+            r: bottom_up_tree(arena, depth - 1)
         });
         Some(t)
     } else {
@@ -40,12 +39,11 @@ fn inner(depth: i32, iterations: i32) -> String {
     let mut chk = 0;
     for i in 1 .. iterations + 1 {
         let arena = Arena::new();
-        let a = bottom_up_tree(&arena, i, depth);
-        let b = bottom_up_tree(&arena, -i, depth);
-        chk += item_check(&a) + item_check(&b);
+        let a = bottom_up_tree(&arena, depth);
+        chk += item_check(&a);
     }
     format!("{}\t trees of depth {}\t check: {}",
-            iterations * 2, depth, chk)
+            iterations, depth, chk)
 }
 
 fn main() {
@@ -59,14 +57,14 @@ fn main() {
     {
         let arena = Arena::new();
         let depth = max_depth + 1;
-        let tree = bottom_up_tree(&arena, 0, depth);
+        let tree = bottom_up_tree(&arena, depth);
 
         println!("stretch tree of depth {}\t check: {}",
                  depth, item_check(&tree));
     }
 
     let long_lived_arena = Arena::new();
-    let long_lived_tree = bottom_up_tree(&long_lived_arena, 0, max_depth);
+    let long_lived_tree = bottom_up_tree(&long_lived_arena, max_depth);
 
     let messages = (min_depth..max_depth + 1).filter(|&d| d % 2 == 0).map(|depth| {
         let iterations = 1 << ((max_depth - depth + min_depth) as u32);

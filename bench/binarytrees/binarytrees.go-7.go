@@ -3,6 +3,7 @@
  *
  * contributed by Anthony Perez-Sanz.
  * based on Java program by Jarkko Miettinen
+ * *reset*
  */
 
 package main
@@ -14,14 +15,13 @@ import (
 )
 
 type Node struct {
-   item        int
    left, right *Node
 }
 
 const minDepth = 4
 
 func trees(maxDepth int) {
-   longLastingNode := createTree(0, maxDepth)
+   longLastingNode := createTree(maxDepth)
    depth := 4
 
    for depth <= maxDepth {
@@ -38,28 +38,26 @@ func loops(iterations, depth int) {
    check := 0
    item := 0
    for item < iterations {
-      check += checkTree(createTree(item, depth)) +
-         checkTree(createTree(-item, depth))
+      check += checkTree(createTree(depth))
       item++
    }
    fmt.Printf("%d\t trees of depth %d\t check: %d\n",
-      iterations<<1, depth, check)
+      iterations, depth, check)
 }
 
 func checkTree(n *Node) int {
    if n.left == nil {
-      return n.item
+      return 1
    }
-   return checkTree(n.left) - checkTree(n.right) + n.item
+   return checkTree(n.left) + checkTree(n.right) + 1
 }
 
-func createTree(item, depth int) *Node {
-   node := &Node{item: item}
+func createTree(depth int) *Node {
+   node := &Node{}
    if depth > 0 {
-      item += item
       depth--
-      node.left = createTree(item-1, depth)
-      node.right = createTree(item, depth)
+      node.left = createTree(depth)
+      node.right = createTree(depth)
    }
    return node
 }
@@ -78,7 +76,7 @@ func main() {
 
    {
       stretchDepth := maxDepth + 1
-      check := checkTree(createTree(0, stretchDepth))
+      check := checkTree(createTree(stretchDepth))
       fmt.Printf("stretch tree of depth %d\t check: %d\n", stretchDepth, check)
    }
    trees(maxDepth)

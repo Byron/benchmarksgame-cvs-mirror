@@ -5,6 +5,7 @@
    modified by Isaac Gouy
    optimized by David Pollak
    updated to 2.8 by Rex Kerr
+   *reset*
 */
 
 object binarytrees {
@@ -16,33 +17,33 @@ object binarytrees {
     def print(name: String, depth: Int, check: Int) =
       println(name + " of depth " + depth + "\t check: " + check)
 
-    print("stretch tree", maxDepth+1, Tree(0,maxDepth+1).isum)
-    val longLivedTree = Tree(0,maxDepth)
+    print("stretch tree", maxDepth+1, Tree(maxDepth+1).isum)
+    val longLivedTree = Tree(maxDepth)
     var depth = minDepth
     while (depth <= maxDepth) {
       val iterations = 1 << (maxDepth - depth + minDepth)
       var i,sum = 0
       while (i < iterations) {
         i += 1
-        sum += Tree(i,depth).isum + Tree(-i,depth).isum
+        sum += Tree(depth).isum
       }
-      print(iterations*2 + "\t trees", depth, sum)
+      print(iterations + "\t trees", depth, sum)
       depth += 2
     }
     print("long lived tree", maxDepth, longLivedTree.isum)
   }
 }
 
-final class Tree(i: Int, left: Tree, right: Tree) {
+final class Tree(left: Tree, right: Tree) {
   def isum: Int = {
     val tl = left
-    if (tl eq null) i
-    else i + tl.isum - right.isum
+    if (tl eq null) 1
+    else 1 + tl.isum + right.isum
   }
 }
 object Tree {
-  def apply(i: Int, depth: Int): Tree = {
-    if (depth > 0) new Tree(i, Tree(i*2-1, depth-1), Tree(i*2, depth-1))
-    else new Tree(i, null, null)
+  def apply(depth: Int): Tree = {
+    if (depth > 0) new Tree( Tree(depth-1), Tree(depth-1))
+    else new Tree(null, null)
   }
 }

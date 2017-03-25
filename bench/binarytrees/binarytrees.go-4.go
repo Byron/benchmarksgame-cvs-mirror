@@ -6,6 +6,7 @@
  * flag.Arg hack by Isaac Gouy
  * modified by Jamil Djadala to use goroutines
  * modified by Chai Shushan
+ * *reset*
  *
  */
 
@@ -36,10 +37,10 @@ func main() {
    }
    stretchDepth := maxDepth + 1
 
-   check_l := bottomUpTree(0, stretchDepth).ItemCheck()
+   check_l := bottomUpTree(stretchDepth).ItemCheck()
    fmt.Printf("stretch tree of depth %d\t check: %d\n", stretchDepth, check_l)
 
-   longLivedTree := bottomUpTree(0, maxDepth)
+   longLivedTree := bottomUpTree(maxDepth)
 
    result_trees := make([]int, maxDepth+1)
    result_check := make([]int, maxDepth+1)
@@ -52,10 +53,9 @@ func main() {
          check := 0
 
          for i := 1; i <= iterations; i++ {
-            check += bottomUpTree(i, depth).ItemCheck()
-            check += bottomUpTree(-i, depth).ItemCheck()
+            check += bottomUpTree(depth).ItemCheck()
          }
-         result_trees[depth] = iterations * 2
+         result_trees[depth] = iterations
          result_check[depth] = check
 
          wg.Done()
@@ -73,24 +73,23 @@ func main() {
    )
 }
 
-func bottomUpTree(item, depth int) *Node {
+func bottomUpTree(depth int) *Node {
    if depth <= 0 {
-      return &Node{item, nil, nil}
+      return &Node{nil, nil}
    }
-   return &Node{item,
-      bottomUpTree(2*item-1, depth-1),
-      bottomUpTree(2*item, depth-1),
+   return &Node{
+      bottomUpTree(depth-1),
+      bottomUpTree(depth-1),
    }
 }
 
 type Node struct {
-   item        int
    left, right *Node
 }
 
 func (self *Node) ItemCheck() int {
    if self.left == nil {
-      return self.item
+      return 1
    }
-   return self.item + self.left.ItemCheck() - self.right.ItemCheck()
+   return 1 + self.left.ItemCheck() + self.right.ItemCheck()
 }

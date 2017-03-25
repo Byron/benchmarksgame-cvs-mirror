@@ -2,6 +2,7 @@
  * http://benchmarksgame.alioth.debian.org/
  *
  * contributed by Diogo Lima
+ * *reset*
 */
 
 import java.util.concurrent.ExecutorService;
@@ -15,50 +16,39 @@ public class binarytrees {
      */
     private static class TreeNode {
 
-        private final int item;
         private TreeNode left;
         private TreeNode right;
 
-        private TreeNode(int i_item) {
-            this.item = i_item;
-        }
-
-        private TreeNode(int i_item, 
-                         TreeNode i_left, 
+        private TreeNode(TreeNode i_left, 
                          TreeNode i_right) {
-            this.item = i_item;
             this.left = i_left;
             this.right = i_right;
         }
 
-        public static TreeNode createNode(int i_item, 
-                                          int i_depth) {
+        public static TreeNode createNode(int i_depth) {
             // Create bottom node with empty child nodes => depth = 0
-            TreeNode bottomTree = new TreeNode(i_item, null, null);
+            TreeNode bottomTree = new TreeNode(null, null);
             return i_depth == 0 ? 
                        bottomTree : 
-                       createNode(i_item,
-                                  i_depth,
+                       createNode(i_depth,
                                   bottomTree);
         }
 
-        private static TreeNode createNode(int i_item, 
-                                           int i_depth, 
+        private static TreeNode createNode(int i_depth, 
                                            TreeNode i_accumulator) {
             TreeNode accumulator = i_accumulator;
             if (i_depth > 0) {
                 final int depth = i_depth - 1;
-                final int item = 2 * i_item;
-                accumulator.left = createNode(item - 1, depth);
-                accumulator.right = createNode(item, depth);
+                accumulator.left = createNode(depth);
+                accumulator.right = createNode(depth);
             }
             return accumulator;
         }
 
         public final int checkNode() {
             return left == null ? 
-                       item : 
-                       left.checkNode() - right.checkNode() + item;
+                       1 : 
+                       left.checkNode() + right.checkNode() + 1;
         }
     }
 
@@ -83,7 +73,7 @@ public class binarytrees {
         final int maximumDepth = Math.max(minimumDepth + 2, n);
         final int stretchDepth = maximumDepth + 1;
 
-        TreeNode node = TreeNode.createNode(0, stretchDepth);
+        TreeNode node = TreeNode.createNode(stretchDepth);
         final int checkNode = node.checkNode();
 
         System.out.println("stretch tree of depth " 
@@ -91,16 +81,15 @@ public class binarytrees {
                                 + "\t check: " 
                                 + checkNode);
 
-        TreeNode longLivedTree = TreeNode.createNode(0, maximumDepth);
+        TreeNode longLivedTree = TreeNode.createNode(maximumDepth);
         for (int depth = minimumDepth; depth <= maximumDepth; depth += 2) {
             final int iterations = 1 << (maximumDepth - depth + minimumDepth);
             int check = 0;
 
             for (int i = 1; i <= iterations; i++) {
-                check += TreeNode.createNode(i, depth).checkNode()
-                       + TreeNode.createNode(-i, depth).checkNode();
+                check += TreeNode.createNode(depth).checkNode();
             }
-            System.out.println((iterations << 1) 
+            System.out.println(iterations
                                 + "\t trees of depth " 
                                 + depth 
                                 + "\t check: "

@@ -6,6 +6,7 @@
    optimized by David Pollak
    updated to 2.8 by Rex Kerr
    parallelized by Yang Bo
+   *reset*
 */
  
 import scala.concurrent.duration._
@@ -20,41 +21,44 @@ object binarytrees {
     def print(name: String, depth: Int, check: Int) =
       println(name + " of depth " + depth + "\t check: " + check)
  
-    print("stretch tree", maxDepth+1, Await.result(Tree(0,maxDepth+1), Duration.Inf).isum)
-    val longLivedTree = Await.result(Tree(0,maxDepth), Duration.Inf)
+    print("stretch tree", maxDepth+1, Await.result(Tree(maxDepth+1), Duration.Inf).isum)
+    val longLivedTree = Await.result(Tree(maxDepth), Duration.Inf)
     var depth = minDepth
     while (depth <= maxDepth) {
       val iterations = 1 << (maxDepth - depth + minDepth)
       var i,sum = 0
       while (i < iterations) {
         i += 1
-        sum += Await.result(Tree(i,depth), Duration.Inf).isum + Await.result(Tree(-i,depth), Duration.Inf).isum
+        sum += Await.result(Tree(depth), Duration.Inf).isum
       }
-      print(iterations*2 + "\t trees", depth, sum)
+      print(iterations + "\t trees", depth, sum)
       depth += 2
     }
     print("long lived tree", maxDepth, longLivedTree.isum)
   }
 }
  
-final class Tree(i: Int, left: Tree, right: Tree) {
+final class Tree(left: Tree, right: Tree) {
   def isum: Int = {
     val tl = left
-    if (tl eq null) i
-    else i + tl.isum - right.isum
+    if (tl eq null) 1
+    else 1 + tl.isum + right.isum
   }
 }
 object Tree {
-  def apply(i: Int, depth: Int, futureDepth: Int = 0): Future[Tree] = {
+  def apply(depth: Int, futureDepth: Int = 0): Future[Tree] = {
     if (futureDepth < 4) {
-      if (depth > 0) Tree(i*2-1, depth-1, futureDepth+1).zip(Tree(i*2, depth-1, futureDepth+1)).map { case (left, right) => new Tree(i, left, right) }
-      else Future(new Tree(i, null, null))
+      if (depth > 0) 
+         Tree(depth-1, futureDepth+1).zip(Tree(depth-1, futureDepth+1)).map { 
+            case (left, right) => new Tree(left, right) }
+      else 
+         Future(new Tree(null, null))
     } else {
-      def synchronizedApply(i: Int, depth: Int):Tree = {
-        if (depth > 0) new Tree(i, synchronizedApply(i*2-1, depth-1), synchronizedApply(i*2, depth-1))
-        else new Tree(i, null, null)
+      def synchronizedApply(depth: Int):Tree = {
+        if (depth > 0) new Tree(synchronizedApply(depth-1), synchronizedApply(depth-1))
+        else new Tree(null, null)
       }
-      Future(synchronizedApply(i, depth))
+      Future(synchronizedApply(depth))
     }
   }
 }

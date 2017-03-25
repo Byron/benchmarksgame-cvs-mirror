@@ -7,7 +7,7 @@
  * 
  * 2013-04
  * modified by Jamil Djadala to use goroutines
- * 
+ * *reset*
  */
 
 package main
@@ -23,22 +23,21 @@ import (
 var n = 0
 
 type Node struct {
-     item   int
      left, right   *Node
 }
 
-func  bottomUpTree(item, depth int) *Node {
+func  bottomUpTree(depth int) *Node {
    if depth <= 0 {
-      return &Node{item: item}
+      return &Node{}
    }
-   return &Node{ item, bottomUpTree(2*item-1, depth-1), bottomUpTree(2*item, depth-1) }
+   return &Node{ bottomUpTree(depth-1), bottomUpTree(depth-1) }
 }
 
 func (n *Node) itemCheck() int {
    if n.left == nil {
-      return n.item
+      return 1
    }
-   return n.item + n.left.itemCheck() - n.right.itemCheck()
+   return 1 + n.left.itemCheck() + n.right.itemCheck()
 }
 
 const minDepth = 4
@@ -55,10 +54,10 @@ func main() {
    }
    stretchDepth := maxDepth + 1
 
-   check_l := bottomUpTree(0, stretchDepth).itemCheck()
+   check_l := bottomUpTree(stretchDepth).itemCheck()
    fmt.Printf("stretch tree of depth %d\t check: %d\n", stretchDepth, check_l)
 
-   longLivedTree := bottomUpTree(0, maxDepth)
+   longLivedTree := bottomUpTree(maxDepth)
    
    var wg sync.WaitGroup
    result := make( []string, maxDepth+1)
@@ -71,10 +70,9 @@ func main() {
           check = 0
 
           for i := 1; i <= iterations; i++ {
-             check += bottomUpTree(i,depth).itemCheck()
-             check += bottomUpTree(-i,depth).itemCheck()
+             check += bottomUpTree(depth).itemCheck()
           }
-          *r = fmt.Sprintf("%d\t trees of depth %d\t check: %d", iterations*2, depth, check)
+          *r = fmt.Sprintf("%d\t trees of depth %d\t check: %d", iterations, depth, check)
        }( depth_l, check_l, &result[depth_l])
    }
    wg.Wait()

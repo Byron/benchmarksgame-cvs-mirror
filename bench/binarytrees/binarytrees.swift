@@ -2,41 +2,35 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // contributed by Ralph Ganszky
+// *reset*
 
 import Dispatch
 import Foundation
 
 class TreeNode {
     var left, right: TreeNode?
-    var value:Int
 
-    init() {
-	value = 0
-    }
-
-    init(left: TreeNode?, right: TreeNode?, value: Int) {
+    init(left: TreeNode?, right: TreeNode?) {
         self.left = left
 	self.right = right
-	self.value = value
     }
 
     func check() -> Int {
 	if left != nil {
-	    return left!.check() - right!.check() + value
+	    return left!.check() + right!.check() + 1
 	} else {
-	    return value
+	    return 1
 	}
     }
 }
 
-func createTree(_ rootValue:Int, _ depth: Int) -> TreeNode? {
+func createTree(_ depth: Int) -> TreeNode? {
     if depth > 0 {
-	let node = TreeNode(left: createTree(2*rootValue-1, depth-1),
-			    right: createTree(2*rootValue, depth-1),
-			    value: rootValue)
+	let node = TreeNode(left: createTree(depth-1),
+			    right: createTree(depth-1))
 	return node
     } else {
-	let node = TreeNode(left: nil, right: nil, value: rootValue)
+	let node = TreeNode(left: nil, right: nil)
 	return node
     }
 }
@@ -51,12 +45,12 @@ let minDepth = 4
 let maxDepth = (n > minDepth + 2) ? n : minDepth + 2
 
 // Create big tree in first pool
-let tree = createTree(0, maxDepth+1)
+let tree = createTree(maxDepth+1)
 let check = tree!.check()
 print("stretch tree of depth \(maxDepth+1)\t check: \(check)")
 
 // Cleal first pool and allocate long living tree
-let longLivingTree = createTree(0, maxDepth)
+let longLivingTree = createTree(maxDepth)
 
 // Allocate binary trees of increasing depth up to maxDepth depth
 let group = DispatchGroup()
@@ -69,12 +63,11 @@ for currentDepth in stride(from: minDepth, through: maxDepth, by: 2) {
 	let iterations = 1 << (maxDepth - currentDepth + minDepth)
 	var totalChecksum = 0
 	for i in 1...iterations {
-	    let tree1 = createTree(i, currentDepth)
-	    let tree2 = createTree(-i, currentDepth)
-	    totalChecksum += tree1!.check() + tree2!.check()
+	    let tree1 = createTree(currentDepth)
+	    totalChecksum += tree1!.check()
 	}
 	rq.async{
-	    results[idx] = "\(2*iterations)\t trees of depth \(currentDepth)\t check: \(totalChecksum)"
+	    results[idx] = "\(iterations)\t trees of depth \(currentDepth)\t check: \(totalChecksum)"
 	}
     }
 }
