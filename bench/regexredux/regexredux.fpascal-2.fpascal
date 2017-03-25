@@ -9,9 +9,7 @@ Program regexredux;
 *)
 
 {$mode objfpc}
-
-
-uses cmem, cthreads, mtprocs, sysutils;
+uses cthreads, mtprocs, sysutils;
 
 function memcpy(__dest:pointer; __src:pointer; __n:longint):pointer;cdecl; external 'libc';
 
@@ -88,8 +86,6 @@ var
   ofs: Integer;
   ind: Longint = 0;
   m: array[0..2] of Integer;
-
-
 begin
   cre := pcre_compile(pattern, 0, @err, @ofs, nil);
   cre_ex := pcre_study(cre, PCRE_STUDY_JIT_COMPILE, @err);
@@ -100,7 +96,6 @@ begin
 
   count := ind
 end;
-
 
 
 procedure split_count (i : ptrint; Data: Pointer; Item: TMultiThreadProcItem);
@@ -200,10 +195,11 @@ begin
         readlen += slen;
     end;
 
+    close (infile);
     Byte(sseq[readLen]) := 0; //end read data
 
 (* Remove FASTA sequence descriptions and all linefeed characters.  *)
-   seqLen := subst('>.*|\n', '', sseq, readLen);
+  seqLen := subst('>.*|\n', '', sseq, readLen);
 
 
 (* Count all matches of patterns[i] in  seq buffer. *)
