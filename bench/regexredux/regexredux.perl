@@ -3,6 +3,7 @@
 #
 # contributed by A. Sinan Unur
 
+use strict;
 
 my @variants = qw/
    agggtaaa|tttaccct
@@ -40,9 +41,6 @@ $_->($seq) for @iub;
 
 # report
 
-for (0 .. $#variants) {
-    say "$variants[$_] $results[$_]";
-}
-
-say for '', $input_length, $cleaned_length, length( $seq );
+print "$variants[$_] $results[$_]\n" for 0 .. $#variants;
+print "$_\n" for '', $input_length, $cleaned_length, length( $seq );
 
