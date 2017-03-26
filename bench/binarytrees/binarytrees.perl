@@ -1,46 +1,52 @@
 # The Computer Language Benchmarks Game
 # http://benchmarksgame.alioth.debian.org/
-# 
+#
 # contributed by Emanuele Zeppieri
+# *reset* by A. Sinan Unur
+
+run( @ARGV );
 
 sub bottomup_tree {
-    my ($value, $depth) = @_;
-    return $value unless $depth;
-    my $value2 = $value * 2; $depth--;
-    [ bottomup_tree($value2-1, $depth), bottomup_tree($value2, $depth), $value ]
+    my $depth = shift;
+    return 0 unless $depth;
+    --$depth;
+    [ bottomup_tree($depth), bottomup_tree($depth) ];
 }
 
 sub check_tree {
-    my ($left, $right, $value) = @{ $_[0] };
-    $value + (
-        ref $left ? check_tree($left) - check_tree($right) : $left - $right
-    )
+    return 1 unless ref $_[0];
+    1 + check_tree($_[0][0]) + check_tree($_[0][1]);
 }
 
-my $max_depth = shift @ARGV;
-my $min_depth = 4;
-
-$max_depth = $min_depth + 2 if $min_depth + 2 > $max_depth;
-
-my $stretch_depth = $max_depth + 1;
-my $stretch_tree = bottomup_tree(0, $stretch_depth);
-print "stretch tree of depth $stretch_depth\t check: ",
+sub stretch_tree {
+    my $stretch_depth = shift;
+    my $stretch_tree = bottomup_tree($stretch_depth);
+    print "stretch tree of depth $stretch_depth\t check: ",
     check_tree($stretch_tree), "\n";
-undef $stretch_tree;
-
-my $longlived_tree = bottomup_tree(0, $max_depth);
-
-for ( my $depth = $min_depth; $depth <= $max_depth; $depth += 2 ) {
-    my $iterations = 2 << $max_depth - $depth + $min_depth - 1;
-    my $check = 0;
-    
-    foreach (1..$iterations) {
-        $check += check_tree( bottomup_tree(0, $depth) );
-        $check += check_tree( bottomup_tree(0, $depth) )
-    }
-    
-    print 2*$iterations, "\t trees of depth $depth\t check: ", $check, "\n"
 }
 
-print "long lived tree of depth $max_depth\t check: ",
-    check_tree($longlived_tree), "\n"
+sub run {
+    my $max_depth = shift;
+    my $min_depth = 4;
+
+    $max_depth = $min_depth + 2 if $min_depth + 2 > $max_depth;
+
+    stretch_tree( $max_depth + 1 );
+
+    my $longlived_tree = bottomup_tree($max_depth);
+
+    for ( my $depth = $min_depth; $depth <= $max_depth; $depth += 2 ) {
+        my $iterations = 2**($max_depth - $depth + $min_depth);
+        my $check = 0;
+
+        foreach (1..$iterations) {
+            $check += check_tree( bottomup_tree($depth) );
+        }
+
+        print $iterations, "\t trees of depth $depth\t check: ", $check, "\n"
+    }
+
+    print "long lived tree of depth $max_depth\t check: ",
+        check_tree($longlived_tree), "\n"
+}
+

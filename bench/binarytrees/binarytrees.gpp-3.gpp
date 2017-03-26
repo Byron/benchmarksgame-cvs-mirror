@@ -6,6 +6,7 @@
  * modified by Andreas Schäfer
  * very minor omp tweak by The Anh Tran
  * Jeff Wofford: replaced omp dependency with C++11 threading and load-based job distribution.
+ *  *reset*
  */
 
 #include <iostream>
@@ -24,31 +25,29 @@ const size_t   LINE_SIZE = 64;
 struct Node
 {
    Node *l, *r;
-   int i;
    
-   Node(int i2) : l(0), r(0), i(i2)
+   Node() : l(0), r(0)
    {}
-   Node(Node *l2, int i2, Node *r2) : l(l2), r(r2), i(i2)
+   Node(Node *l2, Node *r2) : l(l2), r(r2)
    {}
    
    int check() const
    {
       if (l)
-         return l->check() + i - r->check();
-      else return i;
+         return l->check() + 1 + r->check();
+      else return 1;
    }
 };
 
 typedef boost::object_pool<Node> NodePool;
 
 
-Node *make(int i, int d, NodePool &store)
+Node *make(int d, NodePool &store)
 {
    if (d > 0)
-      return store.construct(   make(2*i-1, d-1, store),
-                        i,
-                        make(2*i, d-1, store)   );
-   return store.construct(i);
+      return store.construct(   make(d-1, store),
+                        make(d-1, store)   );
+   return store.construct();
 }
 
 const unsigned THREADS_TO_USE = std::max( 1U, std::min( 4U, std::thread::hardware_concurrency() ));
@@ -63,13 +62,13 @@ int main(int argc, char *argv[])
    // Alloc then dealloc stretchdepth tree
    {
       NodePool store;
-      Node *c = make(0, stretch_depth, store);
+      Node *c = make(stretch_depth, store);
       std::cout << "stretch tree of depth " << stretch_depth << "\t "
               << "check: " << c->check() << std::endl;
    }
    
    NodePool long_lived_store;
-   Node *long_lived_tree = make(0, max_depth, long_lived_store);
+   Node *long_lived_tree = make(max_depth, long_lived_store);
    
    // buffer to store output of each thread
    std::unique_ptr< char > outputstr{ new char[ LINE_SIZE * (max_depth + 1)] };
@@ -96,12 +95,12 @@ int main(int argc, char *argv[])
          for(int i = 1; i <= iterations; ++i)
          {
             NodePool store;
-            Node *a = make(i, d, store), *b = make(-i, d, store);
-            checksum += a->check() + b->check();
+            Node *a = make(d, store);
+            checksum += a->check();
          }
          
          // each thread write to separate location
-         sprintf(outputstr.get() + LINE_SIZE * d, "%d\t trees of depth %d\t check: %d\n", (2 * iterations), d, checksum);
+         sprintf(outputstr.get() + LINE_SIZE * d, "%d\t trees of depth %d\t check: %d\n", iterations, d, checksum);
       }
    };
 

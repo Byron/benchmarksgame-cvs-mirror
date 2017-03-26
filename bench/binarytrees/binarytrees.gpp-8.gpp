@@ -7,6 +7,7 @@
  * very minor omp tweak by The Anh Tran
  * modified by Maxime Coste
  * "tree nodes all the way down-to depth 0" by Isaac Gouy
+ *  *reset*
  */
 
 #include <iostream>
@@ -23,21 +24,20 @@ const size_t   LINE_SIZE = 64;
 struct Node 
 {
     Node *l, *r;
-    int i;
 
-    int check() const { return l ? l->check() + i - r->check() : i; }
+    int check() const { return l ? l->check() + 1 + r->check() : 1; }
 };
 
 typedef boost::object_pool<Node> NodePool;
 
 
-Node *make(int i, int d, NodePool &store) 
+Node *make(int d, NodePool &store) 
 {
-//    return (d == 0) ? nullptr : store.construct(Node{make(2*i-1, d-1, store), make(2*i, d-1, store), i});
+//    return (d == 0) ? nullptr : store.construct(Node{make(d-1, store), make(d-1, store)});
 
     return (d == 0) 
-        ? store.construct(Node{nullptr, nullptr, i})
-        : store.construct(Node{make(2*i-1, d-1, store), make(2*i, d-1, store), i});
+        ? store.construct(Node{nullptr, nullptr})
+        : store.construct(Node{make(d-1, store), make(d-1, store)});
 }
 
 int GetThreadCount()
@@ -65,13 +65,13 @@ int main(int argc, char *argv[])
    // Alloc then dealloc stretchdepth tree
     {
         NodePool store;
-        Node *c = make(0, stretch_depth, store);
+        Node *c = make(stretch_depth, store);
         std::cout << "stretch tree of depth " << stretch_depth << "\t "
                   << "check: " << c->check() << std::endl;
     }
 
     NodePool long_lived_store;
-    Node *long_lived_tree = make(0, max_depth, long_lived_store);
+    Node *long_lived_tree = make(max_depth, long_lived_store);
 
    // buffer to store output of each thread
    char *outputstr = (char*)malloc(LINE_SIZE * (max_depth +1) * sizeof(char));
@@ -85,12 +85,12 @@ int main(int argc, char *argv[])
         for (int i = 1; i <= iterations; ++i) 
         {
             NodePool store;
-            Node *a = make(i, d, store), *b = make(-i, d, store);
-            c += a->check() + b->check();
+            Node *a = make(d, store);
+            c += a->check();
         }
 
       // each thread write to separate location
-      sprintf(outputstr + LINE_SIZE * d, "%d\t trees of depth %d\t check: %d\n", (2 * iterations), d, c);
+      sprintf(outputstr + LINE_SIZE * d, "%d\t trees of depth %d\t check: %d\n", iterations, d, c);
    }
 
    // print all results
