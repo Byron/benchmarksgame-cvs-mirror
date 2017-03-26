@@ -21,8 +21,8 @@ class Tree {
    
    public function check() {
       return 1
-         + ($this->l->l === null ? $this->l->check() : 1)
-         + ($this->r->l === null ? $this->r->check() : 1);
+         + ($this->l->l === null ? 1 : $this->l->check())
+         + ($this->r->l === null ? 1 : $this->r->check());
    }
 }
 
@@ -42,7 +42,7 @@ $longLivedTree = new Tree($maxDepth);
 $iterations = 1 << $maxDepth;
 do
 {
-   $check = 0;
+   $check = 0; 
    for($i = 1; $i <= $iterations; ++$i)
    {
       $check += (new Tree($minDepth))->check();

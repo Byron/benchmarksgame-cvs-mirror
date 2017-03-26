@@ -5,12 +5,13 @@
    contributed by Peter Baltruschat
    modified by Levi Cameron
    PHP as HHVM/Hack by Isaac Gouy
+   *reset*
 */
 
 class Node {
-   public $item;
-   public $l;
-   public $r;
+	public $item;
+	public $l;
+	public $r;
 }
 
 function bottomUpTree($item, $depth)
@@ -26,9 +27,9 @@ function bottomUpTree($item, $depth)
 }
 
 function itemCheck($treeNode) { 
-   return $treeNode->item
-      + ($treeNode->l->l === null ? itemCheck($treeNode->l) : $treeNode->l->item)
-      - ($treeNode->r->l === null ? itemCheck($treeNode->r) : $treeNode->r->item);
+   return 1
+      + ($treeNode->l->l === null ? 1 : itemCheck($treeNode->l))
+      + ($treeNode->r->l === null ? 1 : itemCheck($treeNode->r));
 }
 
 $minDepth = 4;
@@ -52,12 +53,9 @@ do
       $t = bottomUpTree($i, $minDepth);
       $check += itemCheck($t);
       unset($t);
-      $t = bottomUpTree(-$i, $minDepth);
-      $check += itemCheck($t);
-      unset($t);
    }
    
-   printf("%d\t trees of depth %d\t check: %d\n", $iterations<<1, $minDepth, $check);
+   printf("%d\t trees of depth %d\t check: %d\n", $iterations, $minDepth, $check);
    
    $minDepth += 2;
    $iterations >>= 2;

@@ -1,10 +1,11 @@
 <?php
 /* The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/ 
+   http://benchmarksgame.alioth.debian.org/
 
    contributed by Peter Baltruschat
    modified by Levi Cameron
    modified (parallelized) by Sam Scarano
+   *reset*
 */
 
 function bottomUpTree($item, $depth)
@@ -19,19 +20,15 @@ function bottomUpTree($item, $depth)
 }
 
 function itemCheck($treeNode) {
-    return $treeNode[2]
-    + ($treeNode[0][0] === null ? itemCheck($treeNode[0]) : $treeNode[0][2])
-    - ($treeNode[1][0] === null ? itemCheck($treeNode[1]) : $treeNode[1][2]);
+    return 1
+    + ($treeNode[0][0] === null ? 1 : itemCheck($treeNode[0]))
+    + ($treeNode[1][0] === null ? 1 : itemCheck($treeNode[1]));
 }
 
 function makeAndCheck($i, $depth) {
     $result = 0;
 
     $t = bottomUpTree($i, $depth);
-    $result += itemCheck($t);
-    unset($t);
-
-    $t = bottomUpTree(-$i, $depth);
     $result += itemCheck($t);
     unset($t);
 
@@ -180,7 +177,7 @@ while (true) {
 ksort($results); // In general, work is done out of order.
 foreach ($results as $depth => list($iterations, $sum)) {
     printf("%d\t trees of depth %d\t check: %d\n",
-        $iterations << 1, $depth, $sum);
+        $iterations, $depth, $sum);
 }
 
 printf("long lived tree of depth %d\t check: %d\n",
