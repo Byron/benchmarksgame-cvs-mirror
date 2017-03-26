@@ -12,6 +12,8 @@
 ;;;
 ;;; modified by Witali Kusnezow 2009-08-20
 ;;;  * remove GC hacks to satisfy new versions of the sbcl
+;;;
+;;; *reset*
 
 ;;; Node is either (DATA) (for leaf nodes) or an improper list (DATA LEFT . RIGHT)
 
@@ -31,21 +33,20 @@
         (kids (cdr node)))
     (declare (fixnum data))
     (if kids
-        (- (+ data (check-node (car kids)))
+        (+ (+ 1 (check-node (car kids)))
            (check-node (cdr kids)))
-        data)))
+        1)))
 
 (defun loop-depths (max-depth &key (min-depth 4))
   (declare (type fixnum max-depth min-depth))
   (loop for d of-type fixnum from min-depth by 2 upto max-depth do
        (loop with iterations of-type fixnum = (ash 1 (+ max-depth min-depth (- d)))
           for i of-type fixnum from 1 upto iterations
-          sum (+ (the fixnum (check-node (build-btree i d)))
-                 (the fixnum (check-node (build-btree (- i) d))))
+          sum (the fixnum (check-node (build-btree i d)))
           into result of-type fixnum
           finally
             (format t "~D	 trees of depth ~D	 check: ~D~%"
-                    (the fixnum (+ iterations iterations )) d result))))
+                    (the fixnum iterations) d result))))
 
 (defun main (&optional (n (parse-integer
                            (or (car (last #+sbcl sb-ext:*posix-argv*
