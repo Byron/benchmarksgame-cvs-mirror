@@ -3,6 +3,8 @@
 !
 ! original C program by Francesco Abbate
 ! Fortran version by Vladimir Fuka
+!
+! *reset*
 
 
 module apr
@@ -71,9 +73,9 @@ module trees
       if (associated(n%left)) then
           lc = node_check(n%left)
           rc = node_check(n%right)
-          res = lc + n%i - rc
+          res = lc + 1 + rc
       else
-        res =  n%i
+        res =  1
       endif
     end function
 
@@ -89,8 +91,8 @@ module trees
       res%i = i
 
       if (depth > 0) then
-          res%left  => make(2*i-1, depth - 1, pool)
-          res%right => make(2*i  , depth - 1, pool)
+          res%left  => make(i, depth - 1, pool)
+          res%right => make(i, depth - 1, pool)
       else
           res%left  => null()
           res%right => null()
@@ -169,14 +171,13 @@ program main
 
       do i = 1,iterations
           a => make( i, d, store)
-          b => make(-i, d, store)
-          c = c+ node_check(a) + node_check(b)
+          c = c+ node_check(a)
           call apr_pool_clear(store)
       end do
 
       call apr_pool_destroy(store)
 
-      write(outputstr(d),"(2(i0,a),i0)") 2*iterations,t//" trees of depth ", d ,t//" check: ", c
+      write(outputstr(d),"(2(i0,a),i0)") iterations,t//" trees of depth ", d ,t//" check: ", c
   end do
   !$omp end parallel do
 

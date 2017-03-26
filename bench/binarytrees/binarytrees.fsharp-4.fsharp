@@ -2,6 +2,7 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // contributed by Reed Adams
+// *reset*
 
 open System
 
@@ -14,15 +15,14 @@ let rec GenNode depth item =
     if depth = 0
     then Leaf(item)
     else
-        let i = item * 2
         let d = depth - 1
-        Branch( (GenNode d (i - 1)), (GenNode d i), item )
+        Branch( (GenNode d item), (GenNode d item), item )
 
-let inline GenTree depth = GenNode (depth - 1)
+let inline GenTree depth = GenNode depth
 
 let rec GetCheckSum = function
-    | Leaf i          -> i
-    | Branch(l, r, i) -> i + (GetCheckSum l) - (GetCheckSum r)
+    | Leaf i          -> 1
+    | Branch(l, r, i) -> 1 + (GetCheckSum l) + (GetCheckSum r)
 
 
 [<EntryPoint>]
@@ -49,9 +49,8 @@ let main argv =
         for i in 1 ..iterations do
             check <- check
                      + GetCheckSum (GenTree cur_depth i)
-                     + GetCheckSum (GenTree cur_depth -i)
 
-        printfn "%i\t trees of depth %i\t check: %i" (iterations * 2) cur_depth check
+        printfn "%i\t trees of depth %i\t check: %i" iterations cur_depth check
 
     long_lived_tree
     |> GetCheckSum
