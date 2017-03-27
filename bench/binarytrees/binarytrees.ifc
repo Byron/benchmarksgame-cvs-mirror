@@ -1,6 +1,6 @@
 ! -*- mode: f90 -*-
 !
-! $Id: binarytrees.ifc,v 1.4 2017/03/26 01:20:50 igouy-guest Exp $ ; $Name:  $
+! $Id: binarytrees.ifc,v 1.5 2017/03/27 06:27:17 igouy-guest Exp $ ; $Name:  $
 !
 ! The Computer Language Shootout Benchmarks
 ! http://benchmarksgame.alioth.debian.org/
@@ -21,20 +21,18 @@ module b_tree
   integer, parameter :: short = selected_int_kind(1)
 
   type treeNode
-     integer :: item
      type(treeNode), pointer :: left
      type(treeNode), pointer :: right
   end type treeNode
 
 contains
 
-  subroutine NewTreeNode(left, right, item, node)
+  subroutine NewTreeNode(left, right, node)
     type(treeNode), target, intent(in) :: left, right
-    integer, intent(in) :: item
     type(treeNode), pointer :: node
 
     allocate(node)
-    node = treeNode(item, left, right)
+    node = treeNode(left, right)
   end subroutine NewTreeNode
 
   recursive function ItemCheck(tree) result (check)
@@ -49,8 +47,7 @@ contains
     deallocate(tree)
   end function ItemCheck
 
-  recursive subroutine BottomUpTree(item, depth, node)
-    integer, intent(in) :: item
+  recursive subroutine BottomUpTree(depth, node)
     integer(kind=short), intent(in) :: depth
     type(treeNode), pointer :: node
 
@@ -59,10 +56,10 @@ contains
     nullify(left, right)
 
     if (depth > 0) then
-       call BottomUpTree(item, depth - 1_short, left)
-       call BottomUpTree(item, depth - 1_short, right)
+       call BottomUpTree(depth - 1_short, left)
+       call BottomUpTree(depth - 1_short, right)
     end if
-    call NewTreeNode(left, right, item, node)
+    call NewTreeNode(left, right, node)
   end subroutine BottomUpTree
 end module b_tree
 
@@ -85,17 +82,17 @@ program binarytrees
   maxDepth = max(minDepth + 2_short, N)
 
   stretchDepth = maxDepth + 1_short
-  call BottomUpTree(0, stretchDepth, stretchTree)
+  call BottomUpTree(stretchDepth, stretchTree)
   write(*,"(2(a,i0))") "stretch tree of depth ", stretchDepth,  &
        tab//" check: ", ItemCheck(stretchTree)
 
-  call BottomUpTree(0, maxDepth, longLivedTree)
+  call BottomUpTree(maxDepth, longLivedTree)
   
   do depth = minDepth, maxDepth, 2
      iterations = 2**(maxDepth - depth + minDepth)
      check = 0
      do i = 1, iterations
-        call BottomUpTree(i, depth, tempTree)
+        call BottomUpTree(depth, tempTree)
         check = check + ItemCheck(tempTree)
      end do
      write(*,"(2(i0,a),i0)") iterations, tab//" trees of depth ", depth,  &

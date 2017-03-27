@@ -59,7 +59,6 @@ module trees
   implicit none
 
   type node
-    integer i
     type(node), pointer :: left
     type(node), pointer :: right
   end type
@@ -80,19 +79,16 @@ module trees
     end function
 
 
-    recursive function make(i,depth, pool) result(res)
+    recursive function make(depth, pool) result(res)
       type(node),pointer :: res
       type(c_ptr), intent(in) :: pool
-      integer, intent(in) :: i
       integer, intent(in) :: depth
 
       call c_f_pointer( apr_palloc(pool, sizeof(res)), res)
 
-      res%i = i
-
       if (depth > 0) then
-          res%left  => make(i, depth - 1, pool)
-          res%right => make(i, depth - 1, pool)
+          res%left  => make(depth - 1, pool)
+          res%right => make(depth - 1, pool)
       else
           res%left  => null()
           res%right => null()
@@ -152,7 +148,7 @@ program main
 
   tmp = apr_pool_create_unmanaged_ex(store, abrtptr, c_null_funptr)
 
-  curr => make(0, stretch_depth, store)
+  curr => make(stretch_depth, store)
 
   write(*,"(2(a,i0))") "stretch tree of depth ",stretch_depth, t//" check: ",  node_check(curr)
 
@@ -160,7 +156,7 @@ program main
 
   tmp = apr_pool_create_unmanaged_ex(long_lived_pool, abrtptr, c_null_funptr)
 
-  long_lived_tree => make(0, max_depth, long_lived_pool)
+  long_lived_tree => make(max_depth, long_lived_pool)
 
   !$omp parallel do private(store, a, b, c, i, iterations, tmp) schedule(dynamic,1)
   do  d = min_depth, max_depth, 2
@@ -170,7 +166,7 @@ program main
       tmp = apr_pool_create_unmanaged_ex(store, abrtptr, c_null_funptr)
 
       do i = 1,iterations
-          a => make( i, d, store)
+          a => make( d, store)
           c = c+ node_check(a)
           call apr_pool_clear(store)
       end do
