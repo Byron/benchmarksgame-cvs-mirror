@@ -6,6 +6,7 @@
 --    C version by Francesco Abbate
 --
 --  Contributed by Brad Moore
+--  *reset*
 
 with Trees;                  use Trees;
 with Ada.Text_IO;            use Ada.Text_IO;
@@ -74,18 +75,15 @@ procedure Binarytrees is
                Short_Lived_Tree_1 :=
                  Create
                    (Short_Lived_Pool,
-                    Item  => I,
                     Depth => Depth);
 
                Short_Lived_Tree_2 :=
                   Create
                     (Short_Lived_Pool,
-                     Item  => -I,
                      Depth => Depth);
 
                Check := Check +
-                 Item_Check (Short_Lived_Tree_1) +
-                 Item_Check (Short_Lived_Tree_2);
+                 Item_Check (Short_Lived_Tree_1);
             end;
          end loop;
 
@@ -140,7 +138,6 @@ begin
          Pool : Trees.Node_Pool;
          Stretch_Tree : constant Tree_Node :=
            Trees.Create (Pool  => Pool,
-                         Item  => 0,
                          Depth => Stretch_Depth);
       begin
          Check        := Item_Check (Stretch_Tree);
@@ -156,7 +153,7 @@ begin
 
       task body Create_Long_Lived_Tree_Task is
       begin
-         Long_Lived_Tree := Create (Long_Lived_Node_Pool, 0, Max_Depth);
+         Long_Lived_Tree := Create (Long_Lived_Node_Pool, Max_Depth);
       end Create_Long_Lived_Tree_Task;
    begin
       null;
@@ -171,7 +168,7 @@ begin
    end;
 
    for I in Results'Range loop
-      Put (Item => Iteration_Tracking (I) * 2, Width => 0);
+      Put (Item => Iteration_Tracking (I), Width => 0);
       Put (HT & " trees of depth ");
       Put (Item => Min_Depth + 2 * (I - 1), Width => 0);
       Put (HT & " check: ");
@@ -209,7 +206,6 @@ package Trees is
 
    function Create
      (Pool : Node_Pool;
-      Item : Integer;
       Depth : Integer) return Tree_Node;
 
 private
@@ -222,7 +218,6 @@ private
    type Node is record
       Left  : Tree_Node;
       Right : Tree_Node;
-      Value  : Integer;
    end record;
 
    type Node_Pool is
@@ -259,17 +254,15 @@ package body Trees is
 
    function Create
      (Pool : Node_Pool;
-      Item : Integer;
       Depth : Integer) return Tree_Node
    is
       Result : constant Tree_Node := New_Node (Pool);
    begin
       if Depth > 0 then
-         Result.all := (Left => Create (Pool, 2 * Item - 1, Depth - 1),
-                        Right => Create (Pool, 2 * Item, Depth - 1),
-                        Value => Item);
+         Result.all := (Left => Create (Pool, Depth - 1),
+                        Right => Create (Pool, Depth - 1));
       else
-         Result.all := (Left | Right => null, Value => Item);
+         Result.all := (Left | Right => null);
       end if;
 
       return Result;
@@ -294,9 +287,9 @@ package body Trees is
    function Item_Check (Item : Tree_Node) return Integer is
    begin
       if Item.Left = null then
-         return Item.Value;
+         return 1;
       else
-         return Item.Value + Item_Check (Item.Left) - Item_Check (Item.Right);
+         return 1 + Item_Check (Item.Left) + Item_Check (Item.Right);
       end if;
    end Item_Check;
 

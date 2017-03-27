@@ -5,6 +5,7 @@
 
 ;;; Derived from the Chicken variant by Sven Hartrumpf
 ;;; contributed by Matthew Flatt
+;;; *reset*
 
 (require racket/cmdline)
 
@@ -26,8 +27,8 @@
 
 (define (check t)
   (if (leaf? t)
-      (leaf-val t)
-      (+ (node-val t) (- (check (node-left t)) 
+      1
+      (+ 1 (+ (check (node-left t)) 
                          (check (node-right t))))))
 
 (define (main n)
@@ -41,13 +42,12 @@
       (for ((d (in-range 4 (add1 max-depth) 2)))
         (let ((iterations (arithmetic-shift 1 (+ (- max-depth d) min-depth))))
           (printf "~a\t trees of depth ~a\t check: ~a\n"
-                  (* 2 iterations)
+                  iterations
                   d
                   (for/fold ([c 0])
                             ([i (in-range iterations)])
                     (+ c 
-                       (check (make i d)) 
-                       (check (make (- i) d)))))))
+                       (check (make i d)) )))))
       (printf "long lived tree of depth ~a\t check: ~a\n"
               max-depth
               (check long-lived-tree)))))
