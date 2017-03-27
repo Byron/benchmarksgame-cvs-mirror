@@ -11,7 +11,6 @@
 #include <boost/xpressive/xpressive.hpp>
 #include <cassert>
 #include <iostream>
-#include <iterator>
 #include <vector>
 
 using namespace re2;
@@ -38,7 +37,7 @@ int main()
         "aND|caN|Ha[DS]|WaS", "<3>",
         "a[NSt]|BY", "<2>",
         "<[^>]*>", "|",
-        "[^|][^|]*", ""
+        "\\|[^|][^|]*\\|", "-"
     };
 
     cout.sync_with_stdio(false);
