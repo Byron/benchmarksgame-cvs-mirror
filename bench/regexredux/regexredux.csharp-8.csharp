@@ -1,0 +1,92 @@
+﻿/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+ *
+ * contributed by Jimmy Tang
+ * modified by Josh Goldfoot (2016)
+ * modified by Jan de Vaan (compile regex, small stuff)
+ */
+using System;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+class regexredux
+{
+    static string readStdIn(out int seqLength, out int inputLength)
+    {
+        StringBuilder sb = new StringBuilder();
+        int commentLength = 0;
+        String line;
+        
+        while ((line = Console.ReadLine()) != null)
+        {
+            if (line[0] == '>')
+                commentLength += line.Length + 1;
+            else
+            {
+                sb.Append(line);
+                commentLength += 1;
+            }
+        }
+        seqLength = sb.Length;
+        inputLength = seqLength + commentLength; 
+        return sb.ToString();
+    }
+
+    static void Main()
+    {
+
+        string[] variants = {
+           "agggtaaa|tttaccct"
+          ,"[cgt]gggtaaa|tttaccc[acg]"
+          ,"a[act]ggtaaa|tttacc[agt]t"
+          ,"ag[act]gtaaa|tttac[agt]ct"
+          ,"agg[act]taaa|ttta[agt]cct"
+          ,"aggg[acg]aaa|ttt[cgt]ccct"
+          ,"agggt[cgt]aa|tt[acg]accct"
+          ,"agggta[cgt]a|t[acg]taccct"
+          ,"agggtaa[cgt]|[acg]ttaccct"
+        };
+         
+        int seqLength, initialLength;
+        var sequence = readStdIn(out seqLength, out initialLength);
+        var newSequenceLength = Task.Run(() =>
+            {
+                var table = new int['Z'];
+                table['D'] = "(a|g|t)".Length - 1;
+                table['H'] = "(a|c|t)".Length - 1;
+                table['K'] = "(g|t)".Length - 1;
+                table['M'] = "(a|c)".Length - 1;
+                table['N'] = "(a|c|g|t)".Length - 1;
+                table['R'] = "(a|g)".Length - 1;
+                table['S'] = "(c|g)".Length - 1;
+                table['V'] = "(a|c|g)".Length - 1;
+                table['W'] = "(a|t)".Length - 1;
+                table['Y'] = "(c|t)".Length - 1;
+                table['B'] = "(c|g|t)".Length - 1;
+
+                var r = new Regex("[WYKMSRBDVHN]", RegexOptions.Compiled);
+
+                int length = sequence.Length;
+
+                for (Match m = r.Match(sequence); m.Success; m = m.NextMatch())
+                {
+                    length += table[m.Value[0]];
+                }
+                
+                return length;
+            });
+
+        var output = new string[variants.Length];
+        Parallel.For(0, variants.Length, i =>
+        {
+            Regex r = new Regex(variants[i], RegexOptions.Compiled);            
+            output[i] = r.ToString() + " " + r.Matches(sequence).Count;
+        });
+
+        foreach (var s in output)
+            Console.WriteLine(s);
+        
+        Console.WriteLine("\n{0}\n{1}\n{2}", initialLength, seqLength, newSequenceLength.Result);        
+    }
+}
