@@ -9,20 +9,17 @@
 */
 
 class Node {
-	public $item;
 	public $l;
 	public $r;
 }
 
-function bottomUpTree($item, $depth)
+function bottomUpTree($depth)
 {
    $node = new Node();
-   $node->item = $item;
    if (!$depth) return $node;
-   $item2 = $item + $item;
    $depth--;
-   $node->l = bottomUpTree($item2-1,$depth);
-   $node->r = bottomUpTree($item2,$depth);
+   $node->l = bottomUpTree($depth);
+   $node->r = bottomUpTree($depth);
    return $node;
 }
 
@@ -38,11 +35,11 @@ $n = ($argc == 2) ? $argv[1] : 1;
 $maxDepth = max($minDepth + 2, $n);
 $stretchDepth = $maxDepth + 1;
 
-$stretchTree = bottomUpTree(0, $stretchDepth);
+$stretchTree = bottomUpTree($stretchDepth);
 printf("stretch tree of depth %d\t check: %d\n", $stretchDepth, itemCheck($stretchTree));
 unset($stretchTree);
 
-$longLivedTree = bottomUpTree(0, $maxDepth);
+$longLivedTree = bottomUpTree($maxDepth);
 
 $iterations = 1 << ($maxDepth);
 do
@@ -50,7 +47,7 @@ do
    $check = 0;
    for($i = 1; $i <= $iterations; ++$i)
    {
-      $t = bottomUpTree($i, $minDepth);
+      $t = bottomUpTree($minDepth);
       $check += itemCheck($t);
       unset($t);
    }
