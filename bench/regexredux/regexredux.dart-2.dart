@@ -52,7 +52,7 @@ void regexAllTheThings (String fullText) {
     'aND|caN|Ha[DS]|WaS', '<3>',
     'a[NSt]|BY', '<2>',
     '<[^>]*>', '|',
-    '\|[^|][^|]*\|', '-'
+    '\\|[^|][^|]*\\|', '-'
   ];
 
   lengthA = fullText.length;
@@ -66,7 +66,7 @@ void regexAllTheThings (String fullText) {
   }
 
   for(var i = -1; i < replacements.length - 1;) {
-    fullText = fullText.replaceAll(replacements[++i], replacements[++i]);
+    fullText = fullText.replaceAll(new RegExp(replacements[++i]), replacements[++i]);
   }
 
   lengthC = fullText.length;
