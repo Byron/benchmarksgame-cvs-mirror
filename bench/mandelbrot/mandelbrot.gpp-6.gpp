@@ -1,134 +1,164 @@
-/*   
-   The Computer Language Benchmarks Game
-   http://benchmarksgame.alioth.debian.org/
+﻿// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// Contributed by Kevin Miller ( as C code )
+//
+// Ported to C++ with minor changes by Dave Compton
+//
+// compile with following g++ flags
+//  -pipe -Wall -O3  -fomit-frame-pointer -march=native -mfpmath=sse -msse2 -fopenmp   -mno-fma --std=c++14 
 
-   contributed by Paolo Bonzini
-   further optimized by Jason Garrett-Glaser
-   OpenMP by The Anh Tran
-   10-11-2010, modified by The Anh Tran:
-      _ remove builtin function
-      _ copy bit shift idea from C entry
-*/
+#include <emmintrin.h>
+#include <iostream>
 
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <algorithm>
-#include <sched.h>
-#include <memory.h>
+using namespace std;
 
-#include <omp.h>
-#include <sys/types.h>
-
-#define L2_CACHE_LINE   64
-#define ALIGN         __attribute__ ((aligned(L2_CACHE_LINE)))
-
-
-typedef unsigned char   byte;
-typedef double         v2d   __attribute__ ((vector_size(16)));
-typedef int32_t       v4i   __attribute__ ((vector_size(16)));
-
-const v2d v10      = { 1.0, 1.0 };
-const v2d v15      = { 1.5, 1.5 };
-const v2d v40      = { 4.0, 4.0 };
-
-v2d inv_2n;   // {2.0/N, 2.0/N}
-
-
-int
-GetThreadCount()
+int numDigits(long n)
 {
-   cpu_set_t cs;
-   CPU_ZERO(&cs);
-   sched_getaffinity(0, sizeof(cs), &cs);
-
-   int count = 0;
-   for (int i = 0; i < CPU_SETSIZE; ++i)
-      count += CPU_ISSET(i, &cs);
-
-   return count;
+    auto len = 0;
+    while(n)
+    {
+        n=n/10;
+        len++;
+    }
+    return len;
 }
 
-
-void
-mandelbrot(int N, byte* data)
+// Return true iff any of 8 members of double vector v is 
+// less than or equal to f.
+bool vec_le(double *v, double f)
 {
-   ALIGN int row_processed = 0;
-
-   #pragma omp parallel default(shared) num_threads(GetThreadCount())
-   {
-      int y = 0;
-      while ((y = __sync_fetch_and_add(&row_processed, 1)) < N)
-      {
-         byte* row_output = data + y * (N >> 3);
-         
-         v2d Civ = {y, y};
-         Civ = Civ * inv_2n - v10;
-
-            for (int x = 0; x < N; x += 2)
-            {
-            v2d   Crv = {x+1, x};
-            Crv = Crv * inv_2n - v15;
-            v2d Zrv = Crv;
-            v2d Ziv = Civ;
-            v2d Trv = Crv * Crv;
-            v2d Tiv = Civ * Civ;
-
-            int result = 3; // assume that 2 elements belong to MB set
-            int i = 1;
-
-            while ( result && (i++ < 50) )
-            {
-               v2d ZZ = Zrv * Ziv;
-               Zrv = Trv - Tiv + Crv;
-               Ziv = ZZ + ZZ + Civ;
-               Trv = Zrv * Zrv;
-               Tiv = Ziv * Ziv;
-
-               {
-                  // trv + tiv <= 4.0
-                  v2d delta = v40 - (Trv + Tiv);
-                  v4i db = reinterpret_cast<v4i>(delta);
-                  
-                  const int32_t* pb = reinterpret_cast<const int32_t*>(&db);
-                  result = (pb[1] >= 0) | ((pb[3] >= 0) << 1);
-               }            
-            }
-
-            {
-               int bit_shift = 6 - (x & 7);
-               row_output[x >> 3] |= static_cast<byte>(result << bit_shift);
-            }
-         }
-      }
-   }
+    return (
+        v[0] <= f ||
+        v[1] <= f ||
+        v[2] <= f ||
+        v[3] <= f ||
+        v[4] <= f ||
+        v[5] <= f ||
+        v[6] <= f ||
+        v[7] <= f);
 }
 
-
-int
-main (int argc, char **argv)
+// Return 8 bit value with bits set iff cooresponding 
+// member of double vector v is less than or equal to f.
+int8_t pixels(double *v, double f)
 {
-   const int N = (argc == 2) ? std::atoi(argv[1]) : 200;
-   assert((N % 8) == 0);
-   printf("P4\n%d %d\n", N, N);
-
-   {
-      double* p_iv = reinterpret_cast<double*>(&inv_2n);
-      p_iv[0] = p_iv[1] = 2.0 / N;
-   }
-
-   const int bytes_count = (N >> 3) * N;
-   byte* data = 0;
-   assert(   posix_memalign(reinterpret_cast<void**>(&data), L2_CACHE_LINE, bytes_count)
-         == 0);
-   memset(data, 0, bytes_count);
-
-   mandelbrot(N, data);
-
-   fwrite( data, bytes_count, 1, stdout);
-   fflush(stdout);
-   free(data);
-
-   return 0;
+    int8_t res = 0;
+    if(v[0] <= f) res |= 0b10000000;
+    if(v[1] <= f) res |= 0b01000000;
+    if(v[2] <= f) res |= 0b00100000;
+    if(v[3] <= f) res |= 0b00010000;
+    if(v[4] <= f) res |= 0b00001000;
+    if(v[5] <= f) res |= 0b00000100;
+    if(v[6] <= f) res |= 0b00000010;
+    if(v[7] <= f) res |= 0b00000001;
+    return res;
 }
 
+//
+// Do one iteration of mandelbrot calculation for a vector of eight 
+// complex values.  Using __m128d to work with pairs of doubles speeds
+// up computations.
+//
+void calcSum(double *r, double *i, double *sum, double const *init_r, __m128d init_i)
+{
+    auto r_md = (__m128d*)r;
+    auto i_md = (__m128d*)i;
+    auto sum_md = (__m128d*)sum;
+    auto init_r_md = (__m128d const *)init_r;
+
+    for(auto pair=0; pair<4; pair++)
+    {
+        auto r2 = r_md[pair] * r_md[pair];
+        auto i2 = i_md[pair] * i_md[pair];
+        auto ri = r_md[pair] * i_md[pair];
+
+        sum_md[pair] = r2 + i2;
+
+        r_md[pair]=r2 - i2 + init_r_md[pair];
+        i_md[pair]=ri + ri + init_i;
+    }
+}
+
+//
+// Do 50 iterations of mandelbrot calculation for a vector of eight 
+// complex values.  Check occasionally to see if the iterated results
+// have wandered beyond the point of no return (> 4.0).
+//
+inline int8_t mand8(double *init_r, double iy)
+{
+    double r[8], i[8], sum[8];
+    for(auto k=0; k<8; k++)
+    {
+        r[k]=init_r[k];
+        i[k]=iy;
+    }
+
+    __m128d init_i = (__m128d){iy,iy};
+
+    int8_t pix = 0xff;
+
+    for (auto j = 0; j < 10; j++)
+    {
+        for(auto k=0; k<5; k++)
+            calcSum(r, i, sum, init_r, init_i);
+
+        if (!vec_le(sum, 4.0))
+        {
+            pix = 0x00;
+            break;
+        }
+    }
+    if (pix)
+    {
+        pix = pixels(sum, 4.0);
+    }
+
+    return pix;
+}
+
+int main(int argc, char ** argv)
+{
+    // get width/height from arguments
+
+    auto  wid_ht = 16000;
+    if (argc >= 2)
+    {
+        wid_ht = atoi(argv[1]);
+    }
+
+    // round up to multiple of 8
+    wid_ht = (wid_ht+7) & ~7;  
+
+    // allocate memory for pixels.
+    auto dataLength = wid_ht*(wid_ht>>3);
+    auto pixels = new char[dataLength];
+
+    // calculate initial values, store in r0
+    double r0[wid_ht];
+    for(auto xy=0; xy<wid_ht; xy++)
+    {
+        r0[xy] = 2.0 / wid_ht * xy - 1.5;
+    }
+
+    // generate the bitmap
+
+    // process 8 pixels (one byte) at a time    
+    #pragma omp parallel for schedule(guided)
+    for(auto y=0; y<wid_ht; y++)
+    {
+        auto iy = 2.0 / wid_ht *  y - 1.0;
+        auto rowstart = y*wid_ht/8;
+        for(auto x=0; x<wid_ht; x+=8)
+        {
+            pixels[rowstart + x/8] = mand8(r0+x,iy); 
+        }
+    }
+
+    // write the data
+    cout << "P4\n" << wid_ht << " " << wid_ht << "\n";
+    cout.write(pixels, dataLength);
+    delete[] pixels;
+
+    return 0;
+}
