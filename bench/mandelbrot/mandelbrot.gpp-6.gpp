@@ -8,8 +8,20 @@
 // compile with following g++ flags
 //  -pipe -Wall -O3  -fomit-frame-pointer -march=native -mfpmath=sse -msse2 -fopenmp   -mno-fma --std=c++14 
 
-#include <emmintrin.h>
+#include <immintrin.h>
 #include <iostream>
+
+#ifdef __AVX__
+#define VEC_SIZE 4
+typedef __m256d Vec;
+#define VEC_INIT(value) (Vec){value,value,value,value}
+#else
+#define VEC_SIZE 2
+typedef __m128d Vec;
+#define VEC_INIT(value) (Vec){value,value}
+#endif
+
+#define LOOP_SIZE (8/VEC_SIZE)
 
 using namespace std;
 
@@ -57,26 +69,26 @@ int8_t pixels(double *v, double f)
 
 //
 // Do one iteration of mandelbrot calculation for a vector of eight 
-// complex values.  Using __m128d to work with pairs of doubles speeds
+// complex values.  Using Vec to work with groups of doubles speeds
 // up computations.
 //
-void calcSum(double *r, double *i, double *sum, double const *init_r, __m128d init_i)
+inline void calcSum(double *r, double *i, double *sum, double const *init_r, Vec const &init_i)
 {
-    auto r_md = (__m128d*)r;
-    auto i_md = (__m128d*)i;
-    auto sum_md = (__m128d*)sum;
-    auto init_r_md = (__m128d const *)init_r;
+    auto r_v = (Vec*)r;
+    auto i_v = (Vec*)i;
+    auto sum_v = (Vec*)sum;
+    auto init_r_v = (Vec const *)init_r;
 
-    for(auto pair=0; pair<4; pair++)
+    for(auto vec=0; vec<LOOP_SIZE; vec++)
     {
-        auto r2 = r_md[pair] * r_md[pair];
-        auto i2 = i_md[pair] * i_md[pair];
-        auto ri = r_md[pair] * i_md[pair];
+        auto r2 = r_v[vec] * r_v[vec];
+        auto i2 = i_v[vec] * i_v[vec];
+        auto ri = r_v[vec] * i_v[vec];
 
-        sum_md[pair] = r2 + i2;
+        sum_v[vec] = r2 + i2;
 
-        r_md[pair]=r2 - i2 + init_r_md[pair];
-        i_md[pair]=ri + ri + init_i;
+        r_v[vec]=r2 - i2 + init_r_v[vec];
+        i_v[vec]=ri + ri + init_i;
     }
 }
 
@@ -94,7 +106,7 @@ inline int8_t mand8(double *init_r, double iy)
         i[k]=iy;
     }
 
-    __m128d init_i = (__m128d){iy,iy};
+    auto init_i = VEC_INIT(iy);
 
     int8_t pix = 0xff;
 
@@ -121,7 +133,7 @@ int main(int argc, char ** argv)
 {
     // get width/height from arguments
 
-    auto  wid_ht = 16000;
+    auto wid_ht = 16000;
     if (argc >= 2)
     {
         wid_ht = atoi(argv[1]);
@@ -134,11 +146,11 @@ int main(int argc, char ** argv)
     auto dataLength = wid_ht*(wid_ht>>3);
     auto pixels = new char[dataLength];
 
-    // calculate initial values, store in r0
+    // calculate initial x values, store in r0
     double r0[wid_ht];
-    for(auto xy=0; xy<wid_ht; xy++)
+    for(auto x=0; x<wid_ht; x++)
     {
-        r0[xy] = 2.0 / wid_ht * xy - 1.5;
+        r0[x] = 2.0 / wid_ht * x - 1.5;
     }
 
     // generate the bitmap
@@ -147,6 +159,7 @@ int main(int argc, char ** argv)
     #pragma omp parallel for schedule(guided)
     for(auto y=0; y<wid_ht; y++)
     {
+        // all 8 pixels have same y value (iy).
         auto iy = 2.0 / wid_ht *  y - 1.0;
         auto rowstart = y*wid_ht/8;
         for(auto x=0; x<wid_ht; x+=8)
