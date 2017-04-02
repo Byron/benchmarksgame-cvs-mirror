@@ -1,4 +1,4 @@
-<?php
+<?hh
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
 
@@ -66,7 +66,6 @@ do {
     }
 } while ($minDepth <= $maxDepth);
 
-extension_loaded('shmop') or dl('shmop.so');
 $size = 128;
 $shmId = shmop_open(ftok(__FILE__, 'b'), 'c', 0644, $size * (count($depthIterations) + 1));
 $PIDs = [];
