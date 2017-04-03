@@ -2,35 +2,39 @@
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
 
-   contributed by Peter Baltruschat
-   modified by Levi Cameron
-   multiprocessing by Yuriy Moskalchuk
+   contributed by Yuriy Moskalchuk
+   (based on contributions of Peter Baltruschat and Levi Cameron)
 */
 
 function createTree($depth)
 {
-    if (!$depth) {
-        return [null, null];
+    global $obj;
+    if ($depth === 0) {
+        return clone $obj;
     }
     $depth--;
 
-    return [
-        createTree($depth),
-        createTree($depth)
-    ];
+    $t = clone $obj;
+    $t->l = createTree($depth);
+    $t->r = createTree($depth);
+
+    return $t;
 }
 
 function checkTree(&$treeNode)
 {
     $sum = 1
-        + ($treeNode[0][0] === null ? 1 : checkTree($treeNode[0]))
-        + ($treeNode[1][0] === null ? 1 : checkTree($treeNode[1]));
-    unset($treeNode[0]);
-    unset($treeNode[1]);
+        + ($treeNode->l->l === null ? 1 : checkTree($treeNode->l))
+        + ($treeNode->r->l === null ? 1 : checkTree($treeNode->r));
+    unset($treeNode->l);
+    unset($treeNode->r);
 
     return $sum;
 }
-
+$obj = new class {
+    public $l;
+    public $r;
+};
 $minDepth = 4;
 $n = ($argc == 2) ? $argv[1] : 1;
 $maxDepth = max($minDepth + 2, $n);
