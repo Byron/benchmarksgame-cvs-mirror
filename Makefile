@@ -9,7 +9,7 @@ info:
 	$(info docker-run        | run the image interactively)
 	$(info docker-cvs-import | run the import and update this repository)
 
-.image.ok:
+.image.ok: etc/docker/Dockerfile
 	cd etc/docker && docker build -t $(IMAGE_NAME) .
 	touch $@
 
