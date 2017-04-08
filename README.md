@@ -8,29 +8,31 @@ Even though I don't think this repository will help easing contributions, at lea
 
 # How ?
 
-Presuming `cvsps` *v2.x* is installed, `git cvsimport` can be used to import and update all commits and tags from the cvs repository at `:pserver:anonymous@cvs.debian.org:/cvs/benchmarksgame`.
-
-All changes are pushed to this repository, using the `update-git-from-cvs.sh` script, which runs *every night*.
-
 You can run the update yourself, affecting only your local clone, using
 
 `make update`
 
-Please note that docker is required for this to work.
+Please note that `docker` is required for this to work.
 
 # About Branches
 
-There are only two branches:
-
-* **master**
-  - contains origin, as well as all files added by me to manage the mirror.
+* **rebased-master**
+  - contains `filtered-cvs-origin, as well as all files added by me to manage the mirror.
+* **filtered-cvs-origin**
+  - `origin` with large files removed.
 * **origin**
   - a direct copy of the original cvs repository, which is managed entirely by `git cvsimport`.
+  - it is out of date, as a commit contains a file larger than what github can accept (i.e. 100MB)
+    but will speedup `make update` if it is available locally. That way `cvsimport` will not
+    have to refetch the entire history.
 
-# Problems ?
+# Problems/Repository out of date ?
 
-If this repository appears to be out-of-date, please let me know using a [github-issue][issues].
+If this repository appears to be out-of-date, please let me know using a [github-issue][issues], and
+I will update it.
 
+Unfortunately, even if you update a local clone, you won't be able to send a PR as the history is
+always recreated.
 
 [bmg-cvs]: https://alioth.debian.org/scm/?group_id=100815
 [bmg-website]: http://benchmarksgame.alioth.debian.org
