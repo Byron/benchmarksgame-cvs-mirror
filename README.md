@@ -19,7 +19,8 @@ Please note that `docker` is required for this to work.
 * **rebased-master**
   - contains `filtered-cvs-origin, as well as all files added by me to manage the mirror.
 * **filtered-cvs-origin**
-  - `origin` with large files removed.
+  - `origin` with large files removed. They are not permitted by GitHub, see the [related
+    issue][first bug]
 * **origin**
   - a direct copy of the original cvs repository, which is managed entirely by `git cvsimport`.
   - it is out of date, as a commit contains a file larger than what github can accept (i.e. 100MB)
@@ -37,3 +38,4 @@ always recreated.
 [bmg-cvs]: https://alioth.debian.org/scm/?group_id=100815
 [bmg-website]: http://benchmarksgame.alioth.debian.org
 [issues]: https://github.com/Byron/benchmarksgame-cvs-mirror/issues
+[first bug]: https://github.com/Byron/benchmarksgame-cvs-mirror/issues/1#issuecomment-292712784
