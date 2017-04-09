@@ -2,5 +2,5 @@
 set -e
 
 git checkout master
-git merge origin
+git merge --no-ff origin
 git push origin master origin
