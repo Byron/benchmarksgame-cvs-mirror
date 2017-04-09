@@ -23,9 +23,6 @@ Please note that `docker` is required for this to work.
     issue][first bug]
 * **origin**
   - a direct copy of the original cvs repository, which is managed entirely by `git cvsimport`.
-  - it is out of date, as a commit contains a file larger than what github can accept (i.e. 100MB)
-    but will speedup `make update` if it is available locally. That way `cvsimport` will not
-    have to refetch the entire history.
 
 # Problems/Repository out of date ?
 
