@@ -3,8 +3,8 @@
 //
 // Contributed by Jeremy Zerfas
 
-// This controls the maximum length for each set of nucleotide sequence
-// frequencies and each nucleotide sequence count output by this program.
+// This controls the maximum length for each set of oligonucleotide frequencies
+// and each oligonucleotide count output by this program.
 #define MAXIMUM_OUTPUT_LENGTH 4096
 
 #include <stdint.h>
@@ -18,17 +18,17 @@
 // function. This custom hash function uses a simpler bit shift and XOR which
 // results in several percent faster performance compared to when khash's
 // default hash function is used.
-#define CUSTOM_HASH_FUNCTION(key) (khint32_t)((key) ^ (key)>>7)
+#define CUSTOM_HASH_FUNCTION(key) ((key) ^ (key)>>7)
 
-KHASH_INIT(nucleotide, khint64_t, int32_t, 1, CUSTOM_HASH_FUNCTION,
-  kh_int64_hash_equal)
+KHASH_INIT(oligonucleotide, uint64_t, uint32_t, 1, CUSTOM_HASH_FUNCTION
+  , kh_int64_hash_equal)
 
 // intptr_t should be the native integer type on most sane systems.
 typedef intptr_t intnative_t;
 
-typedef struct element{
+typedef struct {
 	uint64_t	key;
-	int32_t		value;
+	uint32_t	value;
 } element;
 
 
@@ -47,10 +47,8 @@ typedef struct element{
 // Function to use when sorting elements with qsort() later. Elements with
 // larger values will come first and in cases of identical values then elements
 // with smaller keys will come first.
-static int element_Compare(const void * const uncasted_Left_Element,
-  const void * const uncasted_Right_Element){
-	const element * left_Element=uncasted_Left_Element,
-	  * right_Element=uncasted_Right_Element;
+static int element_Compare(const element * const left_Element
+  , const element * const right_Element){
 
 	// Sort based on element values.
 	if(left_Element->value < right_Element->value) return 1;
@@ -62,146 +60,154 @@ static int element_Compare(const void * const uncasted_Left_Element,
 }
 
 
-// Generate frequences for all nucleotide sequences in sequences that are of
-// length sequence_Length and then save it to output.
-static void generate_Frequencies_For_Sequences(const char * const sequences,
-  const intnative_t sequences_Length, intnative_t sequence_Length,
-  char * const output){
-	khash_t(nucleotide) * hash_Table=kh_init(nucleotide);
+// Generate frequencies for all oligonucleotides in polynucleotide that are of
+// desired_Length_For_Oligonucleotides and then save it to output.
+static void generate_Frequencies_For_Desired_Length_Oligonucleotides(
+  const char * const polynucleotide, const intnative_t polynucleotide_Length
+  , const intnative_t desired_Length_For_Oligonucleotides, char * const output){
 
-	// Add all the sequences of sequence_Length to hash_Table and update the
-	// count for each sequence.
+	khash_t(oligonucleotide) * hash_Table=kh_init(oligonucleotide);
+
 	uint64_t key=0;
-	for(intnative_t i=0; i<sequences_Length; i++){
-		const uint64_t mask=((uint64_t)1<<2*sequence_Length)-1;
-		key=(key<<2 & mask) | sequences[i];
-		if(i>=sequence_Length){
-			int element_Was_Unused;
-			const khiter_t k=kh_put(nucleotide, hash_Table, key,
-			  &element_Was_Unused);
+	const uint64_t mask=((uint64_t)1<<2*desired_Length_For_Oligonucleotides)-1;
 
-			// If the element_Was_Unused, then initialize the count to 1,
-			// otherwise increment the count.
-			if(element_Was_Unused)
-				kh_value(hash_Table, k)=1;
-			else
-				kh_value(hash_Table, k)++;
-		}
+	// For the first several nucleotides we only need to append them to key in
+	// preparation for the insertion of complete oligonucleotides to hash_Table.
+	for(intnative_t i=0; i<desired_Length_For_Oligonucleotides-1; i++)
+		key=(key<<2 & mask) | polynucleotide[i];
+
+	// Add all the complete oligonucleotides of
+	// desired_Length_For_Oligonucleotides to hash_Table and update the count
+	// for each oligonucleotide.
+	for(intnative_t i=desired_Length_For_Oligonucleotides-1
+	  ; i<polynucleotide_Length; i++){
+
+		key=(key<<2 & mask) | polynucleotide[i];
+
+		int element_Was_Unused;
+		const khiter_t k=kh_put(oligonucleotide, hash_Table, key
+		  , &element_Was_Unused);
+
+		// If the element_Was_Unused, then initialize the count to 1, otherwise
+		// increment the count.
+		if(element_Was_Unused)
+			kh_value(hash_Table, k)=1;
+		else
+			kh_value(hash_Table, k)++;
 	}
 
 	// Create an array of elements from hash_Table.
-	intnative_t elements_Array_Size=kh_size(hash_Table);
+	intnative_t elements_Array_Size=kh_size(hash_Table), i=0;
 	element * elements_Array=malloc(elements_Array_Size*sizeof(element));
-	for(khiter_t k=kh_begin(hash_Table), j=0; k!=kh_end(hash_Table); ++k){
-		if(kh_exist(hash_Table, k)){
-			elements_Array[j].key=kh_key(hash_Table, k);
-			elements_Array[j].value=kh_value(hash_Table, k);
-			j++;
-		}
-	}
+	uint32_t value;
+	kh_foreach(hash_Table, key, value
+	  , elements_Array[i++]=((element){key, value}));
 
-	kh_destroy(nucleotide, hash_Table);
+	kh_destroy(oligonucleotide, hash_Table);
 
 	// Sort elements_Array.
-	qsort(elements_Array, elements_Array_Size, sizeof(element),
-	  &element_Compare);
+	qsort(elements_Array, elements_Array_Size, sizeof(element)
+	  , (int (*)(const void *, const void *)) element_Compare);
 
-	// Print the frequencies for each nucleotide_Sequence.
+	// Print the frequencies for each oligonucleotide.
 	for(intnative_t output_Position=0, i=0; i<elements_Array_Size; i++){
-		char nucleotide_Sequence[sequence_Length+1];
-		for(intnative_t j=sequence_Length-1; j>-1; j--){
-			nucleotide_Sequence[j]=nucleotide_For_Code(elements_Array[i].key);
+
+		// Convert the key for the oligonucleotide to a string.
+		char oligonucleotide[desired_Length_For_Oligonucleotides+1];
+		for(intnative_t j=desired_Length_For_Oligonucleotides-1; j>-1; j--){
+			oligonucleotide[j]=nucleotide_For_Code(elements_Array[i].key);
 			elements_Array[i].key>>=2;
 		}
-		nucleotide_Sequence[sequence_Length]='\0';
+		oligonucleotide[desired_Length_For_Oligonucleotides]='\0';
 
-		// Output the frequency for nucleotide_Sequence to output.
-		output_Position+=snprintf(output+output_Position,
-		  MAXIMUM_OUTPUT_LENGTH-output_Position, "%s %.3f\n",
-		  nucleotide_Sequence, 100.0f*elements_Array[i].value/sequences_Length);
+		// Output the frequency for oligonucleotide to output.
+		output_Position+=snprintf(output+output_Position
+		  , MAXIMUM_OUTPUT_LENGTH-output_Position, "%s %.3f\n", oligonucleotide
+		  , 100.0f*elements_Array[i].value
+		  /(polynucleotide_Length-desired_Length_For_Oligonucleotides+1));
 	}
 
 	free(elements_Array);
 }
 
 
-// Generate a count for the number of times nucleotide_Sequence appears in
-// sequences and then save it to output.
-static void generate_Count_For_Sequence(const char * const sequences,
-  const intnative_t sequences_Length, const char * const nucleotide_Sequence,
-  char * const output){
-	const intnative_t nucleotide_Sequence_Length=strlen(nucleotide_Sequence);
+// Generate a count for the number of times oligonucleotide appears in
+// polynucleotide and then save it to output.
+static void generate_Count_For_Oligonucleotide(
+  const char * const polynucleotide, const intnative_t polynucleotide_Length
+  , const char * const oligonucleotide, char * const output){
+	const intnative_t oligonucleotide_Length=strlen(oligonucleotide);
 
-	khash_t(nucleotide) * const hash_Table=kh_init(nucleotide);
+	khash_t(oligonucleotide) * const hash_Table=kh_init(oligonucleotide);
 
-	// Add all the sequences of nucleotide_Sequence_Length to hash_Table and
-	// update the count for each sequence.
 	uint64_t key=0;
-	for(intnative_t i=0; i<sequences_Length; i++){
-		const uint64_t mask=((uint64_t)1<<2*nucleotide_Sequence_Length)-1;
-		key=(key<<2 & mask) | sequences[i];
-		if(i>=nucleotide_Sequence_Length){
-			int element_Was_Unused;
-			const khiter_t k=kh_put(nucleotide, hash_Table, key,
-			  &element_Was_Unused);
+	const uint64_t mask=((uint64_t)1<<2*oligonucleotide_Length)-1;
 
-			// If the element_Was_Unused, then initialize the count to 1,
-			// otherwise increment the count.
-			if(element_Was_Unused)
-				kh_value(hash_Table, k)=1;
-			else
-				kh_value(hash_Table, k)++;
-		}
+	// For the first several nucleotides we only need to append them to key in
+	// preparation for the insertion of complete oligonucleotides to hash_Table.
+	for(intnative_t i=0; i<oligonucleotide_Length-1; i++)
+		key=(key<<2 & mask) | polynucleotide[i];
+
+	// Add all the complete oligonucleotides of oligonucleotide_Length to
+	// hash_Table and update the count for each oligonucleotide.
+	for(intnative_t i=oligonucleotide_Length-1; i<polynucleotide_Length; i++){
+
+		key=(key<<2 & mask) | polynucleotide[i];
+
+		int element_Was_Unused;
+		const khiter_t k=kh_put(oligonucleotide, hash_Table, key
+		  , &element_Was_Unused);
+
+		// If the element_Was_Unused, then initialize the count to 1, otherwise
+		// increment the count.
+		if(element_Was_Unused)
+			kh_value(hash_Table, k)=1;
+		else
+			kh_value(hash_Table, k)++;
 	}
 
-	// Generate key for the nucleotide_Sequence.
+	// Generate the key for oligonucleotide.
 	key=0;
-	for(intnative_t i=0; i<nucleotide_Sequence_Length; i++)
-		key=(key<<2) | code_For_Nucleotide(nucleotide_Sequence[i]);
+	for(intnative_t i=0; i<oligonucleotide_Length; i++)
+		key=(key<<2) | code_For_Nucleotide(oligonucleotide[i]);
 
-	// Output the count for nucleotide_Sequence to output.
-	khiter_t k=kh_get(nucleotide, hash_Table, key);
-	intnative_t count=kh_value(hash_Table, k);
-	snprintf(output, MAXIMUM_OUTPUT_LENGTH, "%jd\t%s", (intmax_t)count,
-	  nucleotide_Sequence);
+	// Output the count for oligonucleotide to output.
+	khiter_t k=kh_get(oligonucleotide, hash_Table, key);
+	uintmax_t count=k==kh_end(hash_Table) ? 0 : kh_value(hash_Table, k);
+	snprintf(output, MAXIMUM_OUTPUT_LENGTH, "%ju\t%s", count, oligonucleotide);
 
-	kh_destroy(nucleotide, hash_Table);
+	kh_destroy(oligonucleotide, hash_Table);
 }
 
 
 int main(){
 	char buffer[4096];
 
-	// Find the start of the third nucleotide sequence.
-	while(fgets(buffer, sizeof(buffer), stdin) && memcmp(">THREE", buffer,
-	  sizeof(">THREE")-1));
+	// Find the start of the third polynucleotide.
+	while(fgets(buffer, sizeof(buffer), stdin) && memcmp(">THREE", buffer
+	  , sizeof(">THREE")-1));
 
-	// Start with 1 MB of storage for reading in the nucleotide sequence and
-	// grow geometrically.
-	intnative_t nucleotide_Sequence_Capacity=1048576;
-	intnative_t nucleotide_Sequence_Size=0;
-	char * nucleotide_Sequence=malloc(nucleotide_Sequence_Capacity);
+	// Start with 1 MB of storage for reading in the polynucleotide and grow
+	// geometrically.
+	intnative_t polynucleotide_Capacity=1048576;
+	intnative_t polynucleotide_Length=0;
+	char * polynucleotide=malloc(polynucleotide_Capacity);
 
-	// Start reading and encoding the third nucleotide sequence.
+	// Start reading and encoding the third polynucleotide.
 	while(fgets(buffer, sizeof(buffer), stdin) && buffer[0]!='>'){
-		for(intnative_t i=0; buffer[i]!='\0'; i++){
+		for(intnative_t i=0; buffer[i]!='\0'; i++)
 			if(buffer[i]!='\n')
-				nucleotide_Sequence[nucleotide_Sequence_Size++]=
-				  code_For_Nucleotide(buffer[i]);
-		}
+				polynucleotide[polynucleotide_Length++]
+				  =code_For_Nucleotide(buffer[i]);
 
 		// Make sure we still have enough memory allocated for any potential
 		// nucleotides in the next line.
-		if(nucleotide_Sequence_Capacity-nucleotide_Sequence_Size <
-		  sizeof(buffer)){
-			nucleotide_Sequence_Capacity*=2;
-			nucleotide_Sequence=realloc(nucleotide_Sequence,
-			  nucleotide_Sequence_Capacity);
-		}
+		if(polynucleotide_Capacity-polynucleotide_Length<sizeof(buffer))
+			polynucleotide=realloc(polynucleotide, polynucleotide_Capacity*=2);
 	}
 
 	// Free up any leftover memory.
-	nucleotide_Sequence=realloc(nucleotide_Sequence, nucleotide_Sequence_Size);
+	polynucleotide=realloc(polynucleotide, polynucleotide_Length);
 
 	char output_Buffer[7][MAXIMUM_OUTPUT_LENGTH];
 
@@ -209,33 +215,33 @@ int main(){
 	#pragma omp parallel sections
 	{
 		#pragma omp section
-		{ generate_Frequencies_For_Sequences(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, 1, output_Buffer[0]); }
+		generate_Count_For_Oligonucleotide(polynucleotide
+		  , polynucleotide_Length, "GGTATTTTAATTTATAGT", output_Buffer[6]);
 		#pragma omp section
-		{ generate_Frequencies_For_Sequences(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, 2, output_Buffer[1]); }
+		generate_Count_For_Oligonucleotide(polynucleotide
+		  , polynucleotide_Length, "GGTATTTTAATT", output_Buffer[5]);
+		#pragma omp section
+		generate_Count_For_Oligonucleotide(polynucleotide
+		  , polynucleotide_Length, "GGTATT", output_Buffer[4]);
+		#pragma omp section
+		generate_Count_For_Oligonucleotide(polynucleotide
+		  , polynucleotide_Length, "GGTA", output_Buffer[3]);
+		#pragma omp section
+		generate_Count_For_Oligonucleotide(polynucleotide
+		  , polynucleotide_Length, "GGT", output_Buffer[2]);
 
 		#pragma omp section
-		{ generate_Count_For_Sequence(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, "GGT", output_Buffer[2]); }
+		generate_Frequencies_For_Desired_Length_Oligonucleotides(polynucleotide
+		  , polynucleotide_Length, 2, output_Buffer[1]);
 		#pragma omp section
-		{ generate_Count_For_Sequence(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, "GGTA", output_Buffer[3]); }
-		#pragma omp section
-		{ generate_Count_For_Sequence(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, "GGTATT", output_Buffer[4]); }
-		#pragma omp section
-		{ generate_Count_For_Sequence(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, "GGTATTTTAATT", output_Buffer[5]); }
-		#pragma omp section
-		{ generate_Count_For_Sequence(nucleotide_Sequence,
-		  nucleotide_Sequence_Size, "GGTATTTTAATTTATAGT", output_Buffer[6]); }
+		generate_Frequencies_For_Desired_Length_Oligonucleotides(polynucleotide
+		  , polynucleotide_Length, 1, output_Buffer[0]);
 	}
 
 	// Output the results to stdout.
 	for(intnative_t i=0; i<7; printf("%s\n", output_Buffer[i++]));
 
-	free(nucleotide_Sequence);
+	free(polynucleotide);
 
 	return 0;
 }
