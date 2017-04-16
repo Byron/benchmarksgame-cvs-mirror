@@ -16,7 +16,7 @@ import Text.Printf
 -- normally you would ensure the branches are lazy, but this benchmark
 -- requires strict allocation.
 --
-data Tree = Nil | Node !Tree !Tree
+data Tree = Nil | Node !Int !Tree !Tree
 
 minN = 4
 
@@ -28,11 +28,11 @@ main = do
         stretchN = maxN + 1
 
     -- stretch memory tree
-    let c = check (make stretchN)
+    let c = check (make 0 stretchN)
     io "stretch tree" stretchN c
 
     -- allocate a long lived tree
-    let !long    = make maxN
+    let !long    = make 0 maxN
 
     -- allocate, walk, and deallocate many bottom-up binary trees
     let vs = depth minN maxN
@@ -52,16 +52,16 @@ depth d m
 sumT :: Int -> Int -> Int -> Int
 sumT d 0 t = t
 sumT  d i t = sumT d (i-1) (t + a)
-  where a = check (make d)
+  where a = check (make 0 d)
 
 
 -- traverse the tree, counting up the nodes
 check :: Tree -> Int
 check Nil          = 0
-check (Node l r) = 1 + check l + check r
+check (Node i l r) = 1 + check l + check r
 
 -- build a tree
-make :: Int -> Tree
-make 0 = Node Nil Nil
-make d = Node (make d2) (make d2)
+make :: Int -> Int -> Tree
+make i 0 = Node i Nil Nil
+make i d = Node i (make d d2) (make d2 d2)
   where d2 = d-1
