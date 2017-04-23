@@ -1,10 +1,10 @@
 sudo: required
-
 services:
-  - docker
-
+- docker
 os:
 - linux
-
 script:
 - make update
+env:
+  global:
+    secure: ctwIpoPw5nu2bOC++27rVRteTWECdSdODMwJkeBj/1WVVIZQY/r1JPoxfC8MvQky10h1i5p3aP1tQeLzpTyNH8E69F+8a13yAkEzfRMpqWOCISVyZ+dayjTbMsP+FW8dTpZ/R4+A0QpVdNWIkeRGMVK5LEObAjPTkFTe+8sb+ddGhHqLy959MWscpGK4dVFbgxbl4P+AutdfZ7xcn9WM1NSVmtM0eehqUP+tlbPLESdbQXQf9OOu1SSaDq4i7UUGrGS2DrvL4rGUfJK2eU9IbD1VV3dUfMo5luh+bazojHL/f7IHF4OjhSRwXdjSOGr308wLxRZZvl+7Cjv86Bigy5qJYf7441l3atqQRbLc6o6LOT0yG7toUiK7FY+vFl21mkkTpHR8iQRFRqHpzt4C5k1TwFL4L0UxuWdP9hfPPulWKEF9TrBZHGb6+gtj8wLafHlsK+BJgmhSCVxfWJHH8ImSfZ/5srtHVhRhEv0oAiK/6ynn0lmDGjcGnSfs/OU0ae9v5nXT99JsQ3p+7X6Le93RzgKI8BFHigsWRn1ikB/SpYz+Y+1BSCV0vfInXBx4Kd4K4UnUZTDF7ZUOS/3TFLY0P/Kuy0cKZALVbOx25Bl4YjDMUyDN/GU2oomShNTZa0YdP5/V7WzhuP6NGf6ayLVRwvB7VlBu0SFDuBPtAcA=
