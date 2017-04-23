@@ -18,7 +18,7 @@ docker-run: docker-image
 	docker run -it $(IMAGE_NAME)
 
 docker-cvs-import: docker-image
-	docker run -v $$PWD:/repo -v $$PWD/.docker-home:/root -w /repo $(IMAGE_NAME) ./update-git-from-cvs-in-docker.sh
+	docker run -e TRAVIS -v $$PWD:/repo -v $$PWD/.docker-home:/root -w /repo $(IMAGE_NAME) ./update-git-from-cvs-in-docker.sh
 	./update-git-from-cvs.sh
 
 
