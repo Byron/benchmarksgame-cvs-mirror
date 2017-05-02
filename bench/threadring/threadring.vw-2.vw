@@ -4,14 +4,25 @@
     contributed by Isaac Gouy 
     modified by Carlo Teixeira *"!
 
+Smalltalk defineClass: #Thread
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'name nextThread token semaphore done '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: 'BenchmarksGame'!
 
-!Tests class methodsFor: 'benchmarking'!
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
-threadring2
-   | done |
-   (self threadRing: (done := Semaphore new)) takeToken: self arg.
-   done wait.
-   ^''!
+!Core.BenchmarksGame class methodsFor: 'private'!
 
 threadRing: aSemaphore
    | first last |
@@ -22,50 +33,48 @@ threadRing: aSemaphore
    last nextThread: first.
    ^first! !
 
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
 
-Object subclass: #Thread
-   instanceVariableNames: 'name nextThread token semaphore done '
-   classVariableNames: ''
-   poolDictionaries: ''
-   category: 'BenchmarksGame'!
-
-Thread class
-   instanceVariableNames: ''!
-
+program
+   | n done |
+   n := CEnvironment commandLine last asNumber.
+   (self threadRing: (done := Semaphore new)) takeToken: n.
+   done wait.
+   ^''! !
 
 !Thread class methodsFor: 'instance creation'!
 
 named: anInteger next: aThread done: aSemaphore
-   ^self new name: anInteger; nextThread: aThread; done: aSemaphore; fork !
+   ^self new name: anInteger; nextThread: aThread; done: aSemaphore; fork!
 
 new
-   ^self basicNew semaphore: Semaphore new ! !
+   ^self basicNew semaphore: Semaphore new! !
 
 
 !Thread methodsFor: 'accessing'!
 
-done: aSemaphore
-   done := aSemaphore !
+run
+   [semaphore wait.
+   0==token] whileFalse: [nextThread takeToken: token - 1].
+   name printOn: Stdout.
+   Stdout cr.
+   done signal!
 
 fork
    [ self run ] forkAt: Processor userBackgroundPriority.!
 
+semaphore: aSemaphore
+   semaphore := aSemaphore!
+
+done: aSemaphore
+   done := aSemaphore!
+
 name: anInteger
-   name := anInteger !
+   name := anInteger!
 
 nextThread: aThread
-   nextThread := aThread !
-
-run
-   [semaphore wait.
-   0==token] whileFalse: [nextThread takeToken: token - 1].
-   name printOn: Tests stdout.
-   Tests stdout cr.
-   done signal!
-
-semaphore: aSemaphore
-   semaphore := aSemaphore !
+   nextThread := aThread!
 
 takeToken: x
    token := x.
-   semaphore signal ! !
+   semaphore signal! !
