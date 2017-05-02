@@ -4,32 +4,40 @@
 
 
 Smalltalk defineClass: #MeteorPiece
-    superclass: #{Core.Object}
-    indexedType: #none
-    private: false
-    instanceVariableNames: 'mask row '
-    classInstanceVariableNames: ''
-    imports: ''
-    category: ''!
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'mask row '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
 Smalltalk defineClass: #MeteorPieceWithIsland
-    superclass: #{Smalltalk.MeteorPiece}
-    indexedType: #none
-    private: false
-    instanceVariableNames: 'islands aPieceCouldFitIntoIsland '
-    classInstanceVariableNames: ''
-    imports: ''
-    category: ''!
+	superclass: #{Smalltalk.MeteorPiece}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'islands aPieceCouldFitIntoIsland '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
 Smalltalk defineClass: #MeteorBoard
-    superclass: #{Core.Object}
-    indexedType: #none
-    private: false
-    instanceVariableNames: 'pieces ncol ncell twoRows sixRows oddRowsMask evenRowsMask southEdge eastEdge westEdge
-        southToNorthMasks eastToWestMasks northWestMask northEastMask southWestMask southEastMask positionsPerPiece loopCount fillMask '
-    classInstanceVariableNames: ''
-    imports: ''
-    category: ''!
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'pieces ncol ncell twoRows sixRows oddRowsMask evenRowsMask southEdge eastEdge westEdge southToNorthMasks eastToWestMasks northWestMask northEastMask southWestMask southEastMask positionsPerPiece loopCount fillMask '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
+
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
 !MeteorPiece class methodsFor: 'instance creation'!
 
@@ -63,6 +71,21 @@ mask: aPieceMask
     mask := aPieceMask! !
 
 
+!MeteorPieceWithIsland methodsFor: 'testing'!
+
+fitOnBoard: aBoardMask
+    | occupied |
+    ^0 == (aBoardMask bitAnd: mask) and:
+        [(occupied := aBoardMask bitAnd: islands) = islands
+            or: [aPieceCouldFitIntoIsland and: [(islands - occupied) bitCount = 5]]]! !
+
+!MeteorPieceWithIsland methodsFor: 'initialize-release'!
+
+islands: islandMask
+    islands := islandMask.
+    aPieceCouldFitIntoIsland := islands bitCount >= 5! !
+
+
 !MeteorBoard class methodsFor: 'instance creation'!
 
 default
@@ -79,96 +102,115 @@ default
  7 7 7 9 9'! !
 
 
-!MeteorBoard methodsFor: 'islands'!
+!MeteorBoard methodsFor: 'solving'!
 
-hasEastOrWestIsland: aMask
-    ^ (self hasInsetZero: southEdge * (eastEdge bitAnd: aMask))
-        or: [(self hasInsetZero: southEdge * (westEdge bitAnd: aMask))
-            or: [(aMask bitAnd: eastEdge) > 0 and: [(aMask bitAnd: westEdge) > 0 and: [(self findIsland: aMask) bitCount \\ 5 > 0]]]]!
+boardStringWithPieces: pArray
+    | board |
+    board := String new: ncell.
+    1 to: pArray size do: [:i | | c |
+        c := '0123456789*' at: i.
+        (pArray at: i) fillSolution: board ncol: ncol withColor: c].
+    ^board!
 
-hasNorthIsland: aPieceMask row: iRow
-    | bitReverse |
-    bitReverse := (#(-1 -1 6 4 2) at: iRow) * ncol.
-    ^self hasSouthIsland: (aPieceMask bitReverse: bitReverse)!
+solvedPuzzleDo: solutionBlock
+    loopCount := 0.
+    self
+        searchPuzzlesWithColorMask: (1 bitShift: pieces size) - 1
+        boardMask: 0
+        rowOffset: 0
+        pieces: pieces copy
+        ifFound: [:solution |
+            solutionBlock value: solution; value: solution reverse].
+    ^loopCount!
 
-hasInsetZero: aMask
-    | allOnes |
-    allOnes := aMask bitOr: aMask - 1.
-    ^(allOnes bitAnd: allOnes + 1) > 0!
-
-findIsland: aMask
-    | nextFreeCellMask open |
-    nextFreeCellMask := 1 + aMask bitAnd: -1 - aMask.
-    fillMask :=  aMask.
-    open := false.
-    self fillMaskStartingAt: nextFreeCellMask stoppingAbove: (1 bitShift: fillMask highBit - 1 // ncol * ncol - 1) ifFoundEnough: [open := true].
-    ^open
-        ifTrue: [0]
-        ifFalse: [fillMask - aMask]!
-
-hasSouthIsland: aMask
-    ^(self findIsland: aMask) bitCount \\ 5 > 0
-        or: [(self findIsland: fillMask) bitCount \\ 5 > 0]!
-
-islandsFor: aPieceMask
-    | islands aMask nextFreeCellMask open top |
-    islands := 0.
-    fillMask := aPieceMask.
-    top := 1 bitShift: (fillMask highBit - 1 // ncol * ncol - 1).
-    [(nextFreeCellMask := 1 + fillMask bitAnd: -1 - fillMask) <= top]
+searchPuzzlesWithColorMask: colorMask boardMask: bMask rowOffset: rowOff pieces: pArray ifFound: solutionBlock
+    | nextFreeCell possibles colorBit iRow boardMask |
+    colorMask = 0 ifTrue: [ ^solutionBlock value: (self boardStringWithPieces: pieces) ].
+    loopCount := loopCount + 1.
+    boardMask := bMask.
+    iRow := rowOff.
+    [(nextFreeCell := (boardMask + 1) lowBit) > twoRows]
         whileTrue:
-            [open := false.
-            aMask := fillMask.
-            self fillMaskStartingAt: nextFreeCellMask stoppingAbove: top ifFoundEnough: [open := true].
-            open ifFalse: [islands := islands + (fillMask - aMask)]].
-    ^islands!
+            [ iRow := iRow + 2.
+            boardMask := boardMask bitShift: 0 - twoRows ].
+    possibles := (positionsPerPiece at: iRow // 2 + 1) at: nextFreeCell.
+    colorBit := 1.
+    1 to: pieces size do: [:pieceNumber |
+        (colorMask bitAnd: colorBit) = 0
+            ifFalse:
+                [ | positions |
+                positions := possibles at: pieceNumber.
+                1 to: positions size do: [:i |
+                    | aPiece |
+                    ((aPiece := positions at: i) fitOnBoard: boardMask)
+                        ifTrue:
+                            [pieces at: pieceNumber put: (aPiece forRow: iRow).
+                            self
+                                searchPuzzlesWithColorMask: colorMask - colorBit
+                                boardMask: boardMask + aPiece mask
+                                rowOffset: iRow
+                                pieces: pArray
+                                ifFound: solutionBlock]]].
+        colorBit := colorBit * 2].
+    ^nil! !
 
-fillMaskStartingAt: pos stoppingAbove: maxCell ifFoundEnough: exitBlock
-    (fillMask bitAnd: pos) = 0 ifFalse: [^self].
-    (pos > maxCell) ifTrue: [^exitBlock value].
-    fillMask := fillMask + pos.
-    (self canShiftE: pos) ifTrue: [self fillMaskStartingAt: (self shiftE: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
-    (self canShiftNE: pos) ifTrue: [self fillMaskStartingAt: (self shiftNE: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
-    (self canShiftNW: pos) ifTrue: [self fillMaskStartingAt: (self shiftNW: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
-    (self canShiftW: pos) ifTrue: [self fillMaskStartingAt: (self shiftW: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
-    ^self!
+!MeteorBoard methodsFor: 'printing'!
 
-northIslandsFor: aPieceMask row: iRow
-    | filled isleSEW bitReverse isleNE isleNW |
-    bitReverse := (#(-1 -1 6 4 2) at: iRow) * ncol.
-    filled := aPieceMask bitOr: aPieceMask - 1.
-    isleSEW := self islandsFor: filled.
-    (aPieceMask bitAnd: (eastEdge bitOr: westEdge)) = 0 ifFalse: [^isleSEW].
-    (isleSEW bitAnd: (eastEdge bitOr: westEdge)) = 0 ifFalse: [^isleSEW].
-    (southEdge bitAnd: aPieceMask) = 0
-        ifTrue: [filled := (filled bitShift: 0 - ncol) bitShift: ncol].
-    isleNE := ((self islandsFor: (filled bitReverse: bitReverse)) bitReverse: bitReverse) bitOr: isleSEW.
-    isleNW := ((1 bitShift: bitReverse) - 1 - (isleNE bitOr: (aPieceMask bitOr: aPieceMask - 1))) bitOr: isleSEW.
-    ^isleNW bitCount < isleNE bitCount
-        ifTrue: [isleNW]
-        ifFalse: [isleNE]! !
+printSolution: aString on: aStream
+    | src i odd |
+    src := aString readStream.
+    i := 0. odd := true.
+    [src atEnd]
+        whileFalse:
+            [aStream nextPut: src next; space.
+            (i := i + 1 \\ ncol) = 0
+                ifTrue:
+                    [aStream nl.
+                    (odd := odd not)  ifFalse: [aStream space]]]! !
 
 !MeteorBoard methodsFor: 'generating'!
 
-shiftE: aPieceMask
-    ^aPieceMask bitShift: -1!
+canShiftNE: aPieceMask
+    ^(northEastMask bitAnd: aPieceMask) = 0!
 
-placesFor: aPieceMask do: aBlock
-    | westMask eastMask |
-    eastMask := self shiftSEmost: aPieceMask.
-    
-    [[westMask := eastMask.
-    [westMask lowBit > twoRows ifTrue: [^self].
-    (self hasEastOrWestIsland: westMask) ifFalse: [aBlock value: westMask].
-    self canShiftW: westMask] whileTrue: [westMask := self shiftW: westMask].
-    self canShiftNE: eastMask] whileTrue: [eastMask := self shiftNE: eastMask].
-    self canShiftNW: eastMask] whileTrue: [eastMask := self shiftNW: eastMask]!
+canShiftSE: aPieceMask
+    ^(southEastMask bitAnd: aPieceMask) = 0!
+
+canShiftSW: aPieceMask
+    ^(southEastMask bitAnd: aPieceMask) = 0!
+
+shiftNE: aPieceMask
+    | evens odds |
+    odds := oddRowsMask bitAnd: aPieceMask.
+    evens := evenRowsMask bitAnd: aPieceMask.
+    ^(odds bitShift: -1) + evens bitShift: ncol!
+
+shiftSW: aPieceMask
+    | evens odds |
+    odds := oddRowsMask bitAnd: aPieceMask.
+    evens := evenRowsMask bitAnd: aPieceMask.
+    ^(evens bitShift: 1) + odds bitShift: 0 - ncol!
 
 flip: aPieceMask
     ^self shiftSEmost: ((southToNorthMasks
         inject: 0 into: [:mask :rowMask |
             (mask bitShift:  ncol) + ((rowMask bitAnd: aPieceMask) bitShift: 1 - rowMask lowBit)])
                 bitShift: 0 - ncol)!
+
+shiftSE: aPieceMask
+    | evens odds |
+    odds := oddRowsMask bitAnd: aPieceMask.
+    evens := evenRowsMask bitAnd: aPieceMask.
+    ^(odds bitShift: -1) + evens bitShift: 0 - ncol!
+
+canShiftNW: aPieceMask
+    ^(northWestMask bitAnd: aPieceMask) = 0!
+
+shiftNW: aPieceMask
+    | evens odds |
+    odds := oddRowsMask bitAnd: aPieceMask.
+    evens := evenRowsMask bitAnd: aPieceMask.
+    ^(evens bitShift: 1) + odds bitShift: ncol!
 
 possiblePositionsOnTwoRows
     ^pieces collect: [:aPieceMask |
@@ -183,29 +225,8 @@ possiblePositionsOnTwoRows
                     islands: (self islandsFor: (shifted bitOr: shifted - 1)))]].
         possible]!
 
-shiftNE: aPieceMask
-    | evens odds |
-    odds := oddRowsMask bitAnd: aPieceMask.
-    evens := evenRowsMask bitAnd: aPieceMask.
-    ^(odds bitShift: -1) + evens bitShift: ncol!
-
-shiftNW: aPieceMask
-    | evens odds |
-    odds := oddRowsMask bitAnd: aPieceMask.
-    evens := evenRowsMask bitAnd: aPieceMask.
-    ^(evens bitShift: 1) + odds bitShift: ncol!
-
-shiftW: aPieceMask
-    ^aPieceMask bitShift: 1!
-
-canShiftSW: aPieceMask
-    ^(southEastMask bitAnd: aPieceMask) = 0!
-
-shiftSE: aPieceMask
-    | evens odds |
-    odds := oddRowsMask bitAnd: aPieceMask.
-    evens := evenRowsMask bitAnd: aPieceMask.
-    ^(odds bitShift: -1) + evens bitShift: 0 - ncol!
+canShiftE: aPieceMask
+    ^(eastEdge bitAnd: aPieceMask) = 0!
 
 shiftSEmost: aPieceMask
     | mostSEMask eastColumn lowBit |
@@ -219,14 +240,27 @@ shiftSEmost: aPieceMask
     eastColumn := eastToWestMasks findFirst: [:e | (e bitAnd: mostSEMask) > 0].
     ^mostSEMask bitShift: 1 - eastColumn!
 
-canShiftNE: aPieceMask
-    ^(northEastMask bitAnd: aPieceMask) = 0!
-
-canShiftSE: aPieceMask
-    ^(southEastMask bitAnd: aPieceMask) = 0!
+shiftE: aPieceMask
+    ^aPieceMask bitShift: -1!
 
 canShiftW: aPieceMask
     ^(westEdge bitAnd: aPieceMask) = 0!
+
+placesFor: aPieceMask do: aBlock
+    | westMask eastMask |
+    eastMask := self shiftSEmost: aPieceMask.
+    
+    [[westMask := eastMask.
+    [westMask lowBit > twoRows ifTrue: [^self].
+    (self hasEastOrWestIsland: westMask) ifFalse: [aBlock value: westMask].
+    self canShiftW: westMask] whileTrue: [westMask := self shiftW: westMask].
+    self canShiftNE: eastMask] whileTrue: [eastMask := self shiftNE: eastMask].
+    self canShiftNW: eastMask] whileTrue: [eastMask := self shiftNW: eastMask]!
+
+rotationsOf: aPieceMask do: aBlock
+    | next |
+    aBlock value: (next := aPieceMask); value: (self flip: next).
+    5 timesRepeat:  [aBlock value: (next := self rotate: next); value: (self flip: next)]!
 
 rotate: aPieceMask
     | rotatedMask pivot rotatedPivot irow row |
@@ -262,22 +296,77 @@ rotate: aPieceMask
                     rotatedPivot := self shiftSW: rotatedPivot]].
     ^self shiftSEmost: rotatedMask!
 
-canShiftE: aPieceMask
-    ^(eastEdge bitAnd: aPieceMask) = 0!
+shiftW: aPieceMask
+    ^aPieceMask bitShift: 1! !
 
-canShiftNW: aPieceMask
-    ^(northWestMask bitAnd: aPieceMask) = 0!
+!MeteorBoard methodsFor: 'islands'!
 
-shiftSW: aPieceMask
-    | evens odds |
-    odds := oddRowsMask bitAnd: aPieceMask.
-    evens := evenRowsMask bitAnd: aPieceMask.
-    ^(evens bitShift: 1) + odds bitShift: 0 - ncol!
+fillMaskStartingAt: pos stoppingAbove: maxCell ifFoundEnough: exitBlock
+    (fillMask bitAnd: pos) = 0 ifFalse: [^self].
+    (pos > maxCell) ifTrue: [^exitBlock value].
+    fillMask := fillMask + pos.
+    (self canShiftE: pos) ifTrue: [self fillMaskStartingAt: (self shiftE: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
+    (self canShiftNE: pos) ifTrue: [self fillMaskStartingAt: (self shiftNE: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
+    (self canShiftNW: pos) ifTrue: [self fillMaskStartingAt: (self shiftNW: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
+    (self canShiftW: pos) ifTrue: [self fillMaskStartingAt: (self shiftW: pos) stoppingAbove: maxCell ifFoundEnough: exitBlock].
+    ^self!
 
-rotationsOf: aPieceMask do: aBlock
-    | next |
-    aBlock value: (next := aPieceMask); value: (self flip: next).
-    5 timesRepeat:  [aBlock value: (next := self rotate: next); value: (self flip: next)]! !
+hasEastOrWestIsland: aMask
+    ^ (self hasInsetZero: southEdge * (eastEdge bitAnd: aMask))
+        or: [(self hasInsetZero: southEdge * (westEdge bitAnd: aMask))
+            or: [(aMask bitAnd: eastEdge) > 0 and: [(aMask bitAnd: westEdge) > 0 and: [(self findIsland: aMask) bitCount \\ 5 > 0]]]]!
+
+hasInsetZero: aMask
+    | allOnes |
+    allOnes := aMask bitOr: aMask - 1.
+    ^(allOnes bitAnd: allOnes + 1) > 0!
+
+findIsland: aMask
+    | nextFreeCellMask open |
+    nextFreeCellMask := 1 + aMask bitAnd: -1 - aMask.
+    fillMask :=  aMask.
+    open := false.
+    self fillMaskStartingAt: nextFreeCellMask stoppingAbove: (1 bitShift: fillMask highBit - 1 // ncol * ncol - 1) ifFoundEnough: [open := true].
+    ^open
+        ifTrue: [0]
+        ifFalse: [fillMask - aMask]!
+
+northIslandsFor: aPieceMask row: iRow
+    | filled isleSEW bitReverse isleNE isleNW |
+    bitReverse := (#(-1 -1 6 4 2) at: iRow) * ncol.
+    filled := aPieceMask bitOr: aPieceMask - 1.
+    isleSEW := self islandsFor: filled.
+    (aPieceMask bitAnd: (eastEdge bitOr: westEdge)) = 0 ifFalse: [^isleSEW].
+    (isleSEW bitAnd: (eastEdge bitOr: westEdge)) = 0 ifFalse: [^isleSEW].
+    (southEdge bitAnd: aPieceMask) = 0
+        ifTrue: [filled := (filled bitShift: 0 - ncol) bitShift: ncol].
+    isleNE := ((self islandsFor: (filled bitReverse: bitReverse)) bitReverse: bitReverse) bitOr: isleSEW.
+    isleNW := ((1 bitShift: bitReverse) - 1 - (isleNE bitOr: (aPieceMask bitOr: aPieceMask - 1))) bitOr: isleSEW.
+    ^isleNW bitCount < isleNE bitCount
+        ifTrue: [isleNW]
+        ifFalse: [isleNE]!
+
+hasNorthIsland: aPieceMask row: iRow
+    | bitReverse |
+    bitReverse := (#(-1 -1 6 4 2) at: iRow) * ncol.
+    ^self hasSouthIsland: (aPieceMask bitReverse: bitReverse)!
+
+hasSouthIsland: aMask
+    ^(self findIsland: aMask) bitCount \\ 5 > 0
+        or: [(self findIsland: fillMask) bitCount \\ 5 > 0]!
+
+islandsFor: aPieceMask
+    | islands aMask nextFreeCellMask open top |
+    islands := 0.
+    fillMask := aPieceMask.
+    top := 1 bitShift: (fillMask highBit - 1 // ncol * ncol - 1).
+    [(nextFreeCellMask := 1 + fillMask bitAnd: -1 - fillMask) <= top]
+        whileTrue:
+            [open := false.
+            aMask := fillMask.
+            self fillMaskStartingAt: nextFreeCellMask stoppingAbove: top ifFoundEnough: [open := true].
+            open ifFalse: [islands := islands + (fillMask - aMask)]].
+    ^islands! !
 
 !MeteorBoard methodsFor: 'initialize-release'!
 
@@ -314,19 +403,6 @@ initializePossiblePositions
                                     ifFalse: [str nextPut: aPiece]]]].
                 str contents]]]!
 
-initializeRowColMasks
-    southEdge := (1 bitShift: ncol) - 1.
-    southToNorthMasks := (0 to: 5) collect: [:i | southEdge bitShift: ncol * i].
-    eastEdge := (1 bitShift: sixRows)-1/southEdge.
-    eastToWestMasks := (0 to: ncol - 1) collect: [:i | eastEdge bitShift: i].
-    westEdge := eastToWestMasks last.
-    oddRowsMask := (1 bitShift: sixRows)-1/((1 bitShift: twoRows)-1)*southEdge.
-    evenRowsMask := oddRowsMask bitShift: ncol.
-    northWestMask := westEdge bitAnd: evenRowsMask.
-    northEastMask := eastEdge bitAnd: oddRowsMask.
-    southWestMask := southEdge bitOr: (westEdge bitAnd: evenRowsMask).
-    southEastMask := southEdge bitOr: (eastEdge bitAnd: oddRowsMask).!
-
 fromString: aString
     | rawString |
     rawString := aString reject: [:e | e isSeparator].
@@ -339,97 +415,23 @@ fromString: aString
     pieces := rawString asSet sorted collect: [:char |
         self shiftSEmost:
             (rawString inject: 0 into: [:pmask :c | pmask * 2 + (c = char ifTrue: [1] ifFalse: [0])])].
-    self initializePossiblePositions! !
+    self initializePossiblePositions!
 
-!MeteorBoard methodsFor: 'printing'!
-
-printSolution: aString on: aStream
-    | src i odd |
-    src := aString readStream.
-    i := 0. odd := true.
-    [src atEnd]
-        whileFalse:
-            [aStream nextPut: src next; space.
-            (i := i + 1 \\ ncol) = 0
-                ifTrue:
-                    [aStream nl.
-                    (odd := odd not)  ifFalse: [aStream space]]]! !
-
-!MeteorBoard methodsFor: 'solving'!
-
-solvedPuzzleDo: solutionBlock
-    loopCount := 0.
-    self
-        searchPuzzlesWithColorMask: (1 bitShift: pieces size) - 1
-        boardMask: 0
-        rowOffset: 0
-        pieces: pieces copy
-        ifFound: [:solution |
-            solutionBlock value: solution; value: solution reverse].
-    ^loopCount!
-
-boardStringWithPieces: pArray
-    | board |
-    board := String new: ncell.
-    1 to: pArray size do: [:i | | c |
-        c := '0123456789*' at: i.
-        (pArray at: i) fillSolution: board ncol: ncol withColor: c].
-    ^board!
-
-searchPuzzlesWithColorMask: colorMask boardMask: bMask rowOffset: rowOff pieces: pArray ifFound: solutionBlock
-    | nextFreeCell possibles colorBit iRow boardMask |
-    colorMask = 0 ifTrue: [ ^solutionBlock value: (self boardStringWithPieces: pieces) ].
-    loopCount := loopCount + 1.
-    boardMask := bMask.
-    iRow := rowOff.
-    [(nextFreeCell := (boardMask + 1) lowBit) > twoRows]
-        whileTrue:
-            [ iRow := iRow + 2.
-            boardMask := boardMask bitShift: 0 - twoRows ].
-    possibles := (positionsPerPiece at: iRow // 2 + 1) at: nextFreeCell.
-    colorBit := 1.
-    1 to: pieces size do: [:pieceNumber |
-        (colorMask bitAnd: colorBit) = 0
-            ifFalse:
-                [ | positions |
-                positions := possibles at: pieceNumber.
-                1 to: positions size do: [:i |
-                    | aPiece |
-                    ((aPiece := positions at: i) fitOnBoard: boardMask)
-                        ifTrue:
-                            [pieces at: pieceNumber put: (aPiece forRow: iRow).
-                            self
-                                searchPuzzlesWithColorMask: colorMask - colorBit
-                                boardMask: boardMask + aPiece mask
-                                rowOffset: iRow
-                                pieces: pArray
-                                ifFound: solutionBlock]]].
-        colorBit := colorBit * 2].
-    ^nil! !
+initializeRowColMasks
+    southEdge := (1 bitShift: ncol) - 1.
+    southToNorthMasks := (0 to: 5) collect: [:i | southEdge bitShift: ncol * i].
+    eastEdge := (1 bitShift: sixRows)-1/southEdge.
+    eastToWestMasks := (0 to: ncol - 1) collect: [:i | eastEdge bitShift: i].
+    westEdge := eastToWestMasks last.
+    oddRowsMask := (1 bitShift: sixRows)-1/((1 bitShift: twoRows)-1)*southEdge.
+    evenRowsMask := oddRowsMask bitShift: ncol.
+    northWestMask := westEdge bitAnd: evenRowsMask.
+    northEastMask := eastEdge bitAnd: oddRowsMask.
+    southWestMask := southEdge bitOr: (westEdge bitAnd: evenRowsMask).
+    southEastMask := southEdge bitOr: (eastEdge bitAnd: oddRowsMask).! !
 
 
-!MeteorPieceWithIsland methodsFor: 'testing'!
-
-fitOnBoard: aBoardMask
-    | occupied |
-    ^0 == (aBoardMask bitAnd: mask) and:
-        [(occupied := aBoardMask bitAnd: islands) = islands
-            or: [aPieceCouldFitIntoIsland and: [(islands - occupied) bitCount = 5]]]! !
-
-!MeteorPieceWithIsland methodsFor: 'initialize-release'!
-
-islands: islandMask
-    islands := islandMask.
-    aPieceCouldFitIntoIsland := islands bitCount >= 5! !
-
-
-!Tests class methodsFor: 'benchmark scripts'!
-
-meteor
-    self meteor: self arg to: self stdout.
-    ^''! !
-
-!Tests class methodsFor: 'benchmarking'!
+!Core.BenchmarksGame class methodsFor: 'private'!
 
 meteor: nMax to: outputStream
     | board count minSolution maxSolution |
@@ -447,6 +449,13 @@ meteor: nMax to: outputStream
     board printSolution: maxSolution on: outputStream.
     outputStream nl.! !
 
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
+
+program
+    | n |
+    n := CEnvironment commandLine last asNumber.
+    self meteor: n to: Stdout.
+    ^''! !
 
 !Core.Integer methodsFor: 'bit manipulation'!
 
@@ -578,3 +587,7 @@ bitCount
         bitCount := bitCount + (self digitAt: i) bitCountOfByte].
     ^bitCount! !
 
+!Core.Stream methodsFor: 'benchmarks game'!
+
+nl
+   self nextPut: Character lf! !

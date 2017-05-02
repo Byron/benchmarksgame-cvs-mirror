@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: bencher.py,v 1.2 2015/10/23 21:56:17 igouy-guest Exp $
+# $Id: bencher.py,v 1.3 2017/05/02 13:35:31 igouy-guest Exp $
 
 """
 Description: bencher does repeated measurements of program
@@ -496,7 +496,7 @@ def callMake(p):
          startmake = time()
          call(cmd.split(),stdout=mf,stderr=STDOUT)
          endmake = time()
-         print >>mf, '%0.2fs to complete and log all make actions' % (endmake - startmake)
+         print >>mf, '\n%0.2fs to complete and log all make actions' % (endmake - startmake)
       else:
          print >>mf, '%s program not found' % (makeExeName)
          if logger: logger.debug('%s %s - %s program not found', \

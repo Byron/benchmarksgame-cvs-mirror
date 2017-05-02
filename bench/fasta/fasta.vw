@@ -3,108 +3,71 @@
     contributed by Isaac Gouy
     modified by Eliot Miranda *"!
 
-Object subclass: #RandomNumber
-   instanceVariableNames: 'seed scale'
-   classVariableNames: 'FModulus Increment Modulus Multiplier'
-   poolDictionaries: ''
-   category: 'Shootout'!
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
-ReadStream subclass: #RepeatStream
-   instanceVariableNames: 'repeatPtr repeatLimit'
-   classVariableNames: ''
-   poolDictionaries: ''
-   category: 'Shootout'!
+Smalltalk defineClass: #RandomNumber
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'seed scale '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: 'benchmarks game'!
 
-RepeatStream subclass: #RandomStream
-   instanceVariableNames: 'random percentages'
-   classVariableNames: ''
-   poolDictionaries: ''
-   category: 'Shootout'!
+Smalltalk defineClass: #RepeatStream
+	superclass: #{Core.ReadStream}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'repeatPtr repeatLimit '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: 'benchmarks game'!
 
-!RandomNumber methodsFor: 'private'!
-to: anInteger
-   seed := 42.
-   scale := anInteger! !
+Smalltalk defineClass: #RandomStream
+	superclass: #{Smalltalk.RepeatStream}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'random percentages '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: 'benchmarks game'!
 
-!RandomNumber methodsFor: 'accessing'!
-next
-   seed := (seed * Multiplier + Increment) \\ Modulus.
-   ^(seed * scale) / FModulus! !
-
-
-!RandomNumber class methodsFor: 'class initialization'!
-initialize
-   FModulus := 139968.0d0.
-   Increment := 29573.
-   Modulus := 139968.
-   Multiplier := 3877.! !
-
-!RandomNumber class methodsFor: 'initialize-release'!
-to: anInteger
-   ^self basicNew to: anInteger! !
-
-
-!RepeatStream methodsFor: 'accessing'!
-next
-   position >= readLimit ifTrue: [ self position: 0 ].
-   repeatPtr := repeatPtr + 1.
-   ^collection at: (position := position + 1)! !
-
-!RepeatStream methodsFor: 'testing'!
-atEnd
-   ^repeatPtr >= repeatLimit! !
-
-!RepeatStream methodsFor: 'initialize-release'!
-to: anInteger
-   repeatPtr := 0.
-   repeatLimit := anInteger! !
+Smalltalk.RandomNumber defineSharedVariable: #FModulus
+	private: false
+	constant: false
+	category: 'As yet unclassified'
+	initializer: nil!
 
 
-!RandomStream methodsFor: 'accessing'!
-next
-   | r |
-   r := random next.
-   repeatPtr := repeatPtr + 1.
-   1 to: percentages size do: [:i|
-      (r < (percentages at: i)) ifTrue: [^collection at: i]]! !
-
-!RandomStream methodsFor: 'accessing'!
-random: aRandomNumber
-"* Share the random number generator so we can get the expected results. *"
-   random := aRandomNumber! !
-
-!RandomStream methodsFor: 'initialize-release'!
-on: aCollection
-   | size cp |
-   repeatPtr := 0.
-   random := RandomNumber to: 1.0d0.
-   size := aCollection size.
-   percentages := Array new: size.
-   collection := Array new: size.
-   cp := 0.0d0.
-   1 to: size do: [:i|
-      collection at: i put: (aCollection at: i) first.
-      percentages at: i put: (cp := cp + (aCollection at: i) last).
-   ]! !
+Smalltalk.RandomNumber defineSharedVariable: #Increment
+	private: false
+	constant: false
+	category: 'As yet unclassified'
+	initializer: nil!
 
 
-!RepeatStream class methodsFor: 'instance creation'!
-to: anInteger on: aCollection
-   ^(super on: aCollection) to: anInteger! !
+Smalltalk.RandomNumber defineSharedVariable: #Modulus
+	private: false
+	constant: false
+	category: 'As yet unclassified'
+	initializer: nil!
 
 
-!Tests class methodsFor: 'benchmarking'!
-writeFasta: aString from: inStream to: outStream lineLength: lineLength
-   | i |
-   outStream nextPut: $>; nextPutAll: aString; nl.
-   i := 0.
-   [inStream atEnd] whileFalse:
-      [i == lineLength ifTrue: [outStream nl. i := 0].
-      outStream nextPut: inStream next.
-      i := i + 1].
-   outStream nl! !
+Smalltalk.RandomNumber defineSharedVariable: #Multiplier
+	private: false
+	constant: false
+	category: 'As yet unclassified'
+	initializer: nil!
 
-!Tests class methodsFor: 'benchmarking'!
+!Core.BenchmarksGame class methodsFor: 'private'!
+
 fasta: n to: out
    | r lineLength |
    lineLength := 60.
@@ -165,13 +128,114 @@ fasta: n to: out
       to: out
       lineLength: lineLength.
 
-   out flush. ! !
+   out flush.!
 
+writeFasta: aString from: inStream to: outStream lineLength: lineLength
+   | i |
+   outStream nextPut: $>; nextPutAll: aString; nl.
+   i := 0.
+   [inStream atEnd] whileFalse:
+      [i == lineLength ifTrue: [outStream nl. i := 0].
+      outStream nextPut: inStream next.
+      i := i + 1].
+   outStream nl! !
 
-!Tests class methodsFor: 'benchmark scripts'!
-fasta
-   self fasta: self arg to: self stdoutSpecial.
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
+
+program
+   | n output |
+   n := CEnvironment commandLine last asNumber.
+   output := ExternalWriteStream on:
+      (ExternalConnection ioAccessor: (UnixDiskFileAccessor new handle: 1)).
+   self fasta: n to: output.
    ^''! !
+
+
+!RandomNumber class methodsFor: 'class initialization'!
+
+initialize
+   FModulus := 139968.0d0.
+   Increment := 29573.
+   Modulus := 139968.
+   Multiplier := 3877.! !
+
+!RandomNumber class methodsFor: 'initialize-release'!
+
+to: anInteger
+   ^self basicNew to: anInteger! !
+
+
+!RandomNumber methodsFor: 'private'!
+
+to: anInteger
+   seed := 42.
+   scale := anInteger! !
+
+!RandomNumber methodsFor: 'accessing'!
+
+next
+   seed := (seed * Multiplier + Increment) \\ Modulus.
+   ^(seed * scale) / FModulus! !
+
+
+!RepeatStream class methodsFor: 'instance creation'!
+
+to: anInteger on: aCollection
+   ^(super on: aCollection) to: anInteger! !
+
+
+!RepeatStream methodsFor: 'accessing'!
+
+next
+   position >= readLimit ifTrue: [ self position: 0 ].
+   repeatPtr := repeatPtr + 1.
+   ^collection at: (position := position + 1)! !
+
+!RepeatStream methodsFor: 'testing'!
+
+atEnd
+   ^repeatPtr >= repeatLimit! !
+
+!RepeatStream methodsFor: 'initialize-release'!
+
+to: anInteger
+   repeatPtr := 0.
+   repeatLimit := anInteger! !
+
+
+!RandomStream methodsFor: 'accessing'!
+
+random: aRandomNumber
+"* Share the random number generator so we can get the expected results. *"
+   random := aRandomNumber!
+
+next
+   | r |
+   r := random next.
+   repeatPtr := repeatPtr + 1.
+   1 to: percentages size do: [:i|
+      (r < (percentages at: i)) ifTrue: [^collection at: i]]! !
+
+!RandomStream methodsFor: 'initialize-release'!
+
+on: aCollection
+   | size cp |
+   repeatPtr := 0.
+   random := RandomNumber to: 1.0d0.
+   size := aCollection size.
+   percentages := Array new: size.
+   collection := Array new: size.
+   cp := 0.0d0.
+   1 to: size do: [:i|
+      collection at: i put: (aCollection at: i) first.
+      percentages at: i put: (cp := cp + (aCollection at: i) last).
+   ]! !
+
+
+!Core.Stream methodsFor: 'benchmarks game'!
+
+nl
+   self nextPut: Character lf! !
 
 
 RandomNumber initialize!

@@ -3,7 +3,41 @@
    contributed by Eliot Miranda and Isaac Gouy *"!
 
 
-!Tests class methodsFor: 'benchmarking'!
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
+
+
+!Core.BenchmarksGame class methodsFor: 'private'!
+
+readFasta: sequenceName from: input
+   | prefix newline buffer description line char |
+   prefix := '>',sequenceName.
+   newline := Character cr.
+
+   "* find start of particular fasta sequence *"
+   [(input atEnd) or: [
+         (input peek = $>) 
+            ifTrue: [((line := input upTo: newline) 
+               indexOfSubCollection: prefix startingAt: 1) = 1]
+            ifFalse: [input skipThrough: newline. false]]
+      ] whileFalse.
+
+   "* line-by-line read - it would be a lot faster to block read *"
+   description := line.
+   buffer := ReadWriteStream on: (String new: 1028).
+   [(input atEnd) or: [(char := input peek) = $>]] whileFalse: [
+      (char = $;) 
+         ifTrue: [input upTo: newline] 
+         ifFalse: [buffer nextPutAll: (input upTo: newline)]
+      ].
+   ^Association key: description value: buffer contents!
+
 reverseComplement: sequence named: sequenceName to: output
    | complement newline lineLength n |
    (sequenceName isNil) ifTrue: [^self].
@@ -28,39 +62,16 @@ reverseComplement: sequence named: sequenceName to: output
                (complement at: (sequence at: n - i + 1) asInteger)].
          output nextPut: newline.
          n := n - lineLength. 
-      ] ! !
+      ]! !
 
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
 
-!Tests class methodsFor: 'benchmarking'!
-readFasta: sequenceName from: input
-   | prefix newline buffer description line char |
-   prefix := '>',sequenceName.
-   newline := Character cr.
-
-   "* find start of particular fasta sequence *"
-   [(input atEnd) or: [
-         (input peek = $>) 
-            ifTrue: [((line := input upTo: newline) 
-               indexOfSubCollection: prefix startingAt: 1) = 1]
-            ifFalse: [input skipThrough: newline. false]]
-      ] whileFalse.
-
-   "* line-by-line read - it would be a lot faster to block read *"
-   description := line.
-   buffer := ReadWriteStream on: (String new: 1028).
-   [(input atEnd) or: [(char := input peek) = $>]] whileFalse: [
-      (char = $;) 
-         ifTrue: [input upTo: newline] 
-         ifFalse: [buffer nextPutAll: (input upTo: newline)]
-      ].
-   ^Association key: description value: buffer contents ! !
-
-
-!Tests class methodsFor: 'benchmark scripts'!
-revcomp
+program
    | input output |
-   input := self stdinSpecial.
-   output := self stdoutSpecial.
+   input := ExternalReadStream on:
+      (ExternalConnection ioAccessor: (UnixDiskFileAccessor new handle: 0)).
+   output := ExternalWriteStream on:
+      (ExternalConnection ioAccessor: (UnixDiskFileAccessor new handle: 1)).
 
    #('ONE' 'TWO' 'THREE') do:
       [:sequenceName|   | fasta |
@@ -69,4 +80,4 @@ revcomp
       ].
 
    output flush. 
-   ^'' ! !
+   ^''! !

@@ -2,10 +2,18 @@
     http://benchmarksgame.alioth.debian.org/
     contributed by Andres Valloud *"!
 
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
-!SequenceableCollection methodsFor: 'computer language shootout'!
-substringFrequencies5: aLength using: aDictionary
+!Core.SequenceableCollection methodsFor: 'benchmarks game'!
 
+substringFrequencies: aLength using: aDictionary
    | buffer |
    buffer := String new: aLength.
    1 to: self size - aLength + 1 do:
@@ -20,8 +28,8 @@ substringFrequencies5: aLength using: aDictionary
       ].
    ^aDictionary! !
 
+!Core.Dictionary methodsFor: 'benchmarks game'!
 
-!Dictionary methodsFor: 'computer language shootout'!
 at: key putValueOf: putBlock ifAbsentPutValueOf: absentBlock
    "* Set the value at key to be the value of evaluating putBlock
     with the existing value. If key is not found, create a new
@@ -40,10 +48,54 @@ at: key putValueOf: putBlock ifAbsentPutValueOf: absentBlock
       ifTrue: [self atNewIndex: index put:
          (self createKey: key value: (anObject := absentBlock value))]
       ifFalse: [element value: (anObject := putBlock value: element value)].
-   ^anObject ! !
+   ^anObject! !
+
+!Core.Stream methodsFor: 'benchmarks game'!
+
+nl
+   self nextPut: Character lf! !
 
 
-!Tests class methodsFor: 'benchmarking'!
+!Core.BenchmarksGame class methodsFor: 'private'!
+
+knucleotideFrom: input to: output
+   "Same as av3, but create less strings while updating the frequencies"
+
+   | sequence writeFrequencies writeCount |
+
+   sequence := (self readFasta: 'THREE' from: input) value asUppercase.
+
+   writeFrequencies :=
+      [:k | | frequencies count |
+      frequencies := SortedCollection sortBlock: [:a :b|
+      (a value = b value) ifTrue: [b key < a key] ifFalse: [b value < a value]].
+
+   count := 0.0.
+   (sequence substringFrequencies: k using: (Dictionary new: 1024))
+      associationsDo: [:each|
+         frequencies add: each. count := count + each value].
+
+   frequencies do: [:each | | percentage |
+      percentage := (each value / count) * 100.0.
+      output
+         nextPutAll: each key; space;
+         print: percentage digits: 3; nl]].
+
+   writeCount := [:nucleotideFragment | | frequencies count |
+      frequencies := sequence substringFrequencies: nucleotideFragment size
+         using: (Dictionary new: 1024).
+      count := frequencies at: nucleotideFragment ifAbsent: [0].
+      output print: count; tab; nextPutAll: nucleotideFragment; nl].
+
+   writeFrequencies value: 1. output nl.
+   writeFrequencies value: 2. output nl.
+
+   writeCount value: 'GGT'.
+   writeCount value: 'GGTA'.
+   writeCount value: 'GGTATT'.
+   writeCount value: 'GGTATTTTAATT'.
+   writeCount value: 'GGTATTTTAATTTATAGT'.!
+
 readFasta: sequenceName from: input
    | prefix newline buffer description line char |
    prefix := '>',sequenceName.
@@ -65,51 +117,15 @@ readFasta: sequenceName from: input
          ifTrue: [input upTo: newline]
          ifFalse: [buffer nextPutAll: (input upTo: newline)]
       ].
-   ^Association key: description value: buffer contents ! !
+   ^Association key: description value: buffer contents! !
 
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
 
-!Tests class methodsFor: 'benchmarking'!
-knucleotide5From: input to: output
-   "Same as av3, but create less strings while updating the frequencies"
+program
+   | input |
+   input := ExternalReadStream on:
+      (ExternalConnection ioAccessor: (UnixDiskFileAccessor new handle: 0)).
 
-   | sequence writeFrequencies writeCount |
-
-   sequence := (self readFasta: 'THREE' from: input) value asUppercase.
-
-   writeFrequencies :=
-      [:k | | frequencies count |
-      frequencies := SortedCollection sortBlock: [:a :b|
-      (a value = b value) ifTrue: [b key < a key] ifFalse: [b value < a value]].
-
-   count := 0.0.
-   (sequence substringFrequencies5: k using: (Dictionary new: 1024))
-      associationsDo: [:each|
-         frequencies add: each. count := count + each value].
-
-   frequencies do: [:each | | percentage |
-      percentage := (each value / count) * 100.0.
-      output
-         nextPutAll: each key; space;
-         print: percentage digits: 3; nl]].
-
-   writeCount := [:nucleotideFragment | | frequencies count |
-      frequencies := sequence substringFrequencies5: nucleotideFragment size
-         using: (Dictionary new: 1024).
-      count := frequencies at: nucleotideFragment ifAbsent: [0].
-      output print: count; tab; nextPutAll: nucleotideFragment; nl].
-
-   writeFrequencies value: 1. output nl.
-   writeFrequencies value: 2. output nl.
-
-   writeCount value: 'GGT'.
-   writeCount value: 'GGTA'.
-   writeCount value: 'GGTATT'.
-   writeCount value: 'GGTATTTTAATT'.
-   writeCount value: 'GGTATTTTAATTTATAGT'.! !
-
-
-!Tests class methodsFor: 'benchmark scripts'!
-knucleotide5
-
-   self knucleotide5From: self stdinSpecial to: self stdout.
+   self knucleotideFrom: input to: Stdout.
    ^''! !
+

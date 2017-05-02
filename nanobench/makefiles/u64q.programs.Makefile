@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.48 2017/04/18 02:55:20 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.50 2017/05/02 19:20:17 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -684,5 +684,16 @@ SBCL_TRACE :=
 
 %.dart_run: %.dart 
 	-$(DARTPUBGET)
+
+
+
+
+########################################
+# Smalltalk
+########################################
+
+%.vw_run: %.vw $(VWIM)
+	-cp $(VWIM) $@.im
+	-$(VWOE) $@.im -nogui -pcl MatriX -filein $< -doit 'ObjectMemory snapshotThenQuit'
 
 

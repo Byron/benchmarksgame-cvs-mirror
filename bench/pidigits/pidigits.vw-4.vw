@@ -3,23 +3,62 @@
     contributed by Paolo Bonzini 
     modified by Andres Valloud *"!
 
-Stream subclass: #PiDigitSpigot
-    instanceVariableNames: 'numer accum denom k'
-    classVariableNames: ''
-    poolDictionaries: ''
-    category: 'Shootout'!
+Smalltalk.Core defineClass: #BenchmarksGame
+	superclass: #{Core.Object}
+	indexedType: #none
+	private: false
+	instanceVariableNames: ''
+	classInstanceVariableNames: ''
+	imports: ''
+	category: ''!
 
-!PiDigitSpigot methodsFor: 'stream'!
-atEnd
-    ^false!
+Smalltalk defineClass: #PiDigitSpigot
+	superclass: #{Core.Stream}
+	indexedType: #none
+	private: false
+	instanceVariableNames: 'numer accum denom k '
+	classInstanceVariableNames: ''
+	imports: ''
+	category: 'Shootout'!
 
-next
-    | digit |
-    [ self step. (digit := self extract) isNil ] whileTrue.
-    self eliminate: digit.
-    ^digit! !
+!Core.BenchmarksGame class methodsFor: 'private'!
+
+pidigitsTo: v width: width to: output
+   | n i pidigits |
+   n := v.
+   i := 0.
+   pidigits := PiDigitSpigot new.
+   [n > 0] whileTrue:
+      [n < width
+         ifTrue:
+            [n timesRepeat: [output nextPut: (Character digitValue: pidigits next)].
+            n to: width do: [:each | output space].
+            i := i + n]
+         ifFalse:
+            [width timesRepeat: [output nextPut: (Character digitValue: pidigits next)].
+            i := i + width].
+
+      output tab; nextPut: $:; print: i; nl.
+
+      n := n - width]! !
+
+!Core.BenchmarksGame class methodsFor: 'initialize-release'!
+
+program
+   | n |
+   n := CEnvironment commandLine last asNumber.
+   self pidigitsTo: n width: 10 to: Stdout.
+   ^''! !
+
+
+!PiDigitSpigot class methodsFor: 'instance creation'!
+
+new
+   ^super basicNew initialize! !
+
 
 !PiDigitSpigot methodsFor: 'private'!
+
 initialize
     numer := denom := 1.
     k := accum := 0.!
@@ -44,34 +83,18 @@ step
     numer := numer * k.
     denom := denom * y2.! !
 
+!PiDigitSpigot methodsFor: 'stream'!
 
-!PiDigitSpigot class methodsFor: 'instance creation'!
-new
-   ^super basicNew initialize! !
+atEnd
+    ^false!
 
+next
+    | digit |
+    [ self step. (digit := self extract) isNil ] whileTrue.
+    self eliminate: digit.
+    ^digit! !
 
-!Tests class methodsFor: 'benchmarking'!
-pidigitsTo: v width: width to: output
-   | n i pidigits |
-   n := v.
-   i := 0.
-   pidigits := PiDigitSpigot new.
-   [n > 0] whileTrue:
-      [n < width
-         ifTrue:
-            [n timesRepeat: [output nextPut: (Character digitValue: pidigits next)].
-            n to: width do: [:each | output space].
-            i := i + n]
-         ifFalse:
-            [width timesRepeat: [output nextPut: (Character digitValue: pidigits next)].
-            i := i + width].
+!Core.Stream methodsFor: 'benchmarks game'!
 
-      output tab; nextPut: $:; print: i; nl.
-
-      n := n - width]! !
-
-
-!Tests class methodsFor: 'benchmark scripts'!
-pidigits4
-   self pidigitsTo: self arg width: 10 to: self stdout.
-   ^''! !
+nl
+   self nextPut: Character lf! !
