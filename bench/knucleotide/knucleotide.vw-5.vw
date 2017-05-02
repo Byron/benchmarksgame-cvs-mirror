@@ -2,7 +2,6 @@
     http://benchmarksgame.alioth.debian.org/
     contributed by Andres Valloud *"!
 
-
 Smalltalk.Core defineClass: #BenchmarksGame
 	superclass: #{Core.Object}
 	indexedType: #none
@@ -11,6 +10,51 @@ Smalltalk.Core defineClass: #BenchmarksGame
 	classInstanceVariableNames: ''
 	imports: ''
 	category: ''!
+
+!Core.SequenceableCollection methodsFor: 'benchmarks game'!
+
+substringFrequencies: aLength using: aDictionary
+   | buffer |
+   buffer := String new: aLength.
+   1 to: self size - aLength + 1 do:
+      [:i |
+         | answer |
+         buffer replaceFrom: 1 to: aLength with: self startingAt: i.
+         answer := aDictionary
+            at: buffer
+            putValueOf: [:sum | sum + 1]
+            ifAbsentPutValueOf: 1.
+         answer = 1 ifTrue: [buffer := String new: aLength].
+      ].
+   ^aDictionary! !
+
+!Core.Dictionary methodsFor: 'benchmarks game'!
+
+at: key putValueOf: putBlock ifAbsentPutValueOf: absentBlock
+   "* Set the value at key to be the value of evaluating putBlock
+    with the existing value. If key is not found, create a new
+    entry for key and set is value to the evaluation of
+    absentBlock. Answer the result of evaluating either block. *"
+
+   | index element anObject |
+   key == nil ifTrue:
+      [^self
+         subscriptBoundsErrorFor: #at:putValueOf:ifAbsentPutValueOf:
+         index: key
+         value: absentBlock value].
+   index := self findKeyOrNil: key.
+   element := self basicAt: index.
+   element == nil
+      ifTrue: [self atNewIndex: index put:
+         (self createKey: key value: (anObject := absentBlock value))]
+      ifFalse: [element value: (anObject := putBlock value: element value)].
+   ^anObject! !
+
+!Core.Stream methodsFor: 'benchmarks game'!
+
+nl
+   self nextPut: Character lf! !
+
 
 !Core.BenchmarksGame class methodsFor: 'private'!
 
@@ -85,47 +129,3 @@ program
    self knucleotideFrom: input to: Stdout.
    ^''! !
 
-!Core.Dictionary methodsFor: 'benchmarks game'!
-
-at: key putValueOf: putBlock ifAbsentPutValueOf: absentBlock
-   "* Set the value at key to be the value of evaluating putBlock
-    with the existing value. If key is not found, create a new
-    entry for key and set is value to the evaluation of
-    absentBlock. Answer the result of evaluating either block. *"
-
-   | index element anObject |
-   key == nil ifTrue:
-      [^self
-         subscriptBoundsErrorFor: #at:putValueOf:ifAbsentPutValueOf:
-         index: key
-         value: absentBlock value].
-   index := self findKeyOrNil: key.
-   element := self basicAt: index.
-   element == nil
-      ifTrue: [self atNewIndex: index put:
-         (self createKey: key value: (anObject := absentBlock value))]
-      ifFalse: [element value: (anObject := putBlock value: element value)].
-   ^anObject! !
-
-!Core.SequenceableCollection methodsFor: 'benchmarks game'!
-
-substringFrequencies: aLength using: aDictionary
-
-   | buffer |
-   buffer := String new: aLength.
-   1 to: self size - aLength + 1 do:
-      [:i |
-         | answer |
-         buffer replaceFrom: 1 to: aLength with: self startingAt: i.
-         answer := aDictionary
-            at: buffer
-            putValueOf: [:sum | sum + 1]
-            ifAbsentPutValueOf: 1.
-         answer = 1 ifTrue: [buffer := String new: aLength].
-      ].
-   ^aDictionary! !
-
-!Core.Stream methodsFor: 'benchmarks game'!
-
-nl
-   self nextPut: Character lf! !
