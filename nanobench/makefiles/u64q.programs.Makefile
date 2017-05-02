@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.49 2017/05/02 06:49:55 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.50 2017/05/02 19:20:17 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -694,6 +694,6 @@ SBCL_TRACE :=
 
 %.vw_run: %.vw $(VWIM)
 	-cp $(VWIM) $@.im
-	-$(VWOE) $@.im -nogui -pcl MatriX.pcl -filein $< -doit 'ObjectMemory snapshotThenQuit'
+	-$(VWOE) $@.im -nogui -pcl MatriX -filein $< -doit 'ObjectMemory snapshotThenQuit'
 
 
