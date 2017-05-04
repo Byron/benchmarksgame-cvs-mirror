@@ -7,30 +7,11 @@ Smalltalk.Core defineClass: #BenchmarksGame
     superclass: #{Core.Object}
     indexedType: #none
     private: false
-    instanceVariableNames: 'n workers first last a'
+    instanceVariableNames: 'n workers first last '
     classInstanceVariableNames: ''
     imports: ''
     category: ''!
 
-
-!Core.BenchmarksGame methodsFor: 'benchmarks game'!
-
-spectralnorm
-   | u v vBv vv |
-   a := Array new: n withAll: 1.0d0.
-   10 timesRepeat: [
-      self multiplyAtAv.
-      v := a.
-      self multiplyAtAv.
-      u := a.
-   ].
-   vBv := 0.0d0.
-   vv := 0.0d0.
-   1 to: n do:
-      [:i |
-       vBv := vBv + ((u at: i) * (v at: i)).
-       vv := vv + ((v at: i) * (v at: i))].
-   ^(vBv / vv) sqrt! !
 
 !Core.BenchmarksGame class methodsFor: 'initialize-release'!
 
@@ -48,37 +29,66 @@ spectralnorm: anInteger
 !Core.BenchmarksGame methodsFor: 'initialize-release'!
 
 spectralnorm: anInteger
-   | numberOfVMs chunkSize answer |
-   answer := 0.0d0.
+   | nprocs chunkSize |
    n := anInteger.
-   numberOfVMs := 4.
+   nprocs := (ExternalProcess shOne: 'nproc') asNumber.
+   workers := MatriX.VirtualMachines new: nprocs.
    [   
-      workers := MatriX.VirtualMachines new: numberOfVMs.
-      chunkSize := (n asFloat / numberOfVMs) truncated + 1.
-      first := (0 to: (numberOfVMs - 1)) collect: [:each| each * chunkSize + 1].
+      chunkSize := (n asFloat / nprocs) truncated + 1.
+      first := (0 to: (nprocs - 1)) collect: [:each| each * chunkSize + 1].
       last := first collect: [:each| (each + chunkSize - 1) min: n].
+      ^self spectralnorm.
 
-      answer := self spectralnorm.
-
-   ] ensure: [workers release].
-
-   ^answer! !
+   ] ensure: [workers release].! !
 
 !Core.BenchmarksGame methodsFor: 'private'!
 
-multiplyAtAv
-   self reduce: (self map: [:w :i :j | w multiplyAvFrom: i to: j ]).
-   self reduce: (self map: [:w :i :j | w multiplyAtvFrom: i to: j ]).!
+map: aBlock with: anArray
+   ^workers 
+      do: aBlock
+      with: (first collect: [:each| anArray]) 
+      with: first 
+      with: last.!
 
-map: aBlock
-   ^workers do: aBlock
-      with: (first collect: [:each| a]) with: first with: last.!
+multiplyAtAv: anArray
+   ^self reduce: 
+      (self 
+         map: [:w :i :j | w multiplyAtvFrom: i to: j ] 
+         with: 
+            (self reduce: 
+               (self 
+                   map: [:w :i :j | w multiplyAvFrom: i to: j ] 
+                   with: anArray
+               )
+            )
+      )!
 
 reduce: aCollection
+   | a |
+   a := Array new: n.
    aCollection keysDo: [:index|
-      a replaceElementsFrom: (first at: index) to: (last at: index) 
-         withSequenceableCollection: (aCollection at: index) startingAt: (first at: index)
-   ].! !
+      a replaceElementsFrom: (first at: index) 
+         to: (last at: index) 
+         withSequenceableCollection: (aCollection at: index) 
+         startingAt: (first at: index)
+   ].
+   ^a!
+
+spectralnorm
+   | u v vBv vv |
+   u := Array new: n withAll: 1.0d0.
+   10 timesRepeat: [
+      v := self multiplyAtAv: u.
+      u := self multiplyAtAv: v.
+   ].
+   vBv := 0.0d0.
+   vv := 0.0d0.
+   1 to: n do:
+      [:i |
+       vBv := vBv + ((u at: i) * (v at: i)).
+       vv := vv + ((v at: i) * (v at: i))].
+   ^(vBv / vv) sqrt! !
+
 
 !Core.SmallInteger methodsFor: 'benchmarks game'!
 

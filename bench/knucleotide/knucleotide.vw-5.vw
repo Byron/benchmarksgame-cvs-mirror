@@ -50,13 +50,30 @@ at: key putValueOf: putBlock ifAbsentPutValueOf: absentBlock
       ifFalse: [element value: (anObject := putBlock value: element value)].
    ^anObject! !
 
-!Core.Stream methodsFor: 'benchmarks game'!
-
-nl
-   self nextPut: Character lf! !
-
-
 !Core.BenchmarksGame class methodsFor: 'private'!
+
+readFasta: sequenceName from: input
+   | prefix newline buffer description line char |
+   prefix := '>',sequenceName.
+   newline := Character cr.
+
+   "* find start of particular fasta sequence *"
+   [(input atEnd) or: [
+         (input peek = $>)
+            ifTrue: [((line := input upTo: newline)
+               indexOfSubCollection: prefix startingAt: 1) = 1]
+            ifFalse: [input skipThrough: newline. false]]
+      ] whileFalse.
+
+   "* line-by-line read - it would be a lot faster to block read *"
+   description := line.
+   buffer := ReadWriteStream on: (String new: 1028).
+   [(input atEnd) or: [(char := input peek) = $>]] whileFalse: [
+      (char = $;)
+         ifTrue: [input upTo: newline]
+         ifFalse: [buffer nextPutAll: (input upTo: newline)]
+      ].
+   ^Association key: description value: buffer contents !
 
 knucleotideFrom: input to: output
    "Same as av3, but create less strings while updating the frequencies"
@@ -94,38 +111,23 @@ knucleotideFrom: input to: output
    writeCount value: 'GGTA'.
    writeCount value: 'GGTATT'.
    writeCount value: 'GGTATTTTAATT'.
-   writeCount value: 'GGTATTTTAATTTATAGT'.!
+   writeCount value: 'GGTATTTTAATTTATAGT'.! !
 
-readFasta: sequenceName from: input
-   | prefix newline buffer description line char |
-   prefix := '>',sequenceName.
-   newline := Character lf.
-
-   "* find start of particular fasta sequence *"
-   [(input atEnd) or: [
-         (input peek = $>)
-            ifTrue: [((line := input upTo: newline)
-               indexOfSubCollection: prefix startingAt: 1) = 1]
-            ifFalse: [input skipThrough: newline. false]]
-      ] whileFalse.
-
-   "* line-by-line read - it would be a lot faster to block read *"
-   description := line.
-   buffer := ReadWriteStream on: (String new: 1028).
-   [(input atEnd) or: [(char := input peek) = $>]] whileFalse: [
-      (char = $;)
-         ifTrue: [input upTo: newline]
-         ifFalse: [buffer nextPutAll: (input upTo: newline)]
-      ].
-   ^Association key: description value: buffer contents! !
 
 !Core.BenchmarksGame class methodsFor: 'initialize-release'!
 
 program
-   | input |
-   input := ExternalReadStream on:
-      (ExternalConnection ioAccessor: (UnixDiskFileAccessor new handle: 0)).
-
-   self knucleotideFrom: input to: Stdout.
+   self knucleotideFrom: Stdin to: Stdout.
    ^''! !
+
+!Core.Stream methodsFor: 'benchmarks game'!
+
+print: number digits: decimalPlaces
+   self nextPutAll: 
+      ((number asFixedPoint: decimalPlaces) printString copyWithout: $s)!
+
+nl
+   self nextPut: Character lf! !
+
+
 
