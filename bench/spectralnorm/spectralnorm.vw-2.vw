@@ -34,7 +34,7 @@ spectralnorm: anInteger
    nprocs := (ExternalProcess shOne: 'nproc') asNumber.
    workers := MatriX.VirtualMachines new: nprocs.
    [   
-      chunkSize := (n asFloat / nprocs) truncated + 1.
+      chunkSize := anInteger // nprocs + 1.
       first := (0 to: (nprocs - 1)) collect: [:each| each * chunkSize + 1].
       last := first collect: [:each| (each + chunkSize - 1) min: n].
       ^self spectralnorm.

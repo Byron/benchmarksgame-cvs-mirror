@@ -31,7 +31,7 @@ splitCombinePutMandelbrot: anInteger on: aStream
    nprocs := (ExternalProcess shOne: 'nproc') asNumber.  
    workers := MatriX.VirtualMachines new: nprocs.
    [   
-      chunkSize := (anInteger asFloat / nprocs) truncated + 1.
+      chunkSize := anInteger // nprocs + 1.
       first := (0 to: (nprocs - 1)) collect: [:each| (each * chunkSize + 1) - 1].
       last := first collect: [:each| (each + chunkSize - 1) min: (anInteger - 1)].
       extent := first collect: [:each| anInteger].
