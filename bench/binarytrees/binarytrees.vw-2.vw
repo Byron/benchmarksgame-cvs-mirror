@@ -2,6 +2,7 @@
     http://shootout.alioth.debian.org/
     contributed by Isaac Gouy
     modified by Eliot Miranda 
+    reworked for multicore by Isaac Gouy
 *"!
 
 
