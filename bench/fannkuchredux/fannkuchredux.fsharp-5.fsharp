@@ -5,87 +5,96 @@
    - modified by Peter Kese
 *)
 
-open System
+open System.Threading
 
-let fannkuch n =
-   let p = Array.init n id
-   let q = Array.init n id
-   let s = Array.init n id
-   let mutable sign = 1
-   let mutable maxflips = 0
-   let mutable sum = 0
-   let mutable m = n - 1
-   let mutable ret = false
-   let mutable res = (0,0)
-   while not ret do 
-         // Copy and flip.
-         let mutable q0 = p.[0]                                    // Cache 0th element.
-         if (q0 <> 0) then
-            for i in 1 .. n - 1 do q.[i] <- p.[i]             // Work on a copy.
-            let mutable flips = 1
-            let mutable brk = false
-            while not brk do
-              let mutable qq = q.[q0] 
-              if (qq = 0) then                                // ... until 0th element is 0.
-                  sum <- sum + sign*flips
-                  if (flips > maxflips) then maxflips <- flips    // New maximum?
-                  brk <- true
-               
-              else
-                  q.[q0] <- q0
-                  if (q0 >= 3) then
-                      let mutable i = 1
-                      let mutable j = q0 - 1
-                      let mutable brk2 = false
-                      while not brk2 do 
-                          let t = q.[i]
-                          q.[i] <- q.[j]
-                          q.[j] <- t
-                          i <- i + 1
-                          j <- j - 1
-                          if (i >= j) then brk2 <- true
-               
-                  q0 <- qq
-                  flips <- flips+1
-            
-             // Permute.
-         if (sign = 1) then
-             let t = p.[1]
-             p.[1] <- p.[0]
-             p.[0] <- t
-             sign <- -1 // Rotate 0<-1.
-         else 
-             let t = p.[1]
-             p.[1] <- p.[2]
-             p.[2] <- t
-             sign <- 1  // Rotate 0<-1 and 0<-1<-2.
-             let mutable i = 2
-             let mutable brk2 = false 
-             while not ret && not brk2 do 
-                 if i < n then 
-                     
-                     let mutable sx = s.[i]
-                     if (sx <> 0) then 
-                         s.[i] <- sx-1
-                         brk2 <- true
-                     elif (i = m) then 
-                         ret <- true
-                         res <- (sum, maxflips)  // Out of permutations.
-                     else 
-                         s.[i] <- i
-                         // Rotate 0<-...<-i+1.
-                         let t = p.[0]
-                         for j in 0 .. i do
-                             p.[j] <- p.[j+1]
-                         p.[i+1] <- t
-                     i <- i + 1
-                 else 
-                     brk2 <- true
-   res
+let F = // factorials up to 20
+    let mutable last = int64 1
+    let next = function | 0 -> int64 1 | i -> last <- last * (int64 i); last 
+    Array.init 21 next
 
-[<EntryPoint>]
-let main argv = 
-    let n = if (argv.Length > 0) then Int32.Parse(argv.[0]) else 7
-    let (sum,maxflips) = fannkuch n
-    Console.Write("{0}\nPfannkuchen({1}) = {2}\n", sum, n, maxflips)
-    0
+let fannkuch n task chunk =
+    let p = Array.init n id
+    let pp = Array.create n 0
+    let count = Array.create n 0
+    let mutable flips = 0
+    let mutable cksum = 0
+
+    let rec direct idx i =
+        if i > 0 then
+            let d = int (idx / F.[i])
+            count.[i] <- d
+            for j = 0 to d-1 do pp.[j] <- p.[j]
+            for j = 0 to i-d do p.[j] <- p.[j+d]
+            for j = 0 to d-1 do p.[j+i+1-d] <- pp.[j]
+            direct (idx % F.[i]) (i-1)
+
+    let inline permute () =
+        let mutable first = p.[1]
+        p.[1] <- p.[0]
+        p.[0] <- first
+
+        let mutable i = 1
+        count.[i] <- count.[i] + 1
+        while count.[i] > i do
+            count.[i] <- 0
+            i <- i + 1
+            let next = p.[1]
+            p.[0] <- next
+            for j = 1 to i-1 do p.[j] <- p.[j+1]
+            p.[i] <- first
+            first <- next
+            count.[i] <- count.[i] + 1
+
+    let inline fcount () =
+        let mutable flips = 1
+        let mutable first = p.[0]
+
+        if p.[first] <> 0 then
+            for i = 0 to n-1 do pp.[i] <- p.[i]
+
+            while pp.[first] <> 0 do
+                flips <- flips + 1
+
+                let mutable lo = 1
+                let mutable hi = first - 1
+                while lo < hi do
+                    let t = pp.[lo]
+                    pp.[lo] <- pp.[hi]
+                    pp.[hi] <- t
+
+                    lo <- lo + 1
+                    hi <- hi - 1
+                let t = pp.[first]
+                pp.[first] <- first
+                first <- t
+        flips
+
+    let lo = int64(task) * chunk
+    let hi = min F.[n] (lo+chunk)
+
+    direct lo (p.Length - 1)
+
+    let last = int(hi - lo - 1L)
+    for j = 0 to last do
+        if p.[0] <> 0 then
+            let f = fcount()
+            flips <- max flips f
+            cksum <- cksum + if (int64(j)+lo) % 2L = 0L then f else -f
+        if j < last then permute()
+
+    (cksum, flips)
+
+
+let nthreads = System.Environment.ProcessorCount
+let n = try int((System.Environment.GetCommandLineArgs()).[1]) with _ -> 7
+let split (i:int64) = (F.[n] + i - 1L) / i
+let chunk  = split (int64(nthreads * n))
+let ntasks = int(split chunk)
+
+let (c, fl) = 
+    [0..ntasks] 
+        |> Seq.map (fun i -> async { return fannkuch n i chunk } )
+        |> Async.Parallel |> Async.RunSynchronously
+        |> Array.fold (fun (_cksum, _flips) (cksum, flips) -> (_cksum + cksum, max _flips flips)) (0,0)
+
+printfn "%d\nPfannkuchen(%d) = %d" c n fl
