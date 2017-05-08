@@ -50,6 +50,7 @@ mandelbrotRowsFrom: first to: last for: extent
    | s |
    s := ReadWriteStream on: (ByteArray new: 8192).
    self putMandelbrotRowsFrom: first to: last for: extent on: s.
+   s flush.
    ^s!
 
 putMandelbrotRowsFrom: first to: last for: extent on: aStream
