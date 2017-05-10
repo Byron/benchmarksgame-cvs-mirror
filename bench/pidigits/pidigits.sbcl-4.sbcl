@@ -7,47 +7,133 @@
 ;; uses gmp to do the heavy lifting
 
 (declaim (optimize (speed 3) (debug 0) (space 0) (safety 0)))
-(declaim (type integer acc den num))
-(defparameter acc 0)
-(defparameter den 1)
-(defparameter num 1)
 
+(defun load-gmp ()
+  (handler-case
+      (load-shared-object #-(or win32 darwin) "libgmp.so"
+                          #+darwin "libgmp.dylib"
+                          #+win32 "libgmp-10.dll"
+                          :dont-save t)
+    (error (e)
+      (warn "GMP not loaded (~a)" e)
+      (return-from load-gmp nil)))
+  t)
+
+(load-gmp)
+
+(define-alien-type nil
+    (struct gmpint
+            (mp_alloc int)
+            (mp_size int)
+            (mp_d (* unsigned-long))))
+
+(define-alien-routine __gmpz_pow_ui void
+  (r (* (struct gmpint)))
+  (b (* (struct gmpint)))
+  (e unsigned-long))
+
+(define-alien-routine __gmpz_mul_ui void
+  (r (* (struct gmpint)))
+  (b (* (struct gmpint)))
+  (e unsigned-long))
+
+(define-alien-routine __gmpz_add void
+  (r (* (struct gmpint)))
+  (a (* (struct gmpint)))
+  (b (* (struct gmpint))))
+
+(define-alien-routine __gmpz_tdiv_q void
+  (r (* (struct gmpint)))
+  (a (* (struct gmpint)))
+  (b (* (struct gmpint))))
+
+(define-alien-routine __gmpz_submul_ui void
+  (r (* (struct gmpint)))
+  (a (* (struct gmpint)))
+  (e unsigned-long))
+
+(define-alien-routine __gmpz_addmul_ui void
+  (r (* (struct gmpint)))
+  (b (* (struct gmpint)))
+  (e unsigned-long))
+
+(define-alien-routine __gmpz_init void
+  (r (* (struct gmpint))))
+
+(define-alien-routine __gmpz_init_set_ui void
+  (r (* (struct gmpint)))
+  (e unsigned-long))
+
+(define-alien-routine __gmpz_cmp int 
+  (a (* (struct gmpint)))
+  (b (* (struct gmpint))))
+
+(define-alien-routine __gmpz_get_ui unsigned-long
+  (a (* (struct gmpint))))
+
+(declaim (type (alien (* (struct gmpint))) tmp1 tmp2 acc den num))
+(defparameter tmp1 (sb-alien:make-alien (struct gmpint)))
+(defparameter tmp2 (sb-alien:make-alien (struct gmpint)))
+(defparameter acc (sb-alien:make-alien (struct gmpint)))
+(defparameter den (sb-alien:make-alien (struct gmpint)))
+(defparameter num (sb-alien:make-alien (struct gmpint)))
+
+(declaim (ftype (function ((unsigned-byte 64)) (unsigned-byte 64)) extract-digit))
 (defun extract-digit (nth)
-  (declare (type fixnum nth))
-  (the fixnum (truncate (+ (* num nth) acc) den)))
+  (__gmpz_mul_ui tmp1 num nth)
+  (__gmpz_add tmp2 tmp1 acc)
+  (__gmpz_tdiv_q tmp1 tmp2 den)
+  (let ((out (__gmpz_get_ui tmp1)))
+    out))
 
+(declaim (ftype (function ((unsigned-byte 64))) eliminate-digit))
 (defun eliminate-digit (d)
-  (declare (type fixnum d))
-  (decf acc (* den d))
-  (setf acc (* acc 10))
-  (setf num (* num 10)))
+  (__gmpz_submul_ui acc den d)
+  (__gmpz_mul_ui acc acc 10)
+  (__gmpz_mul_ui num num 10)
+  nil)
 
+(declaim (ftype (function ((unsigned-byte 64))) next-term))
 (defun next-term (k)
-  (declare (type fixnum k))
-  (let ((k2 (1+ (* k 2))))
-    (declare (type fixnum k2))
-    (incf acc (* num 2))
-    (setf acc (* acc k2))
-    (setf den (* den k2))
-    (setf num (* num k))))
+  (let ((k2 (+ (the (unsigned-byte 64) (* k 2)) 1)))
+    (declare (type (unsigned-byte 64) k2))
+;    (format t "k: ~s, k2: ~s~%" k k2)
+    (__gmpz_addmul_ui acc num 2)
+    (__gmpz_mul_ui acc acc k2)
+    (__gmpz_mul_ui den den k2)
+    (__gmpz_mul_ui num num k)
+    ))
 
 (defun main ()
-  (do ((d 0) (k 0) (i 0) (n 10000))
-      ((>= i n))
-    (declare (type fixnum d k i n))
-    (setf n (parse-integer (nth 1 #+sbcl sb-ext:*posix-argv*
-				  #+cmu extensions:*command-line-strings*
-				  #+gcl si::*command-args*)))
-    (next-term (incf k))
-    (when (> num acc)
-      (go continue))
-
-    (setf d (extract-digit 3))
-    (when (/= d (extract-digit 4))
-      (go continue))
-
-    (princ d)
-    (when (= (mod (incf i) 10) 0)
-      (format t "~C:~D~%" #\Tab i))
-    (eliminate-digit d)
-   continue))
+  (let ((d 0)
+        (k 0)
+        (i 0)
+        (n (parse-integer (elt sb-ext:*posix-argv* 1))))
+    (declare (type (unsigned-byte 64) d k i n))
+    (load-gmp)
+    (__gmpz_init tmp1)
+    (__gmpz_init tmp2)
+    (__gmpz_init_set_ui acc 0)
+    (__gmpz_init_set_ui den 1)
+    (__gmpz_init_set_ui num 1)
+    (do ()
+        ((>= i n))
+        (incf k)
+        (next-term k)
+        (if (> (__gmpz_cmp num acc) 0)
+            (go continue))
+        (setq d (extract-digit 3))
+        (if (not (eql d (extract-digit 4)))
+            (go continue))
+        (princ d)
+        (incf i)
+        (if (eql (mod i 10) 0)
+            (format t "~C:~D~%" #\Tab i)
+            (if (eql i n)
+                (progn
+                  (loop for x from 0 below (- 10 (mod i 10)) do (princ " "))
+                       (format t "~C:~D~%" #\Tab i))))
+        (eliminate-digit d)
+        continue)
+    )
+  )
