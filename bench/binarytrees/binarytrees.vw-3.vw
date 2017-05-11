@@ -41,7 +41,7 @@ program
 
    longLivedTree := TreeNode bottomUpTree: maxDepth.
 
-   depths := (minDepth to: maxDepth by: 2) collect: [:each| each].
+   depths := minDepth to: maxDepth by: 2.
    iterations := depths collect: [:each| 1 bitShift: maxDepth - each + minDepth].
 
       "for larger workloads split the work across multiple processes"
