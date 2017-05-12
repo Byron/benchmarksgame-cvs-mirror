@@ -28,8 +28,9 @@ program
 
 splitCombinePutMandelbrot: anInteger on: aStream
    | chunks chunkSize extent first last nprocs workers |
-   nprocs := (ExternalProcess shOne: 'nproc') asNumber.  
-   workers := MatriX.VirtualMachines new: nprocs.
+   nprocs := (ExternalProcess shOne: 'nproc') asNumber.
+      "Somethings broken about this program at 16000 with 4 workers"
+   workers := MatriX.VirtualMachines new: 3.
    [   
       chunkSize := anInteger // nprocs + 1.
       first := (0 to: (nprocs - 1)) collect: [:each| (each * chunkSize + 1) - 1].
@@ -42,7 +43,7 @@ splitCombinePutMandelbrot: anInteger on: aStream
          with: last
          with: extent.
 
-      chunks do: [:each| aStream nextPutAll: each contents].
+      chunks do: [:each| aStream nextPutAll: each].
 
    ] ensure: [workers release].!
 
@@ -50,8 +51,7 @@ mandelbrotRowsFrom: first to: last for: extent
    | s |
    s := ReadWriteStream on: (ByteArray new: 8192).
    self putMandelbrotRowsFrom: first to: last for: extent on: s.
-   s flush.
-   ^s!
+   ^s contents!
 
 putMandelbrotRowsFrom: first to: last for: extent on: aStream
    | bits ci cr i limit2 m stepi stepr tr zi zr |
