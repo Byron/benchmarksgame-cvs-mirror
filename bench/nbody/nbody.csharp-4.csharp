@@ -6,20 +6,21 @@
 */
 
 using System;
+using System.Runtime.CompilerServices;
 
 class Body { public double x, y, z, vx, vy, vz, mass; }
 
 public class NBody
 {
-    const double Pi = 3.141592653589793;
-    const double Solarmass = 4 * Pi * Pi;
-    const double DaysPeryear = 365.24;
-    Body[] bodies;
-
-    public NBody()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static Body[] createBodies()
     {
+        const double Pi = 3.141592653589793;
+        const double Solarmass = 4 * Pi * Pi;
+        const double DaysPeryear = 365.24;
+
         var sun = new Body {mass = Solarmass};
-        bodies = new Body[]
+        var bodies = new Body[]
         {
             sun,
             new Body { // Jupiter
@@ -66,35 +67,35 @@ public class NBody
             px += bi.vx * bi.mass; py += bi.vy * bi.mass; pz += bi.vz * bi.mass;
         }
         sun.vx = -px/Solarmass; sun.vy = -py/Solarmass; sun.vz = -pz/Solarmass;
+        return bodies;
     }
 
-    public void Advance(double dt, int n)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void advance(Body[] bodies, double dt)
     {
-        for (; n>0; n--)
+        for (int i=0; i<bodies.Length-1; i++)
         {
-            for (int i=0; i<bodies.Length; i++)
+            var bi = bodies[i];
+            for (int j=i+1; j<bodies.Length; j++)
             {
-                var bi = bodies[i];
-                for (int j=i+1; j<bodies.Length; j++)
-                {
-                    var bj = bodies[j];
-                    double dx = bi.x - bj.x, dy = bi.y - bj.y, dz = bi.z - bj.z;
-                    double d2 = dx * dx + dy * dy + dz * dz;
-                    double mag = dt / (d2 * Math.Sqrt(d2));
-                    bi.vx -= dx * bj.mass * mag; bj.vx += dx * bi.mass * mag;
-                    bi.vy -= dy * bj.mass * mag; bj.vy += dy * bi.mass * mag;
-                    bi.vz -= dz * bj.mass * mag; bj.vz += dz * bi.mass * mag;
-                }
+                var bj = bodies[j];
+                double dx = bi.x - bj.x, dy = bi.y - bj.y, dz = bi.z - bj.z;
+                double d2 = dx * dx + dy * dy + dz * dz;
+                double mag = dt / (d2 * Math.Sqrt(d2));
+                bi.vx -= dx * bj.mass * mag; bj.vx += dx * bi.mass * mag;
+                bi.vy -= dy * bj.mass * mag; bj.vy += dy * bi.mass * mag;
+                bi.vz -= dz * bj.mass * mag; bj.vz += dz * bi.mass * mag;
             }
-            for (int i=0; i<bodies.Length; i++)
-            {
-                var bi = bodies[i];
-                bi.x += dt * bi.vx; bi.y += dt * bi.vy; bi.z += dt * bi.vz;
-            }
+        }
+        for (int i=0; i<bodies.Length; i++)
+        {
+            var bi = bodies[i];
+            bi.x += dt * bi.vx; bi.y += dt * bi.vy; bi.z += dt * bi.vz;
         }
     }
 
-    public double Energy()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double energy(Body[] bodies)
     {
         double e = 0.0;
         for (int i=0; i<bodies.Length; i++)
@@ -113,10 +114,11 @@ public class NBody
 
     public static void Main(String[] args)
     {
-        int n = args.Length > 0 ? Int32.Parse(args[0]) : 10000;
-        var bodies = new NBody();
-        Console.WriteLine(bodies.Energy().ToString("f9"));
-        bodies.Advance(0.01, n);
-        Console.WriteLine(bodies.Energy().ToString("f9"));
+        int n = args.Length > 0 ? int.Parse(args[0]) : 10000;
+        var bodies = createBodies();
+        Console.WriteLine(energy(bodies).ToString("f9"));
+        const double dt = 0.01;
+        for (;n>0;n--) advance(bodies, dt);
+        Console.WriteLine(energy(bodies).ToString("f9"));
     }
 }
