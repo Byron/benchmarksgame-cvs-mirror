@@ -10,15 +10,14 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 
-class page { public byte[] data; public int length; }
-class sequence { public List<page> pages; public int startHeader, endExclusive; }
+class RevCompSequence { public List<byte[]> Pages; public int StartHeader, EndExclusive; }
 
 public static class revcomp
 {
     const int READER_BUFFER_SIZE = 1024 * 128;
-    static BlockingCollection<page> readQue = new BlockingCollection<page>();
-    static BlockingCollection<sequence> groupQue = new BlockingCollection<sequence>();
-    static BlockingCollection<sequence> writeQue = new BlockingCollection<sequence>();
+    static BlockingCollection<byte[]> readQue = new BlockingCollection<byte[]>();
+    static BlockingCollection<RevCompSequence> groupQue = new BlockingCollection<RevCompSequence>();
+    static BlockingCollection<RevCompSequence> writeQue = new BlockingCollection<RevCompSequence>();
     static ConcurrentBag<byte[]> bytePool = new ConcurrentBag<byte[]>(); 
 
     static byte[] borrowBuffer()
@@ -29,7 +28,7 @@ public static class revcomp
 
     static void returnBuffer(byte[] bytes)
     {
-        bytePool.Add(bytes);
+        if(bytes.Length==READER_BUFFER_SIZE) bytePool.Add(bytes);
     }
 
     static void Reader()
@@ -41,7 +40,8 @@ public static class revcomp
                 var buffer = borrowBuffer();
                 var bytesRead = stream.Read(buffer, 0, READER_BUFFER_SIZE);
                 if (bytesRead == 0) break;
-                readQue.Add(new page { data = buffer, length = bytesRead });
+                if(bytesRead != READER_BUFFER_SIZE) Array.Resize(ref buffer, bytesRead);
+                readQue.Add(buffer);
             }
             readQue.CompleteAdding();
         }
@@ -59,25 +59,24 @@ public static class revcomp
         const byte GT = (byte)'>';
         var startHeader = 0;
         var i = 1;
-        var data = new List<page>();
-        page page;
-        while (tryTake(readQue, out page))
+        var data = new List<byte[]>();
+        byte[] bytes;
+        while (tryTake(readQue, out bytes))
         {
-            data.Add(page);
-            var bytes = page.data;
-            var l = page.length;
-            for (; i<l; i++)
+            data.Add(bytes);
+            for (;i<bytes.Length; i++)
             {
-                if (bytes[i] == GT)
+                var b = bytes[i];
+                if (b == GT)
                 {
-                    groupQue.Add(new sequence { pages = data, startHeader = startHeader, endExclusive = i });
+                    groupQue.Add(new RevCompSequence { Pages = data, StartHeader = startHeader, EndExclusive = i });
                     startHeader = i;
-                    data = new List<page> { page };
+                    data = new List<byte[]> { bytes };
                 }
             }
             i = 0;
         }
-        groupQue.Add(new sequence { pages = data, startHeader = startHeader, endExclusive = data[data.Count-1].length });
+        groupQue.Add(new RevCompSequence { Pages = data, StartHeader = startHeader, EndExclusive = data[data.Count-1].Length });
         groupQue.CompleteAdding();
     }
 
@@ -113,70 +112,69 @@ public static class revcomp
         map[(byte)'v'] = (byte)'B';
         map[(byte)'y'] = (byte)'R';
 
-        sequence sequence;
+        RevCompSequence sequence;
         while (tryTake(groupQue, out sequence))
         {
             var startPageId = 0;
-            var startPage = sequence.pages[0];
-            var startIndex = sequence.startHeader;
+            var startBytes = sequence.Pages[0];
+            var startIndex = sequence.StartHeader;
 
             // Skip header line
             do
             {
-                if (++startIndex == startPage.length)
+                if (++startIndex == startBytes.Length)
                 {
-                    startPage = sequence.pages[++startPageId];
+                    startBytes = sequence.Pages[++startPageId];
                     startIndex = 0;
                 }
-            } while (startPage.data[startIndex] != LF);
+            } while (startBytes[startIndex] != LF);
 
-            var endPageId = sequence.pages.Count - 1;
-            var endIndex = sequence.endExclusive - 1;
-            if(endIndex==-1) endIndex = sequence.pages[--endPageId].length-1;
-            var endPage = sequence.pages[endPageId];
+            var endPageId = sequence.Pages.Count - 1;
+            var endIndex = sequence.EndExclusive - 1;
+            if(endIndex==-1) endIndex = sequence.Pages[--endPageId].Length-1;
+            var endBytes = sequence.Pages[endPageId];
             
             // Swap in place across pages
             do
             {
-                var startByte = startPage.data[startIndex];
+                var startByte = startBytes[startIndex];
                 if(startByte==LF)
                 {
-                    if (++startIndex == startPage.length)
+                    if (++startIndex == startBytes.Length)
                     {
-                        startPage = sequence.pages[++startPageId];
+                        startBytes = sequence.Pages[++startPageId];
                         startIndex = 0;
                     }
                     if (startIndex == endIndex && startPageId == endPageId) break;
-                    startByte = startPage.data[startIndex];
+                    startByte = startBytes[startIndex];
                 }
-                if(endIndex<0 || endIndex>=endPage.data.Length) Console.Error.WriteLine(endIndex);
-                var endByte = endPage.data[endIndex];
+                var endByte = endBytes[endIndex];
                 if(endByte==LF)
                 {
                     if (--endIndex == -1)
                     {
-                        endPage = sequence.pages[--endPageId];
-                        endIndex = endPage.length - 1;
+                        endBytes = sequence.Pages[--endPageId];
+                        endIndex = endBytes.Length - 1;
                     }
                     if (startIndex == endIndex && startPageId == endPageId) break;
-                    endByte = endPage.data[endIndex];
+                    endByte = endBytes[endIndex];
                 }
 
-                startPage.data[startIndex] = map[endByte];
-                endPage.data[endIndex] = map[startByte];
+                startBytes[startIndex] = map[endByte];
+                endBytes[endIndex] = map[startByte];
 
-                if (++startIndex == startPage.length)
+                if (++startIndex == startBytes.Length)
                 {
-                    startPage = sequence.pages[++startPageId];
+                    startBytes = sequence.Pages[++startPageId];
                     startIndex = 0;
                 }
                 if (--endIndex == -1)
                 {
-                    endPage = sequence.pages[--endPageId];
-                    endIndex = endPage.length - 1;
+                    endBytes = sequence.Pages[--endPageId];
+                    endIndex = endBytes.Length - 1;
                 }
             } while (startPageId < endPageId || (startPageId == endPageId && startIndex < endIndex));
-            if (startIndex == endIndex) startPage.data[startIndex] = map[startPage.data[startIndex]];
+            if (startIndex == endIndex) startBytes[startIndex] = map[startBytes[startIndex]];
             writeQue.Add(sequence);
         }
         writeQue.CompleteAdding();
@@ -186,20 +184,20 @@ public static class revcomp
     {
         using (var stream = Console.OpenStandardOutput())
         {
-            sequence sequence;
+            RevCompSequence sequence;
             while (tryTake(writeQue, out sequence))
             {
-                var startIndex = sequence.startHeader;
-                var pages = sequence.pages;
+                var startIndex = sequence.StartHeader;
+                var pages = sequence.Pages;
 
                 for (int i = 0; i < pages.Count - 1; i++)
                 {
-                    var page = pages[i];
-                    stream.Write(page.data, startIndex, page.length - startIndex);
-                    if(!readQue.IsCompleted) returnBuffer(page.data);
+                    var bytes = pages[i];
+                    stream.Write(bytes, startIndex, bytes.Length - startIndex);
+                    if(!readQue.IsCompleted) returnBuffer(bytes);
                     startIndex = 0;
                 }
-                stream.Write(pages[pages.Count - 1].data, startIndex, sequence.endExclusive - startIndex);
+                stream.Write(pages[pages.Count-1], startIndex, sequence.EndExclusive - startIndex);
             }
         }
     }
