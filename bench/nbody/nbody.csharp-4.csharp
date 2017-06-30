@@ -6,14 +6,15 @@
 */
 
 using System;
+using System.Threading;
 using System.Runtime.CompilerServices;
 
-class Body { public double x, y, z, vx, vy, vz, mass; }
-struct Pair { public Body bi, bj; }
+class Body { public double vx, vy, vz, x, y, z, mass; }
+class Pair { public Body bi, bj; }
 
-public class NBody
+public static class NBody
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    const double dt = 0.01;
     static Body[] createBodies()
     {
         const double Pi = 3.141592653589793;
@@ -67,7 +68,6 @@ public class NBody
         return new Body[] {sun, jupiter, saturn, uranus, neptune};
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Pair[] createPairs(Body[] bodies)
     {
         var pairs = new Pair[bodies.Length * (bodies.Length-1)/2];        
@@ -78,51 +78,50 @@ public class NBody
         return pairs;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void advance(Body[] bodies, Pair[] pairs, double dt)
+    static double energy(Body[] bodies, Pair[] pairs)
     {
+        double e = 0.0;
+        foreach (var b in bodies)
+        {
+            e += b.mass * (b.vx*b.vx + b.vy*b.vy + b.vz*b.vz);
+        }
+        e *= 0.5;
         foreach (var p in pairs)
         {
             Body bi = p.bi, bj = p.bj;
             double dx = bi.x - bj.x, dy = bi.y - bj.y, dz = bi.z - bj.z;
-            double d2 = dx * dx + dy * dy + dz * dz;
-            double mag = dt / (d2 * Math.Sqrt(d2));
-            bi.vx -= dx * bj.mass * mag; bj.vx += dx * bi.mass * mag;
-            bi.vy -= dy * bj.mass * mag; bj.vy += dy * bi.mass * mag;
-            bi.vz -= dz * bj.mass * mag; bj.vz += dz * bi.mass * mag;
-        };
-        foreach (var b in bodies)
-        {
-            b.x += dt * b.vx; b.y += dt * b.vy; b.z += dt * b.vz;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double energy(Body[] bodies)
-    {
-        double e = 0.0;
-        for (int i = 0; i < bodies.Length; i++)
-        {
-            var bi = bodies[i];
-            e += 0.5 * bi.mass * (bi.vx*bi.vx + bi.vy*bi.vy + bi.vz*bi.vz);
-            for (int j = i+1; j < bodies.Length; j++)
-            {
-                var bj = bodies[j];
-                double dx = bi.x - bj.x, dy = bi.y - bj.y, dz = bi.z - bj.z;
-                e -= (bi.mass * bj.mass) / Math.Sqrt(dx*dx + dy*dy + dz*dz);
-            }
+            e -= bi.mass * bj.mass / Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
         return e;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void advance(Pair[] pairs, Body[] bodies)
+    {
+        foreach (var p in pairs)
+        {
+            Body bi = p.bi, bj = p.bj;
+            double dx = bj.x - bi.x, dy = bj.y - bi.y, dz = bj.z - bi.z;
+            double d2 = dx * dx + dy * dy + dz * dz;
+            double mag = dt / (d2 * Math.Sqrt(d2));
+            bi.vx += bj.mass * dx * mag; bj.vx -= bi.mass * dx * mag;
+            bi.vy += bj.mass * dy * mag; bj.vy -= bi.mass * dy * mag;
+            bi.vz += bj.mass * dz * mag; bj.vz -= bi.mass * dz * mag;
+        }
+        foreach (var b in bodies)
+        {
+            b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+        }
     }
 
     public static void Main(String[] args)
     {
-        int n = args.Length > 0 ? Int32.Parse(args[0]) : 10000;
+        Thread.CurrentThread.Priority = ThreadPriority.Highest;
         var bodies = createBodies();
-        Console.WriteLine(energy(bodies).ToString("f9"));
         var pairs = createPairs(bodies);
-        const double dt = 0.01;
-        for(;n>0;n--) advance(bodies, pairs, dt);
-        Console.WriteLine(energy(bodies).ToString("f9"));
+        Console.WriteLine(energy(bodies, pairs).ToString("f9"));
+        for(int i=args.Length > 0 ? int.Parse(args[0]) : 10000; i>0; i--)
+            advance(pairs, bodies);
+        Console.WriteLine(energy(bodies, pairs).ToString("f9"));
     }
 }
