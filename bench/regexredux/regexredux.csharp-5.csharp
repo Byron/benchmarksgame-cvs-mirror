@@ -65,24 +65,24 @@ public static class regexredux
             sequences[i] = sequencesString.Substring(starts[i],starts[i+1]-starts[i]);
         Array.Sort(sequences, (x,y) => -x.Length.CompareTo(y.Length));
 
-        var counts = new int[10*noSequences];
-        Parallel.For(0, 10*noSequences, i =>
+        var counts = new int[1+9*noSequences];
+        Parallel.For(0, 1+9*noSequences, i =>
         {
-            var task = i%10;
-            var sequence = sequences[i/10];
-            if(task==0)
+            if(i==0)
             {
-                var newseq = magic1.Replace(sequence, "<4>");
+                var newseq = magic1.Replace(sequencesString, "<4>");
                 newseq = magic2.Replace(newseq, "<3>");
                 newseq = magic3.Replace(newseq, "<2>");
                 newseq = magic4.Replace(newseq, "|");
                 newseq = magic5.Replace(newseq, "-");
-                counts[i] = newseq.Length;
+                counts[0] = newseq.Length;
             }
             else
             {
+                var task = (i-1)%9;
+                var sequence = sequences[(i-1)/9];
                 int c = 0;
-                var m = variants[task-1].Match(sequence);
+                var m = variants[task].Match(sequence);
                 while(m.Success) { c++; m = m.NextMatch(); }
                 counts[i] = c;
             }
@@ -90,12 +90,11 @@ public static class regexredux
 
         for (int i=0; i<9; ++i)
         {
-            var vCount = 0;
-            for(int s=i+1; s<counts.Length; s+=10) vCount += counts[s];
-            Console.Out.WriteLineAsync(variants[i] + " " + vCount);
+            var count = 0;
+            for(int s=i+1; s<counts.Length; s+=9) count += counts[s];
+            Console.Out.WriteLineAsync(variants[i] + " " + count);
         }
-        var sCount = 0;
-        for(int s=0; s<counts.Length; s+=10) sCount += counts[s];
-        Console.Out.WriteLineAsync("\n"+initialLength+"\n"+sequencesString.Length+"\n"+sCount);
+
+        Console.Out.WriteLineAsync("\n"+initialLength+"\n"+sequencesString.Length+"\n"+counts[0]);
     }
 }
