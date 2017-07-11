@@ -2,99 +2,65 @@
    http://benchmarksgame.alioth.debian.org/
  
    Regex-Redux by Josh Goldfoot
-   parallelize by each sequence by Anthony Lloyd
+   order variants by execution time by Anthony Lloyd
 */
 
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
 public static class regexredux
 {
-    static Regex[] variants;
-    static Regex magic1, magic2, magic3, magic4, magic5;
     static Regex regex(string re)
     {
-        var r = new Regex(re, RegexOptions.Compiled);
-        // Regex doesn't look to be compiled on .Net Core, hence poor benchmark results.
-        //r.Matches("dummy");
-        return r;
+        // Not compiled on .Net Core, hence poor benchmark results.
+        return new Regex(re, RegexOptions.Compiled);
     }
-    static void createRegex()
-    {
-        variants = new [] {
-             regex("agggtaaa|tttaccct")
-            ,regex("[cgt]gggtaaa|tttaccc[acg]")
-            ,regex("a[act]ggtaaa|tttacc[agt]t")
-            ,regex("ag[act]gtaaa|tttac[agt]ct")
-            ,regex("agg[act]taaa|ttta[agt]cct")
-            ,regex("aggg[acg]aaa|ttt[cgt]ccct")
-            ,regex("agggt[cgt]aa|tt[acg]accct")
-            ,regex("agggta[cgt]a|t[acg]taccct")
-            ,regex("agggtaa[cgt]|[acg]ttaccct")
-        };
 
-        magic1 = regex("tHa[Nt]");
-        magic2 = regex("aND|caN|Ha[DS]|WaS");
-        magic3 = regex("a[NSt]|BY");
-        magic4 = regex("<[^>]*>");
-        magic5 = regex("\\|[^|][^|]*\\|");
+    static string regexCount(string s, string r)
+    {
+        int c = 0;
+        var m = regex(r).Match(s);
+        while(m.Success) { c++; m = m.NextMatch(); }
+        return r + " " + c;
     }
+
     public static void Main(string[] args)
     {
-        new Thread(createRegex).Start();
-
-        var sequencesString = Console.In.ReadToEnd();
-        var initialLength = sequencesString.Length;
-        var starts = new List<int>();
-        int removed = 0;
-        sequencesString = Regex.Replace(sequencesString, ">.*\n|\n", (Match m) =>
+        var sequences = Console.In.ReadToEnd();
+        var initialLength = sequences.Length;
+        sequences = Regex.Replace(sequences, ">.*\n|\n", "");
+        
+        var magicTask = Task.Run(() =>
         {
-            if(m.Value[0]=='>') starts.Add(m.Index-removed);
-            removed += m.Length;
-            return String.Empty;
+            var newseq = regex("tHa[Nt]").Replace(sequences, "<4>");
+            newseq = regex("aND|caN|Ha[DS]|WaS").Replace(newseq, "<3>");
+            newseq = regex("a[NSt]|BY").Replace(newseq, "<2>");
+            newseq = regex("<[^>]*>").Replace(newseq, "|");
+            newseq = regex("\\|[^|][^|]*\\|").Replace(newseq, "-");
+            return newseq.Length;
         });
 
-        starts.Add(sequencesString.Length);
-        var sequences = new string[starts.Count-1];
-        var noSequences = sequences.Length;
+        var variant2 = Task.Run(() => regexCount(sequences, "[cgt]gggtaaa|tttaccc[acg]"));
+        var variant3 = Task.Run(() => regexCount(sequences, "a[act]ggtaaa|tttacc[agt]t"));
+        var variant7 = Task.Run(() => regexCount(sequences, "agggt[cgt]aa|tt[acg]accct"));
+        var variant6 = Task.Run(() => regexCount(sequences, "aggg[acg]aaa|ttt[cgt]ccct"));
+        var variant4 = Task.Run(() => regexCount(sequences, "ag[act]gtaaa|tttac[agt]ct"));
+        var variant5 = Task.Run(() => regexCount(sequences, "agg[act]taaa|ttta[agt]cct"));
+        var variant1 = Task.Run(() => regexCount(sequences, "agggtaaa|tttaccct"));
+        var variant9 = Task.Run(() => regexCount(sequences, "agggtaa[cgt]|[acg]ttaccct"));
+        var variant8 = Task.Run(() => regexCount(sequences, "agggta[cgt]a|t[acg]taccct"));
 
-        for(int i=0; i<noSequences; i++)
-            sequences[i] = sequencesString.Substring(starts[i],starts[i+1]-starts[i]);
-        Array.Sort(sequences, (x,y) => -x.Length.CompareTo(y.Length));
-
-        var counts = new int[1+9*noSequences];
-        Parallel.For(0, 1+9*noSequences, i =>
-        {
-            if(i==0)
-            {
-                var newseq = magic1.Replace(sequencesString, "<4>");
-                newseq = magic2.Replace(newseq, "<3>");
-                newseq = magic3.Replace(newseq, "<2>");
-                newseq = magic4.Replace(newseq, "|");
-                newseq = magic5.Replace(newseq, "-");
-                counts[0] = newseq.Length;
-            }
-            else
-            {
-                var task = (i-1)%9;
-                var sequence = sequences[(i-1)/9];
-                int c = 0;
-                var m = variants[task].Match(sequence);
-                while(m.Success) { c++; m = m.NextMatch(); }
-                counts[i] = c;
-            }
-        });
-
-        for (int i=0; i<9; ++i)
-        {
-            var count = 0;
-            for(int s=i+1; s<counts.Length; s+=9) count += counts[s];
-            Console.Out.WriteLineAsync(variants[i] + " " + count);
-        }
-
-        Console.Out.WriteLineAsync("\n"+initialLength+"\n"+sequencesString.Length+"\n"+counts[0]);
+        Console.Out.WriteLineAsync(variant1.Result);
+        Console.Out.WriteLineAsync(variant2.Result);
+        Console.Out.WriteLineAsync(variant3.Result);
+        Console.Out.WriteLineAsync(variant4.Result);
+        Console.Out.WriteLineAsync(variant5.Result);
+        Console.Out.WriteLineAsync(variant6.Result);
+        Console.Out.WriteLineAsync(variant7.Result);
+        Console.Out.WriteLineAsync(variant8.Result);
+        Console.Out.WriteLineAsync(variant9.Result);
+        Console.Out.WriteLineAsync("\n"+initialLength+"\n"+sequences.Length);
+        Console.Out.WriteLineAsync(magicTask.Result.ToString());
     }
 }

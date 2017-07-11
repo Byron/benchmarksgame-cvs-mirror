@@ -6,35 +6,39 @@
 */
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
 
-class RevCompSequence { public List<byte[]> Pages; public int StartHeader, EndExclusive;
-                        public Thread ReverseThread; }
+class RevCompSequence { public List<byte[]> Pages; public int StartHeader, EndExclusive; public Thread ReverseThread; }
 
 public static class revcomp
 {
-    const int READER_BUFFER_SIZE = 1024 * 128;
+    const int READER_BUFFER_SIZE = 1024 * 1024;
     const byte LF = 10, GT = (byte)'>', SP = 32;
     static BlockingCollection<byte[]> readQue = new BlockingCollection<byte[]>();
     static BlockingCollection<RevCompSequence> writeQue = new BlockingCollection<RevCompSequence>();
     static byte[] map;
-    static bool shortRead = false, shortReadBeforeEnd = false;
     
+    static int read(Stream stream, byte[] buffer, int offset, int count)
+    {
+        var bytesRead = stream.Read(buffer, offset, count);
+        return bytesRead==count ? offset+count
+             : bytesRead==0 ? offset
+             : read(stream, buffer, offset+bytesRead, count-bytesRead);
+    }
     static void Reader()
     {
         using (var stream = Console.OpenStandardInput())
         {
-            for (;;)
+            int bytesRead;
+            do
             {
                 var buffer = new byte[READER_BUFFER_SIZE];
-                var bytesRead = stream.Read(buffer, 0, READER_BUFFER_SIZE);
-                if (bytesRead == 0) break;
-                if(shortRead) shortReadBeforeEnd = true;
-                if(bytesRead != READER_BUFFER_SIZE) shortRead = true;
+                bytesRead = read(stream, buffer, 0, READER_BUFFER_SIZE);
                 readQue.Add(buffer);
-            }
+            } while(bytesRead==READER_BUFFER_SIZE);
             readQue.CompleteAdding();
         }
     }
@@ -77,43 +81,32 @@ public static class revcomp
         map[(byte)'y'] = (byte)'R';
 
         var startHeader = 0;
-        var i = 1;
+        var i = 0;
         bool afterFirst = false;
         var data = new List<byte[]>();
         byte[] bytes;
         while (tryTake(readQue, out bytes))
         {
             data.Add(bytes);
-            for (;i<bytes.Length; i++)
+            while((i=Array.IndexOf<byte>(bytes, GT, i+1))!=-1)
             {
-                var b = bytes[i];
-                if(b==0) break;
-                if(b==GT)
-                {
-                    var sequence = new RevCompSequence { Pages = data, StartHeader = startHeader, EndExclusive = i };
-                    if(afterFirst)
-                        (sequence.ReverseThread = new Thread(() => Reverse(sequence))).Start();
-                    else
-                        afterFirst = true;
-                    writeQue.Add(sequence);
-                    startHeader = i;
-                    data = new List<byte[]> { bytes };
-                }
+                var sequence = new RevCompSequence { Pages = data
+                    , StartHeader = startHeader, EndExclusive = i };
+                if(afterFirst)
+                    (sequence.ReverseThread = new Thread(() => Reverse(sequence))).Start();
+                else
+                    afterFirst = true;
+                writeQue.Add(sequence);
+                startHeader = i;
+                data = new List<byte[]> { bytes };
             }
-            i = 0;
         }
-
-        var lastSequence = new RevCompSequence { Pages = data, StartHeader = startHeader, EndExclusive = ZeroEnd(data[data.Count-1]) };
+        i = Array.IndexOf<byte>(data[data.Count-1],0,0);
+        var lastSequence = new RevCompSequence { Pages = data
+            , StartHeader = startHeader, EndExclusive = i==-1 ? data[data.Count-1].Length : i };
         Reverse(lastSequence);
         writeQue.Add(lastSequence);
         writeQue.CompleteAdding();
-    }
-
-    static int ZeroEnd(byte[] bytes)
-    {
-        for(int i=0;i<bytes.Length;i++)
-            if(bytes[i]==0) return i;
-        return bytes.Length;
     }
 
     static void Reverse(RevCompSequence sequence)
@@ -123,11 +116,8 @@ public static class revcomp
         var startIndex = sequence.StartHeader;
 
         // Skip header line
-        for(;;)
+        while((startIndex=Array.IndexOf<byte>(startBytes, LF, startIndex))==-1)
         {
-            for(; startIndex<startBytes.Length; startIndex++)
-                if(startBytes[startIndex]==LF) break;
-            if(startIndex<startBytes.Length) break;
             startBytes = sequence.Pages[++startPageId];
             startIndex = 0;
         }
@@ -202,8 +192,7 @@ public static class revcomp
                 for (int i = 0; i < pages.Count - 1; i++)
                 {
                     var bytes = pages[i];
-                    var length = shortReadBeforeEnd ? ZeroEnd(bytes) : bytes.Length;
-                    stream.Write(bytes, startIndex, length - startIndex);
+                    stream.Write(bytes, startIndex, bytes.Length - startIndex);
                     startIndex = 0;
                 }
                 stream.Write(pages[pages.Count-1], startIndex, sequence.EndExclusive - startIndex);
