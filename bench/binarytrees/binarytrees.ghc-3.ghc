@@ -1,0 +1,73 @@
+--
+-- The Computer Language Benchmarks Game
+-- http://benchmarksgame.alioth.debian.org/
+--
+-- Contributed by Daniel Smith
+--
+
+import Control.Monad (when)
+import Data.Foldable (for_)
+import Data.Monoid ((<>))
+import Foreign
+    ( IntPtr, Ptr, advancePtr, callocArray, free, intPtrToPtr
+    , nullPtr, peek, peekElemOff, pokeElemOff, ptrToIntPtr
+    )
+import System.Environment (getArgs)
+
+main :: IO ()
+main = do
+    n <- read . head <$> getArgs
+
+    let stretchN = n + 1
+    stretchT <- make stretchN
+    stretchC <- check stretchT
+    free stretchT
+    putStrLn $ makeOutput "stretch tree" stretchN stretchC
+
+    longT <- make n
+
+    for_ [4, 6 .. n] $ \d -> do
+        let c = 16 * 2 ^ (n - d)
+        sumC <- sumT c d
+        putStrLn $ makeOutput (show c <> "\t trees") d sumC
+
+    longC <- check longT
+    free longT
+    putStrLn $ makeOutput "long lived tree" n longC
+
+makeOutput :: String -> Int -> Int -> String
+makeOutput p n c = p <> " of depth " <> show n <> "\t check: " <> show c
+
+type Tree = Ptr IntPtr
+-- Size 2 array of pointers
+-- First value is either pointer to left child or nullPtr
+-- Second value is either pointer to right child or nullPtr
+
+sumT :: Int -> Int -> IO Int
+sumT = go 0
+  where
+    go s 0 _ = pure s
+    go s c d = do
+        t <- make d
+        tc <- check t
+        free t
+        let s' = s + tc
+        s' `seq` go s' (c - 1) d
+
+check :: Tree -> IO Int
+check t = if t == nullPtr then pure 0 else do
+    l <- intPtrToPtr <$> peek t
+    lc <- check l
+    r <- intPtrToPtr <$> peekElemOff t 1
+    rc <- check r
+    lc `seq` rc `seq` pure (1 + lc + rc)
+
+make :: Int -> IO Tree
+make d = do
+    let len = 2 * 2 ^ d - 1
+    t <- callocArray $ 2 * len
+    let go n = when (n >= 0) $ do
+            pokeElemOff t n . ptrToIntPtr . advancePtr t $ 2 * n + 2
+            go $ n - 1
+    go $ len - 2
+    pure t
