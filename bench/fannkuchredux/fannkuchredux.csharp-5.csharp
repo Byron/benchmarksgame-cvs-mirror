@@ -7,36 +7,31 @@
 */
 
 using System;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
-public class FannkuchRedux
+public static class FannkuchRedux
 {
-    const int INT_SIZE = 4;
-    static int n, taskSize, nTasks;
-    static int[] Fact;
-    int MaxFlips, Chksum;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void rotate(int[] p, int[] pp, int i, int d)
+    static void rotate(int[] p, int[] pp, int l, int d)
     {
-        Buffer.BlockCopy(p, 0, pp, 0, d * INT_SIZE);
-        Buffer.BlockCopy(p, d * INT_SIZE, p, 0, (i-d) * INT_SIZE);
-        Buffer.BlockCopy(pp, 0, p, (i-d) * INT_SIZE, d * INT_SIZE);
+        Buffer.BlockCopy(p, 0, pp, 0, d);
+        Buffer.BlockCopy(p, d, p, 0, l);
+        Buffer.BlockCopy(pp, 0, p, l, d);        
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void firstPermutation(int[] p, int[] pp, int[] count, int idx)
+    static void firstPermutation(int n, int[] fact, int[] p, int[] pp, int[] count, int idx)
     {
-        for (int i=0; i<n; ++i) { p[i] = i; }
+        for (int i=0; i<n; ++i) p[i] = i;
         for (int i=n-1; i>0; --i)
         {
-            int d = idx/Fact[i];
+            int d = idx/fact[i];
             count[i] = d;
             if(d>0)
             {
-                idx = idx%Fact[i];
-                rotate(p, pp, i+1, d);
+                idx = idx%fact[i];
+                rotate(p, pp, (i+1-d) * 4, d * 4);
             }
         }
     }
@@ -51,98 +46,85 @@ public class FannkuchRedux
         while (++count[i] > i)
         {
             count[i++] = 0;
-            int next = p[0] = p[1];
-            int j=1;
-            while(j<i) { p[j] = p[++j]; }
+            int next = p[1];
+            p[0] = next;
+            for(int j=1;j<i;) p[j] = p[++j];
             p[i] = first;
             first = next;
         }
     }
-
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int countFlips(int[] p, int[] pp)
+    static int countFlips(int n, int[] p, int[] pp)
     {
-        int flips = 1;
         int first = p[0];
-        if (p[first] != 0)
+        if (p[first]==0) return 1;
+        Buffer.BlockCopy(p, 0, pp, 0, n * 4);
+        int flips = 2;
+        while(true)
         {
-            Buffer.BlockCopy(p, 0, pp, 0, n * INT_SIZE);
-            for(;;)
+            for (int lo=1, hi=first-1; lo<hi; lo++,hi--)
             {
-                flips++;
-                for (int lo=1, hi=first-1; lo<hi; lo++,hi--)
-                {
-                    int t = pp[lo];
-                    pp[lo] = pp[hi];
-                    pp[hi] = t;
-                }
-                int tp = pp[first];
-                if (pp[tp]==0) break;
-                pp[first] = first;
-                first = tp;
+                int t = pp[lo];
+                pp[lo] = pp[hi];
+                pp[hi] = t;
             }
+            int tp = pp[first];
+            if (pp[tp]==0) return flips;
+            pp[first] = first;
+            first = tp;
+            flips++;
         }
-        return flips;
     }
 
-    void Run(int taskId)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static Tuple<int,int> run(int n, int[] fact, int taskId, int taskSize)
     {
         int[] p = new int[n], pp = new int[n], count = new int[n];
         int maxflips=0, chksum=0;
-        do
+        firstPermutation(n, fact, p, pp, count, taskId*taskSize);
+        if(p[0] != 0)
         {
-            firstPermutation(p, pp, count, taskId*taskSize);
-            if(p[0]!=0)
+            int flips = countFlips(n, p, pp);
+            chksum += flips;
+            if(flips>maxflips) maxflips=flips;
+        }
+        while (--taskSize>0)
+        {
+            nextPermutation(p, count);
+            if (p[0] != 0)
             {
-                int firstFlips = countFlips(p, pp);
-                chksum += firstFlips;
-                if(firstFlips>maxflips) maxflips=firstFlips;
+                int flips = countFlips(n, p, pp);
+                chksum += taskSize%2==0 ? flips : -flips;
+                if(flips>maxflips) maxflips=flips;
             }
-            for (int i=1; i<taskSize; ++i)
-            {
-                nextPermutation(p, count);
-                if (p[0] != 0)
-                {
-                    int flips = countFlips(p, pp);
-                    chksum += i%2==0 ? flips : -flips;
-                    if(flips>maxflips) maxflips=flips;
-                }
-            }
-            taskId = Interlocked.Decrement(ref nTasks);
-        } while(taskId>=0);
-        MaxFlips = maxflips;
-        Chksum = chksum;
+        }
+        return Tuple.Create(chksum, maxflips);
     }
 
     public static void Main(string[] args)
     {
-        n = args.Length > 0 ? int.Parse(args[0]) : 7;
-        
-        Fact = new int[n+1];
-        Fact[0] = 1;
-        var fact = 1;
-        for (int i=1; i<Fact.Length; i++) { Fact[i] = fact *= i; }
+        int n = args.Length > 0 ? int.Parse(args[0]) : 7;
+        var fact = new int[n+1];
+        fact[0] = 1;
+        var factn = 1;
+        for (int i=1; i<fact.Length; i++) { fact[i] = factn *= i; }
 
-        nTasks = 10*9*8;
-        taskSize = (fact-1) / nTasks + 1;
-
-        var redux = new FannkuchRedux[Environment.ProcessorCount-1];
-        var tasks = new Thread[Environment.ProcessorCount-1];
-        for(int i=0; i<tasks.Length; i++)
+        int nTasks = Environment.ProcessorCount;
+        int taskSize = factn / nTasks;
+        var tasks = new Task<Tuple<int,int>>[nTasks];
+        for(int i=tasks.Length-1; i>=0; --i)
         {
-            var taskId = --nTasks;
-            var r = redux[i] = new FannkuchRedux();
-            (tasks[i] = new Thread(() => r.Run(taskId))).Start();
+            int j = i;
+            tasks[j] = Task.Run(() => run(n, fact, j, taskSize));
         }
-        var mainRedux = new FannkuchRedux();
-        mainRedux.Run(--nTasks);
-        int chksum=mainRedux.Chksum, maxFlips=mainRedux.MaxFlips;
-        for(int i=0; i<tasks.Length; i++)
+        int chksum=tasks[0].Result.Item1, maxFlips=tasks[0].Result.Item2;
+        for(int i=1; i<tasks.Length; i++)
         {
-            tasks[i].Join();
-            chksum += redux[i].Chksum;
-            if(redux[i].MaxFlips>maxFlips) maxFlips=redux[i].MaxFlips;
+            var result = tasks[i].Result;
+            chksum += result.Item1;
+            if(result.Item2>maxFlips) maxFlips=result.Item2;
         }
-        Console.Out.WriteLineAsync(chksum+"\nPfannkuchen("+n+") = "+maxFlips);
+        Console.WriteLine(chksum+"\nPfannkuchen("+n+") = "+maxFlips);
     }
 }
