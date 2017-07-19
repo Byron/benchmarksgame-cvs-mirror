@@ -6,8 +6,6 @@
 -- Basic parallelization by Roman Kashitsyn
 --
 
-{-# LANGUAGE BangPatterns #-}
-
 import System.Environment
 import Data.Bits
 import Text.Printf
