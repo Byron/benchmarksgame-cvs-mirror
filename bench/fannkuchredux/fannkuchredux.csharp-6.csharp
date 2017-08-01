@@ -1,7 +1,7 @@
 /* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
 
-   transliterated from Oleg Mazurov's Java program
+   contributed by Isaac Gouy, transliterated from Oleg Mazurov's Java program
    concurrency fix and minor improvements by Peperud
    parallel and small optimisations by Anthony Lloyd
 */
@@ -14,14 +14,6 @@ public static class FannkuchRedux
 {
     static int[] chkSums, maxFlips;
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void rotate(int[] p, int[] pp, int l, int d)
-    {
-        Buffer.BlockCopy(p, 0, pp, 0, d);
-        Buffer.BlockCopy(p, d, p, 0, l);
-        Buffer.BlockCopy(pp, 0, p, l, d);        
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void firstPermutation(int n, int[] fact, int[] p, int[] pp, int[] count, int idx)
     {
         for (int i=0; i<n; ++i) p[i] = i;
@@ -32,7 +24,8 @@ public static class FannkuchRedux
             if(d>0)
             {
                 idx = idx%fact[i];
-                rotate(p, pp, (i+1-d) * 4, d * 4);
+                for (int j=i ;j>=0; --j) pp[j] = p[j];
+                for (int j = 0; j <= i; ++j) p[j] = pp[(j+d)%(i+1)];
             }
         }
     }
@@ -57,15 +50,15 @@ public static class FannkuchRedux
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void countFlipsPlus(int n, int[] p, int[] pp, int first, ref int chksum, ref int maxflips)
+    static void countFlips(int n, int[] p, int[] pp, int first, int sign, ref int chksum, ref int maxflips)
     {
         if (first==0) return;
         if (p[first]==0)
         {
-            chksum++;
+            chksum += sign;
             return;
         }
-        Buffer.BlockCopy(p, 0, pp, 0, n * 4);
+        for(int i=0; i<n; i++) pp[i] = p[i];
         int flips = 2;
         while(true)
         {
@@ -78,39 +71,7 @@ public static class FannkuchRedux
             int tp = pp[first];
             if (pp[tp]==0)
             {
-                chksum += flips;
-                if(flips>maxflips) maxflips = flips;
-                return;
-            }
-            pp[first] = first;
-            first = tp;
-            flips++;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void countFlipsMinus(int n, int[] p, int[] pp, int first, ref int chksum, ref int maxflips)
-    {
-        if (first==0) return;
-        if (p[first]==0)
-        {
-            chksum--;
-            return;
-        }
-        Buffer.BlockCopy(p, 0, pp, 0, n * 4);
-        int flips = 2;
-        while(true)
-        {
-            for (int lo=1, hi=first-1; lo<hi; lo++,hi--)
-            {
-                int t = pp[lo];
-                pp[lo] = pp[hi];
-                pp[hi] = t;
-            }
-            int tp = pp[first];
-            if (pp[tp]==0)
-            {
-                chksum -= flips;
+                chksum += sign * flips;
                 if(flips>maxflips) maxflips = flips;
                 return;
             }
@@ -125,13 +86,10 @@ public static class FannkuchRedux
         int[] p = new int[n], pp = new int[n], count = new int[n];
         int maxflips=1, chksum=0;
         firstPermutation(n, fact, p, pp, count, taskId*taskSize);
-        countFlipsPlus(n, p, pp, p[0], ref chksum, ref maxflips);
-        countFlipsMinus(n, p, pp, nextPermutation(p, count), ref chksum, ref maxflips);
-        taskSize>>=1;
+        countFlips(n, p, pp, p[0], 1, ref chksum, ref maxflips);
         while (--taskSize>0)
         {
-            countFlipsPlus(n, p, pp, nextPermutation(p, count), ref chksum, ref maxflips);
-            countFlipsMinus(n, p, pp, nextPermutation(p, count), ref chksum, ref maxflips);
+            countFlips(n, p, pp, nextPermutation(p, count), 1-(taskSize%2)*2, ref chksum, ref maxflips);
         }
         chkSums[taskId] = chksum;
         maxFlips[taskId] = maxflips;
