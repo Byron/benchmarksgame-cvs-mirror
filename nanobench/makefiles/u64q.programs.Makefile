@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.50 2017/05/02 19:20:17 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.51 2017/09/01 06:57:30 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -654,7 +654,7 @@ SBCL_TRACE :=
 ########################################
 
 %.swift_run: %.swift $(SWIFTC) 
-	-$(SWIFTC) $< -Ounchecked -whole-module-optimization $(SWIFTOPTS) -o $@
+	-$(SWIFTC) $< -Ounchecked $(SWIFTOPTS) -o $@
 
 
 
