@@ -4,24 +4,25 @@
    Originally contributed by Isaac Gouy.
    Optimized to use Structs and Pointers by Derek Ziemba. 
 */
+
 using System;
 using System.Runtime.CompilerServices;
 
-unsafe public static class NBody_StructPtr {
-    struct NBody { public double mass, x, y, z, vx, vy, vz; }
+unsafe public static class NBody_StructPtr2 {
+    struct NBody { public double x, y, z, vx, vy, vz, mass; }
 
     public static void Main(string[] args) {
         unchecked {   
 
-                // There doesn't seem to be a difference between 
-                // using stackalloc or fixed pointer.
-                // stackalloc uses fewer lines though.
+// There doesn't seem to be a difference between 
+// using stackalloc or fixed pointer.  
+// stackalloc uses fewer lines though. 
 
             NBody* ptrSun = stackalloc NBody[5];   
-            NBody* ptrEnd = ptrSun+4;                
-            InitBodies(ptrSun, ptrEnd);             
+            NBody* ptrEnd = ptrSun+4;              
+            InitBodies(ptrSun, ptrEnd);            
 
-            Console.Out.WriteLineAsync(Energy(ptrSun, ptrEnd).ToString("F9"));
+            Console.Out.WriteLine(Energy(ptrSun, ptrEnd).ToString("F9"));
 
             int advancements = args.Length>0 ? Int32.Parse(args[0]) : 1000;
             while (advancements-- > 0) {
@@ -32,38 +33,45 @@ unsafe public static class NBody_StructPtr {
     }
 
 
+// Apparently minimizing the number of parameters in a function
+// leads to improvements... This eliminates d2 from Advance()
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] private static double GetD2(double dx, double dy, double dz) {
+        double d2 =dx * dx + dy * dy + dz * dz;
+        return d2 * Math.Sqrt(d2);
+    }
+
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Advance(NBody* ptrSun, NBody* ptrEnd, double distance) {
         unchecked {
             for (NBody* bi = ptrSun; bi < ptrEnd; ++bi) {
 
-                    // Dereference common variables now so they're likely to
-                    // get stored in registers. The performance advantage is
-                    // lost if pointers are dereferenced every time. Accounts for ~7%. 
-                    // While testing I found even the order can make a 3% difference.
+// Dereference common variables now so they're likely to
+// get stored in registers. The performance advantage is
+// lost if pointers are dereferenced every time. Accounts for ~7%. 
 
-                double
-                    imass = bi->mass,    
+                double            
                     ix = bi->x,            
-                    iy = bi->y,            
+                    iy = bi->y,             
                     iz = bi->z,            
                     ivx = bi->vx,
                     ivy = bi->vy,
-                    ivz = bi->vz;
+                    ivz = bi->vz,
+                    imass = bi->mass;
                 for (NBody* bj = bi + 1; bj <= ptrEnd; ++bj) {
                     double
-                        jmass = bj->mass,
                         dx = bj->x - ix,
                         dy = bj->y - iy,
                         dz = bj->z - iz,
-                        d2 = dx * dx + dy * dy + dz * dz,
-                        mag = distance / (d2 * Math.Sqrt(d2));
-                    ivx = ivx + dx * jmass * mag;
-                    ivy = ivy + dy * jmass * mag;
-                    ivz = ivz + dz * jmass * mag;
+                        jmass = bj->mass,
+                        mag = distance / GetD2(dx, dy, dz);
                     bj->vx = bj->vx - dx * imass * mag;
                     bj->vy = bj->vy - dy * imass * mag;
                     bj->vz = bj->vz - dz * imass * mag;
+                    ivx = ivx + dx * jmass * mag;
+                    ivy = ivy + dy * jmass * mag;
+                    ivz = ivz + dz * jmass * mag;
                 }
                 bi->vx = ivx;
                 bi->vy = ivy;
