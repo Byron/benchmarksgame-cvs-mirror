@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>task descriptions | Computer Language Benchmarks Game </title>
+<style><!-- 
+a{color:black;text-decoration:none}article{padding: 0 0 2.9em}article,div,header{margin:auto;max-width:31em;width:92%}body{font:100% Droid Sans,Ubuntu,Verdana,sans-serif;margin:0;-webkit-text-size-adjust:100%}h1,h2,h3,nav li a{font-family:Ubuntu Mono,Consolas,Menlo,monospace}h1{font-size:1.4em;font-weight:bold;margin:0;padding:.4em}h1,h1 a{color:white}h2,h3{margin:1.5em 0 0}h2{font-size:1.4em;font-weight:normal}h3{font-size:1.2em}nav li{list-style-type:none;vertical-align:top}nav li a{display:block;font-size:1.2em;margin:.5em .5em 0;padding:.5em .5em .3em}nav p{margin:0 .5em}nav ul{clear:left;margin:-0.3em 0 1.5em;padding-left:0;text-align:center}p{color:#333;line-height:1.4;margin:.3em 0 0}p a,span{border-bottom:.1em solid #333;padding-bottom:.1em}#u64,#u64q{background-color:#c90016}#u32{background-color:#ffb515}#u32q{background-color:#ff6309}@media only screen and (min-width:33em){nav li{display:inline-block}nav p{text-align:left;width:17em}}@media only screen and (min-width:60em){article,div,header{font-size:1.25em}}
+--></style>
+<link rel="shortcut icon" href="./favicon.ico">
+<header id="top">
+  <h1 id="u64q"><a href="http://benchmarksgame.alioth.debian.org/u64q/">The&nbsp;Computer&nbsp;Language<br>Benchmarks&nbsp;Game</a></h1>
+</header>
+<article>
+  <h2 id="nbody">n-body description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/nbody.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>Model the orbits of Jovian planets, using the same simple symplectic-integrator.
+    <p>Thanks to Mark C. Lewis for suggesting this task.
+    <p>Useful symplectic integrators are freely available, for example the <a href="http://janus.astro.umd.edu/HNBody/">HNBody Symplectic Integration Package</a>.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>use the same simple symplectic-integrator - see the <a href="http://benchmarksgame.alioth.debian.org/u64q/program.php?test=nbody&amp;lang=java&amp;id=2">Java program</a>.
+    </ul>
+    <p><b><a href="http://www.math.utah.edu/~beebe/software/ndiff/">ndiff</a> -abserr 1.0e-8</b> program output N = 1000 with this <a href="./nbody/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (50000000) to check program performance.
+  </section>
+
+</article>
+<article>
+  <h2 id="fannkuchredux">fannkuch-redux description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/fannkuchredux.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>The fannkuch benchmark is defined by programs in <a href="http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.35.5124">Performing Lisp Analysis of the FANNKUCH Benchmark</a>, Kenneth R. Anderson and Duane Rettig. FANNKUCH is an abbreviation for the German word Pfannkuchen, or pancakes, in analogy to flipping pancakes. The conjecture is that the maximum count is approximated by n*log(n) when n goes to infinity.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>Take a permutation of {1,...,n}, for example: {4,2,1,5,3}.
+      <li><p>Take the first element, here 4, and reverse the order of the first 4 elements: {5,1,2,4,3}.
+      <li><p>Repeat this until the first element is a 1, so flipping won't change anything more: {3,4,2,1,5}, {2,4,3,1,5}, {4,2,3,1,5}, {1,3,2,4,5}.
+      <li><p>Count the number of flips, here 5.
+      <li><p>Keep a checksum
+      <ul>
+        <li><p>checksum = checksum + (if permutation_index is even then flips_count else -flips_count)
+        <li><p>checksum = checksum + (toggle_sign_-1_1 * flips_count)
+      </ul>
+      <li><p>Do this for all n! permutations, and record the maximum number of flips needed for any permutation.
+    </ul>
+    <p><strong>diff</strong> program output N = 7 with this <a href="./fannkuchredux/7_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (12) to check program performance.
+  </section>
+  <section>
+    <h3>Example</h3>
+    <p>Thanks to Oleg Mazurov for insisting on a checksum and providing this helpful description of <a href="http://benchmarksgame.alioth.debian.org/u64q/program.php?test=fannkuchredux&amp;lang=java&amp;id=1">the approach he took</a> -
+    <ul>
+      <li><p> common idea for parallel implementation is to divide all work (n! permutations) into chunks small enough to avoid load imbalance but large enough to keep overhead low. I set the number of chunks as a parameter (NCHUNKS = 150) from which I derive the size of a chunk (CHUNKSZ) and the actual number of chunks/tasks to be processed (NTASKS), which may be different from NCHUNKS because of rounding.
+      <li><p>Task scheduling is trivial: threads will atomically get and increment the taskId variable to derive a range of permutation indices to work on: <pre>
+task = taskId.getAndIncrement();
+idxMin = task * CHUNKSZ;
+idxMax = min( idxMin + CHUNKSZ, n! );
+</pre>
+      <li><p>Maximum flip counts and partial checksums can be computed for chunks in arbitrary order and recombined to generate the required result at the final step (CHUNKSZ must be even for adding partial checksums to be associative - I didn't enforce it in my submission).
+      <li><p>Now I need to go from a permutation index to the permutation itself.
+      <li><p>The predefined order in which all permutations are to be generated can be described as follows: to generate n! permutations of n arbitrary numbers, rotate the numbers left (from higher position to lower) n times, so that each number appears in the n-th position, and for each rotation recursively generate (n-1)! permutations of the first n-1 numbers whatever they are.
+      <li><p>To optimize the process I use an intermediate data structure, count[], which keeps count of how many rotations have been done at every level. Apparently, count[0] is always 0, as there is only one element at that level, which can't be rotated; count[1] = 0..1 for two elements, count[2] = 0..2 for three elements, etc.
+      <li><p>To generate next permutation I swap the first two elements and increase count[1]. If count[1] becomes greater than 1, I'm done with rotations at level 1 and need to "return" (as it would have been in the recursive implementation) to level 2. Now, I rotate 3 elements and increment count[2]. If it becomes greater than 2, I'm done with level 2 and need to go to level 3, etc.
+      <li><p>It should be clear now how to generate a permutation and corresponding count[] array from an arbitrary index. Basically, count[k] = ( index % (k+1)! ) / k! is the number of rotations we need to perform on elements 0..k. Doing it in the descending order from n-1 to 1 gives us both the count[] array and the permutation.
+    </ul>
+  </section>
+</article>
+
+<article>
+  <h2 id="spectralnorm">spectral-norm description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/spectralnorm.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>MathWorld: <a href="http://mathworld.wolfram.com/Hundred-DollarHundred-DigitChallengeProblems.html">"Hundred-Dollar, Hundred-Digit Challenge Problems"</a>, <a href="http://mathworld.wolfram.com/SpectralNorm.html">Challenge #3</a>.
+    <p>Thanks to Sebastien Loisel for suggesting this task.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+      <ul>
+        <li><p>calculate the spectral norm of an infinite matrix A, with entries a<sub>11</sub>=1, a<sub>12</sub>=1/2, a<sub>21</sub>=1/3, a<sub>13</sub>=1/4, a<sub>22</sub>=1/5, a<sub>31</sub>=1/6, etc
+        <li><p>implement 4 separate functions / procedures / methods like the <a href="http://benchmarksgame.alioth.debian.org/u64q/program.php?test=spectralnorm&lang=csharp&id=1">C# program</a>
+      </ul>
+      <p><b>diff</b> program output N = 100 with this <a href="./spectralnorm/100_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (5500) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="mandelbrot">mandelbrot description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/mandelbrot.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>MathWorld: <a href="http://mathworld.wolfram.com/MandelbrotSet.html">Mandelbrot Set.</a>
+    <p><img src="../download/mandelbrot200.png" alt="Mandlebrot output N=200,converted to PNG" height="200" width="200" />
+    <p>Thanks to Greg Buchholz for suggesting this task.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+      <ul>
+        <li>plot the Mandelbrot set [-1.5-i,0.5+i] on an N-by-N bitmap. Write output byte-by-byte in <a href="http://www-info2.informatik.uni-wuerzburg.de/mitarbeiter/wolfram/lehre/bildformate.html#pbm">portable bitmap format</a>.
+      </ul>
+    <p><b>cmp</b> program output N = 200 with this 5KB <a href="./mandelbrot/200_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (16000) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="pidigits">pidigits description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/pidigits.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>MathWorld: <a href="http://mathworld.wolfram.com/PiDigits.html">Pi Digits.</a>
+  </section>
+    <h3>Variance</h3>
+    <p>Some language implementations have arbitrary precision arithmetic built-in; some provide an arbitrary precision arithmetic library; some use a third-party library (<a href="http://gmplib.org/">GMP</a>); some provide built-in arbitrary precision arithmetic by wrapping a third-party library.
+  </section>
+    <h3>The work</h3>
+    <p>The work is to use aribitrary precision arithmetic and the same step-by-step algorithm to generate digits of Pi. Do both extract(3) and extract(4). Don't optimize away the work.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>calculate the first N digits of Pi
+      <li><p>print the digits 10-to-a-line, with the running total of digits calculated
+    </ul>
+    <p><b>diff</b> program output N = 27 with this <a href="./pidigits/27_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (10000) to check program performance.
+    <p>Adapt the <b>step-by-step</b> algorithm given on pages 4,6 &amp; 7 of [pdf 156KB] <a href="http://web.comlab.ox.ac.uk/oucl/work/jeremy.gibbons/publications/spigot.pdf">Unbounded Spigot Algorithms for the Digits&nbsp;of&nbsp;Pi</a>. (<b>Not</b> the deliberately obscure version given on page 2. <b>Not</b> the Rabinowitz-Wagon algorithm.)
+  </section>
+
+</article>
+
+<article>
+  <h2 id="regexredux">regex-redux description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/regexredux.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Variance</h3>
+    <p>Some language implementations have regex built-in; some provide a regex library; some use a third-party regex library.
+    <p>The regex algorithm implemented is very likely to be different in different libraries.
+  </section>
+  <section>
+    <h3>The work</h3>
+    <p>The work is to use the same simple regex patterns and actions to manipulate FASTA format data. Don't optimize away the work.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>read all of a redirected <a href="http://en.wikipedia.org/wiki/Fasta_format">FASTA format</a> file from stdin, and record the sequence length
+      <li><p>use the same simple regex pattern match-replace to remove FASTA sequence descriptions and all linefeed characters, and record the sequence length
+      <li><p>use the same simple regex patterns -
+<pre>agggtaaa|tttaccct
+[cgt]gggtaaa|tttaccc[acg]
+a[act]ggtaaa|tttacc[agt]t
+ag[act]gtaaa|tttac[agt]ct
+agg[act]taaa|ttta[agt]cct
+aggg[acg]aaa|ttt[cgt]ccct
+agggt[cgt]aa|tt[acg]accct
+agggta[cgt]a|t[acg]taccct
+agggtaa[cgt]|[acg]ttaccct</pre>
+<p>- representing DNA 8-mers and their reverse complement (with a wildcard in one position), and (one pattern at a time) count matches in the redirected file
+     
+      <li><p>write the regex pattern and count
+      <li><p>use the same magic regex patterns -
+<pre>tHa[Nt]
+aND|caN|Ha[DS]|WaS
+a[NSt]|BY
+<[^>]*>
+\\|[^|][^|]*\\|</pre>
+<p>- to (one pattern at a time, in the same order) match-replace the pattern in the redirected file with -<pre><4>
+<3>
+<2>
+|
+-</pre>
+<p>- and record the sequence length
+      <li><p>write the 3 recorded sequence lengths
+    </ul>
+    <p><b>diff</b> program output for this 10KB <a href="./regexredux/regexredux-input1000.txt">input file</a> (generated with the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta program</a> N = 1000) with this <a href="./regexredux/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Generate a larger input file (using one of the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta programs</a> with command line arguments: 5000000 > input5000000.txt) to check program performance.
+  </section>
+  <section>
+    <p>Thanks to Jeremy Zerfas for insisting that the programs follow the "one pattern at a time" guideline, and developing the magic regex patterns. Thanks to Matt Brubeck for the good enough magic regex pattern.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="fasta">fasta description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Variance</h3>
+    <p>Please don't optimize the cumulative-probabilities lookup (for example, by using a scaling factor) or na&iuml;ve LCG arithmetic - those programs will not be accepted. 
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>generate DNA sequences, by copying from a given sequence
+      <li><p>generate DNA sequences, by weighted random selection from 2 alphabets
+      <ul>
+        <li><p>convert the expected probability of selecting each nucleotide into cumulative probabilities
+        <li><p>match a random number against those cumulative probabilities to select each nucleotide (use linear search or binary search)
+        <li><p>use this na&iuml;ve linear congruential generator to calculate a random number each time a nucleotide needs to be selected (don't cache the random number sequence)
+<pre>IM = 139968
+IA = 3877
+IC = 29573
+Seed = 42
+ 	
+Random (Max)
+   Seed = (Seed * IA + IC) modulo IM
+   = Max * Seed / IM
+</pre>
+      </ul>
+    </ul>
+    <p><strong>diff</strong> program output N = 1000 with this 10KB <a href="./fasta/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (25000000) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="knucleotide">k-nucleotide description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/knucleotide.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Variance</h3>
+    <p>Some language implementations have hash tables built-in; some provide a hash table as part of a collections library; some use a third-party hash table library. (For example, use either <a href="http://attractivechaos.github.io/klib/">khash</a> or <a href="http://concurrencykit.org/doc/ck_ht_init.html">CK_HT</a> for C language k-nucleotide programs.) The hash table algorithm implemented is likely to be different in different libraries.
+    <p>Please don't implement your own custom "hash table" - it will not be accepted. 
+  </section>
+  <section>
+    <h3>The work</h3>
+    <p>The work is to use the built-in or library hash table implementation to accumulate count values - lookup the count for a key and update the count in the hash table. Don't optimize away the work. 
+    <p>Mapping the DNA letters to the bytes 0, 1, 2, 3, and using a hash function that concatenates those two-byte codes is an acceptable (but not a required) optimization.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+      <ul>
+        <li><p>read line-by-line a redirected <a href="http://en.wikipedia.org/wiki/Fasta_format">FASTA format</a> file from stdin
+        <li><p>extract DNA sequence THREE
+        <li><p><b>define a procedure/function</b> to update a hashtable of k-nucleotide keys and count values, for a particular reading-frame &#8212; even though we'll combine k-nucleotide counts for all reading-frames (grow the <b>hashtable</b> from a small default size)
+        <li><p>use that procedure/function and hashtable to
+           <ul>
+           <li><p>count <b>all</b> the 1-nucleotide and 2-nucleotide sequences, and write the code and percentage frequency, sorted by descending frequency and then ascending k-nucleotide key
+           <li><p>count <b>all</b> the 3- 4- 6- 12- and 18-nucleotide sequences, and write the count and code for the specific sequences GGT GGTA GGTATT GGTATTTTAATT GGTATTTTAATTTATAGT
+            </ul>
+         </li>
+      </ul>
+    <p><b>diff</b> program output for this 10KB <a href="./knucleotide/knucleotide-input1000.txt">input file</a> (generated with the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta program</a> N = 1000) with this <a href="./knucleotide/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Generate a larger input file (using one of the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta programs</a> with command line arguments: 25000000 > input25000000.txt) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="revcomp">reverse-complement description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/revcomp.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <blockquote><p>…&nbsp;by knowing the sequence of bases of one strand of DNA we immediately know the sequence of the DNA strand which will bind to it, this strand is called the reverse complement&nbsp;…
+    </blockquote>
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>read line-by-line a redirected <a href="http://en.wikipedia.org/wiki/Fasta_format">FASTA format</a> file from stdin
+      <li><p>for each sequence:
+        <ul>
+          <li><p>write the id, description, and the reverse-complement sequence in <a href="http://en.wikipedia.org/wiki/Fasta_format">FASTA format</a> to stdout
+        </ul>
+     </li>
+    </ul>
+    <p>Use these code complements:</p>
+<pre>
+code  meaning   complement
+A    A                   T
+C    C                   G
+G    G                   C
+T/U  T                   A
+M    A or C              K
+R    A or G              Y
+W    A or T              W
+S    C or G              S
+Y    C or T              R
+K    G or T              M
+V    A or C or G         B
+H    A or C or T         D
+D    A or G or T         H
+B    C or G or T         V
+N    G or A or T or C    N
+</pre>
+    <p><b>diff</b> program output for this 10KB <a href="./revcomp/revcomp-input1000.txt">input file</a> (generated with the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta program</a> N = 1000) with this <a href="./revcomp/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Generate a larger input file (using one of the <a href="http://benchmarksgame.alioth.debian.org/u64q/fasta.html">fasta programs</a> with command line arguments: 25000000 > input25000000.txt) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="binarytrees">binary-trees description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/binarytrees.html">program measurements</a>
+  </aside>
+  <section>
+    <h3>Background</h3>
+    <p>A simplistic adaptation of <a href="http://hboehm.info/gc/gc_bench/">Hans Boehm's GCBench</a>, which in turn was adapted from a benchmark by John Ellis and Pete Kovac.
+    <p>Thanks to Christophe Troestler and Einar Karttunen for help with this benchmark.
+  </section>
+  <section>
+    <h3>Variance</h3>
+    <p>Use default GC, use per node allocation or use a library memory pool.
+    <p>As a practical matter, the myriad ways to tune GC will not be accepted.
+    <p>As a practical matter, the myriad ways to custom allocate memory will not be accepted.
+    <p>Please don't implement your own custom <a href="http://www.stroustrup.com/bs_faq2.html#placement-delete">"arena"</a> or "memory pool" or "free list" - they will not be accepted.
+  </section>
+  <section>
+    <h3>The work</h3>
+    <p>The work is to fully create perfect binary trees - before any tree nodes are GC'd - using at-minimum the number of allocations of <a href="http://benchmarksgame.alioth.debian.org/u64q/program.php?test=binarytrees&lang=gcc&id=3">Jeremy Zerfas's C program</a>. Don't optimize away the work.
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+       <li><p>define a tree node class and methods, or a tree node record and procedures, or an algebraic data type and functions, or&#8230;
+       <li><p>allocate a binary tree to 'stretch' memory, check it exists, and deallocate it
+       <li><p>allocate a long-lived binary tree which will live-on while other trees are allocated and deallocated   
+       <li><p>allocate, walk, and deallocate many bottom-up binary trees
+         <ul>
+           <li><p>allocate a tree
+           <li><p>walk the tree, counting the nodes (and maybe deallocate the nodes)
+           <li><p>deallocate the tree
+         </ul>      
+       <li><p>check that the long-lived binary tree still exists
+    </ul>
+    <p><b>diff</b> program output N = 10 with this 1KB <a href="./binarytrees/10_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (21) to check program performance.
+  </section>
+  <section>
+    <p>Thanks to Eamon Nerbonne for repeatedly showing what was wrong with the old way of checking these programs, and to Brad Chamberlain for suggesting that a simple check should work.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="chameneosredux">chameneos-redux description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/chameneosredux.html">program measurements</a>
+  </aside>
+  <h2>(Not included in summary comparisons)</h2>
+  <section>
+    <h3>Background</h3>
+    <p>An adaptation of [pdf 100KB] <a href="http://cedric.cnam.fr/PUBLIS/RC474.pdf">"Chameneos, a Concurrency Game for Java, Ada and Others"</a> (which includes example implementations in Java, Ada and C).
+  </section>
+  <section>
+    <h3>Variance</h3>
+    <p>Use OS threads or the language implementation pre-emptive lightweight threads. 
+    <p>As a practical matter, continuations & coroutines & cooperative threading will not be accepted. 
+    <p>Please don't implement your own custom "custom scheduler" or use "continuations" or "coroutines" or "cooperative threading" - they will not be accepted. 
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+    <ul>
+      <li><p>create differently coloured (blue, red, yellow), differently named, concurrent chameneos creatures
+      <li><p>each creature will repeatedly go to the meeting place and meet, or wait to meet, another chameneos "(at the request the
+caller does not know whether another chameneos is already present or not, neither if there will be one in some future)"
+      <li><p>both creatures will change colour to complement the colour of the chameneos that they met - don't use arithmetic to complement the colour, use if-else or switch/case or pattern-match
+      <li><p>write all the colour changes for blue red and yellow creatures, using the colour complement function
+      <li><p>for rendezvouses with an odd number of creatures (blue red yellow) and with an even number of creatures (blue red yellow red yellow blue red yellow red blue)
+      <ul>
+        <li><p>write the colours the creatures start with
+        <li><p>after N meetings have taken place, for each creature write the number of creatures met and spell out the number of times the creature met a creature with the same name (should be zero)
+        <li><p>spell out the sum of the number of creatures met (should be 2N)
+      </ul>
+    </ul>
+    <p><a href="http://www.math.utah.edu/~beebe/software/ndiff/">ndiff</a> -fields 2-10</b> program output N = 600 with this <a href="./chameneosredux/600_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (6000000) to check program performance.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="meteor">meteor-contest description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/meteor.html">program measurements</a>
+  </aside>
+  <h2>(Not included in summary comparisons)</h2>
+  <section>
+    <h3>Background</h3>
+    <p>The Meteor Puzzle board is made up of 10 rows of 5 hexagonal Cells. There are 10 puzzle pieces to be placed on the board, we'll number them 0 to 9. Each puzzle piece is made up of 5 hexagonal Cells. As different algorithms may be used to generate the puzzle solutions, we require that the solutions be printed in a standard order and format. Here's one approach - working along each row left to right, and down the board from top to bottom, take the number of the piece placed in each cell on the board, and create a string from all 50 numbers, for example the smallest puzzle solution would be represented by 
+<pre>00001222012661126155865558633348893448934747977799</pre>
+    <p>Print the smallest and largest Meteor Puzzle 50 character solution string in this format to mimic the hexagonal puzzle board:
+<pre>0 0 0 0 1 
+ 2 2 2 0 1 
+2 6 6 1 1 
+ 2 6 1 5 5 
+8 6 5 5 5 
+ 8 6 3 3 3 
+4 8 8 9 3 
+ 4 4 8 9 3 
+4 7 4 7 9 
+ 7 7 7 9 9 
+</pre>
+    <p>The command line parameter N should limit how many solutions will be found before the program halts, so that you can work with just a few solutions to debug and optimize your program.
+  </section>
+  <section>
+    <h3>The puzzle board</h3>
+<pre>cell    NW NE W  E  SW SE
+0       -- -- -- 01 -- 05
+1       -- -- 00 02 05 06
+2       -- -- 01 03 06 07
+3       -- -- 02 04 07 08
+4       -- -- 03 -- 08 09
+5       00 01 -- 06 10 11
+6       01 02 05 07 11 12
+7       02 03 06 08 12 13
+8       03 04 07 09 13 14
+9       04 -- 08 -- 14 --
+10      -- 05 -- 11 -- 15
+11      05 06 10 12 15 16
+12      06 07 11 13 16 17
+13      07 08 12 14 17 18
+14      08 09 13 -- 18 19
+15      10 11 -- 16 20 21
+16      11 12 15 17 21 22
+17      12 13 16 18 22 23
+18      13 14 17 19 23 24
+19      14 -- 18 -- 24 --
+20      -- 15 -- 21 -- 25
+21      15 16 20 22 25 26
+22      16 17 21 23 26 27
+23      17 18 22 24 27 28
+24      18 19 23 -- 28 29
+25      20 21 -- 26 30 31
+26      21 22 25 27 31 32
+27      22 23 26 28 32 33
+28      23 24 27 29 33 34
+29      24 -- 28 -- 34 --
+30      -- 25 -- 31 -- 35
+31      25 26 30 32 35 36
+32      26 27 31 33 36 37
+33      27 28 32 34 37 38
+34      28 29 33 -- 38 39
+35      30 31 -- 36 40 41
+36      31 32 35 37 41 42
+37      32 33 36 38 42 43
+38      33 34 37 39 43 44
+39      34 -- 38 -- 44 --
+40      -- 35 -- 41 -- 45
+41      35 36 40 42 45 46
+42      36 37 41 43 46 47
+43      37 38 42 44 47 48
+44      38 39 43 -- 48 49
+45      40 41 -- 46 -- --
+46      41 42 45 47 -- --
+47      42 43 46 48 -- --
+48      43 44 47 49 -- --
+49      44 -- 48 -- -- --
+</pre>
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>The Meteor Puzzle and 3 Java puzzle solvers are described in [pdf 111KB] <a href="http://www.dsc.ufcg.edu.br/~jacques/cursos/2004.2/gr/recursos/j-javaopt.pdf">"Optimize your Java application's performance"</a>.
+    <p>You are expected to <b>diff</b> the output from your program N = 2098 against this <a href="./meteor/2098_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+  </section>
+
+</article>
+
+<article>
+  <h2 id="threadring">thread-ring description</h2>
+  <aside>
+    <p><a href="http://benchmarksgame.alioth.debian.org/u64q/threadring.html">program measurements</a>
+  </aside>
+  <h2>(Not included in summary comparisons)</h2>
+  <section>
+    <h3>Background</h3>
+    <p>A simplistic adaptation of <a href="http://www.sics.se/~joe/ericsson/du98024.html">Performance Measurements of Threads in Java and Processes in Erlang</a> and <a href="http://www.cl.cam.ac.uk/users/mr/Cobench.html">A Benchmark Test for BCPL Style Coroutines</a>.
+  </section>
+  <section>
+    <h3>Variance</h3>
+    <p>Use OS threads or the language implementation pre-emptive lightweight threads. 
+    <p>As a practical matter, continuations & coroutines & cooperative threading will not be accepted. 
+    <p>Please don't implement your own custom "custom scheduler" or use "continuations" or "coroutines" or "cooperative threading" - they will not be accepted. 
+  </section>
+  <section>
+    <h3>How to implement</h3>
+    <p>We ask that contributed programs not only give the correct result, but also <b>use the same algorithm</b> to calculate that result.
+    <p>Each program should:
+      <ul>
+         <li><p>create 503 linked pre-emptive threads (named 1 to 503)
+         <li><p>thread 503 should be linked to thread 1, forming an unbroken ring          
+         <li><p>pass a token to thread 1    
+         <li><p>pass the token from thread to thread N times  
+         <li><p>print the name of the last thread (1 to 503) to take the token
+      </ul>
+    <p><b>diff</b> program output N = 1000 with this <a href="./threadring/1000_out">output file</a> to check your program output has the correct format, before you <a href="http://benchmarksgame.alioth.debian.org/u64q/play.html">contribute your program</a>.
+    <p>Use a larger command line argument (50000000) to check program performance.
+  </section>
+
+</article>
