@@ -8,6 +8,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -16,15 +18,14 @@ namespace knucleotide
 {
     class Program
     {
-        private static readonly (int, Dictionary<long, Wrapper>)[] dics = new[]
-        {
-            (1, new Dictionary<long, Wrapper>()),
-            (2, new Dictionary<long, Wrapper>()),
-            (3, new Dictionary<long, Wrapper>()),
-            (4, new Dictionary<long, Wrapper>()),
-            (6, new Dictionary<long, Wrapper>()),
-            (12, new Dictionary<long, Wrapper>()),
-            (18, new Dictionary<long, Wrapper>()),
+        private static readonly (string, Dictionary<long, Wrapper>, string)[] dics = {
+            ("0", new Dictionary<long, Wrapper>(), (string)null),
+            ("00", new Dictionary<long, Wrapper>(), (string)null),
+            ("GGT", new Dictionary<long, Wrapper>(), (string)null),
+            ("GGTA", new Dictionary<long, Wrapper>(), (string)null),
+            ("GGTATT", new Dictionary<long, Wrapper>(), (string)null),
+            ("GGTATTTTAATT", new Dictionary<long, Wrapper>(), (string)null),
+            ("GGTATTTTAATTTATAGT", new Dictionary<long, Wrapper>(), (string)null),
         };
         private const byte a = (byte) 'a';
         private const byte A = (byte) 'A';
@@ -50,8 +51,14 @@ namespace knucleotide
             {
                 var currentWork = Interlocked.Increment(ref work);
                 if (currentWork > WORK_COUNT) return;
-                var (f, d) = dics[currentWork];
-                CountFrequency(f, d);
+                var (f, d, _) = dics[currentWork];
+                var fLen = f.Length;
+                ref var ss = ref dics[currentWork].Item3;
+                CountFrequency(fLen, d);
+                if (fLen <= 2)
+                    ss = WriteFrequencies(d, fLen);
+                else
+                    ss = WriteCount(d, f);
                 if (currentWork == WORK_COUNT) return;
             }
         }
@@ -75,15 +82,13 @@ namespace knucleotide
         {
             ReadInput();
             RunWorkers();
-            var f1 = WriteFrequencies(dics[0].Item2, 1);
-            Console.WriteLine(f1);
-            var f2 = WriteFrequencies(dics[1].Item2, 2);
-            Console.WriteLine(f2);
-            Console.WriteLine(WriteCount(dics[2].Item2, "GGT"));
-            Console.WriteLine(WriteCount(dics[3].Item2, "GGTA"));
-            Console.WriteLine(WriteCount(dics[4].Item2, "GGTATT"));
-            Console.WriteLine(WriteCount(dics[5].Item2, "GGTATTTTAATT"));
-            Console.WriteLine(WriteCount(dics[6].Item2, "GGTATTTTAATTTATAGT"));
+            Console.WriteLine(dics[0].Item3);
+            Console.WriteLine(dics[1].Item3);
+            Console.WriteLine(dics[2].Item3);
+            Console.WriteLine(dics[3].Item3);
+            Console.WriteLine(dics[4].Item3);
+            Console.WriteLine(dics[5].Item3);
+            Console.WriteLine(dics[6].Item3);
         }
 
         private class VtComparer : IComparer<(int, long)>
@@ -110,9 +115,9 @@ namespace knucleotide
             double percent = 100.0 / total;
             Array.Sort(res, vt);
 
-            foreach (var vk in res)
+            foreach (var (val, k) in res)
             {
-                var key = vk.Item2;
+                var key = k;
                 if (fragmentLength == 2)
                 {
                     var b = ToChar((int) (key & 0x3));
@@ -126,7 +131,7 @@ namespace knucleotide
                     sb.Append(ToChar((int) (key & 0x3)));
                 }
                 sb.Append(' ');
-                sb.AppendLine((vk.Item1 * percent).ToString("F3"));
+                sb.AppendLine((val * percent).ToString("F3"));
             }
             return sb.ToString();
         }
@@ -138,7 +143,46 @@ namespace knucleotide
                 key = (key << 2) | ToNum((byte) fragment[i]);
             Wrapper w;
             var n = dictionary.TryGetValue(key, out w) ? w.V : 0;
-            return string.Concat(n.ToString(), "\t", fragment);
+            return String.Concat(n.ToString(), "\t", fragment);
+        }
+
+        private static void CountFrequency(int fragmentLength, Dictionary<long, Wrapper> dictionary)
+        {
+            long rollingKey = 0;
+            long mask = 0;
+            int cursor;
+            var memoryI = 0;
+            var localStart = start;
+            for (cursor = 0; cursor < fragmentLength - 1; cursor++)
+            {
+                rollingKey <<= 2;
+                if (memory[memoryI].Length <= localStart + cursor)
+                {
+                    memoryI++;
+                    localStart = 0;
+                    cursor = 0;
+                }
+                rollingKey |= ToNum(memory[memoryI][localStart + cursor]);
+                mask = (mask << 2) + 3;
+            }
+            localStart += cursor;
+            mask = (mask << 2) + 3;
+            Wrapper w;
+            byte cursorByte;
+            for (int i = memoryI; i < memory.Count; i++)
+            {
+                var buffer = memory[i];
+                for (int j = i == 0 ? localStart : 0; j < buffer.Length; j++)
+                {
+                    if (i == memory.Count - 1 && j == end - 1) break;
+                    if ((cursorByte = buffer[j]) == newLine) continue;
+                    rollingKey = ((rollingKey << 2) & mask) | ToNum(cursorByte);
+                    if (dictionary.TryGetValue(rollingKey, out w))
+                        w.V++;
+                    else
+                        dictionary.Add(rollingKey, new Wrapper(1));
+                }
+            }
         }
 
         private class Wrapper
@@ -154,20 +198,8 @@ namespace knucleotide
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte ToNum(byte b)
         {
-            switch (b)
-            {
-                case a:
-                case A:
-                    return 0;
-                case c:
-                case C:
-                    return 1;
-                case g:
-                case G:
-                    return 2;
-                default:
-                    return 3;
-            }
+            Debug.Assert(new []{'A','C','G','T','a','c','g','t'}.Contains((char) b));
+            return (byte)((b & 6) >> 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -180,39 +212,9 @@ namespace knucleotide
                 case 1:
                     return 'C';
                 case 2:
-                    return 'G';
-                default:
                     return 'T';
-            }
-        }
-
-        private static void CountFrequency(int fragmentLength, Dictionary<long, Wrapper> dictionary)
-        {
-            long rollingKey = 0;
-            long mask = 0;
-            int cursor;
-            for (cursor = 0; cursor < fragmentLength - 1; cursor++)
-            {
-                rollingKey <<= 2;
-                rollingKey |= ToNum(memory[0][start + cursor]);
-                mask = (mask << 2) + 3;
-            }
-            mask = (mask << 2) + 3;
-            Wrapper w;
-            byte cursorByte;
-            for (int i = 0; i < memory.Count; i++)
-            {
-                var buffer = memory[i];
-                for (int j = i == 0 ? start + 1 : 0; j < buffer.Length; j++)
-                {
-                    if (i == memory.Count - 1 && j == end - 1) break;
-                    if ((cursorByte = buffer[j]) == newLine) continue;
-                    rollingKey = ((rollingKey << 2) & mask) | ToNum(cursorByte);
-                    if (dictionary.TryGetValue(rollingKey, out w))
-                        w.V++;
-                    else
-                        dictionary.Add(rollingKey, new Wrapper(1));
-                }
+                default:
+                    return 'G';
             }
         }
 
@@ -230,7 +232,6 @@ namespace knucleotide
             int readen;
             bool headerFound = false;
             byte[] helpMe = null;
-            int z = 0;
             // I need refactor this mess
             while ((readen = stdin.Read(buffer, 0, bufferSize)) > 0)
             {
@@ -276,6 +277,7 @@ namespace knucleotide
                         if (readen < bufferSize)
                         {
                             end = readen;
+                            goto exit;
                         }
                         else
                         {
@@ -288,11 +290,14 @@ namespace knucleotide
             second_loop:
             while (end == -1 && ((readen = stdin.Read(buffer, 0, bufferSize)) > 0))
             {
-                end = Array.IndexOf(buffer, gt, start, readen - start);
+                end = Array.IndexOf(buffer, gt, 0, readen);
                 memory.Add(buffer);
                 buffer = new byte[bufferSize];
+                if (readen != bufferSize) break;
             }
             if (end == -1) end = readen;
+            exit:
+            start++;
             stdin.Dispose();
             GC.Collect();
         }
