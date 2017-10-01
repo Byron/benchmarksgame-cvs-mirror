@@ -1,378 +1,300 @@
-/* The Computer Language Benchmarks Game
+﻿/* The Computer Language Benchmarks Game
    http://benchmarksgame.alioth.debian.org/
  *
- * contributed by by Robert F. Tobler
- *  + byte processing, C# 3.0 idioms, frame level paralellism
- * modified by Jonathan C. Dickinson
- *  + unsafe code, string-free, micro-optimizations, best performance practices
- *   (33% faster on MSFT CLR)
+ * contributed by Sergey Prytkov
+ * shifting arithmetic borrowed from Anthony Lloyd's submission
+ * 
  */
 
 using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Diagnostics;
 
-public sealed class ByteString : IEquatable<ByteString>, IComparable<ByteString>
+namespace knucleotide
 {
-   public readonly byte[] Array;
-   public readonly int Start;
-   public readonly int Length;
-   private int HashCode;
+    class Program
+    {
+        private static readonly (int, Dictionary<long, Wrapper>)[] dics = new[]
+        {
+            (1, new Dictionary<long, Wrapper>()),
+            (2, new Dictionary<long, Wrapper>()),
+            (3, new Dictionary<long, Wrapper>()),
+            (4, new Dictionary<long, Wrapper>()),
+            (6, new Dictionary<long, Wrapper>()),
+            (12, new Dictionary<long, Wrapper>()),
+            (18, new Dictionary<long, Wrapper>()),
+        };
+        private const byte a = (byte) 'a';
+        private const byte A = (byte) 'A';
+        private const byte c = (byte) 'c';
+        private const byte C = (byte) 'C';
+        private const byte g = (byte) 'g';
+        private const byte G = (byte) 'G';
+        private const byte T = (byte) 'T';
+        private const byte t = (byte) 't';
+        private const byte newLine = (byte) '\n';
 
-   public unsafe ByteString(byte[] array, int start, int length)
-   {
-      Array = array; Start = start; Length = length;
-      HashCode = 0;
-      fixed (byte* ptrFixed = &Array[Start])
-      {
-         byte* ptr = ptrFixed;
-         for (int i = 0; i < Length; i++)
-            HashCode = HashCode * 31 + *ptr++;
-      }
-   }
+        private static readonly List<byte[]> memory = new List<byte[]>();
+        private static int start = 0;
+        private static int end = -1;
+        private static readonly VtComparer vt = new VtComparer();
 
-   public unsafe ByteString(string text)
-   {
-      Start = 0; Length = text.Length;
-      Array = Encoding.ASCII.GetBytes(text);
-      HashCode = 0;
-      fixed (byte* ptrFixed = &Array[Start])
-      {
-         byte* ptr = ptrFixed;
-         for (int i = 0; i < Length; i++)
-            HashCode = HashCode * 31 + *ptr++;
-      }
-   }
+        private static int work=-1;
+        private const int WORK_COUNT=6;
 
-   public override int GetHashCode()
-   {
-      return HashCode;
-   }
-
-   public unsafe bool Equals(ByteString other)
-   {
-      if (Length != other.Length) return false;
-      fixed (byte* thisFixed = &Array[Start], otherFixed = &other.Array[other.Start])
-      {
-         var tf = thisFixed;
-         var of = otherFixed;
-         for (int i = 0; i < Length; i++)
-            if (*(tf++) != *(of++)) return false;
-      }
-      return true;
-   }
-
-   public unsafe int CompareTo(ByteString other)
-   {
-      // Converting to strings to compare is just wasteful.
-
-      var len = Math.Min(this.Length, other.Length);
-      fixed (byte* thisFixed = &Array[Start], otherFixed = &other.Array[other.Start])
-      {
-         var tf = thisFixed;
-         var of = otherFixed;
-         // We have to do this loop because of how strings compare.
-         for (var i = 0; i < len; i++)
-         {
-            var c1 = (char)(*(tf++));
-            var c2 = (char)(*(of++));
-            var c = c1.CompareTo(c2);
-            if (c != 0)
-               return c;
-         }
-      }
-
-      return this.Length.CompareTo(other.Length);
-   }
-
-   public override string ToString()
-   {
-      return Encoding.ASCII.GetString(Array, Start, Length);
-   }
-}
-
-public static class Extensions
-{
-   public static readonly byte[] NewLine;
-
-   static Extensions()
-   {
-      //NewLine = Environment.NewLine.Select(x => (byte)x).ToArray();
-      NewLine = new[] { (byte)'\n' };
-   }
-
-   public static bool Contains(this byte[] buffer, byte[] data)
-   {
-      var index = 0;
-      for (var i = 0; i < buffer.Length - data.Length; i++)
-      {
-         var b = buffer[i];
-
-         // ToUpper
-         if (b > 96 && b < 123)
-            b = (byte)(b - 32);
-
-         if (data[index] == b)
-         {
-            index++;
-            if (index == data.Length)
+        private static void Worker()
+        {
+            while (true)
             {
-               return true;
+                var currentWork = Interlocked.Increment(ref work);
+                if (currentWork > WORK_COUNT) return;
+                var (f, d) = dics[currentWork];
+                CountFrequency(f, d);
+                if (currentWork == WORK_COUNT) return;
             }
-         }
-         else
-         {
-            index = 0;
-         }
-      }
-      return false;
-   }
+        }
 
-   public static IEnumerable<byte[]> ReadByteLines(this Stream stream)
-   {
-      // Read a stream as a set of byte arrays representing strings.
-      var dynamic = new byte[85];
-      var lineLength = 0;
-
-      var buffer = new byte[4096]; // Ideally the system page size but I am not sure what Linux uses.
-      var index = 0;
-      var readCount = 0;
-
-      while ((readCount = stream.Read(buffer, 0, buffer.Length)) != 0)
-      {
-         for (var i = 0; i < readCount; i++)
-         {
-            var b = buffer[i];
-
-            // ToUpper
-            if (b > 96 && b < 123)
-               b = (byte)(b - 32);
-
-            // Check for a newline.
-            if (NewLine[index] == b)
+        private static void RunWorkers()
+        {
+            var worker = new ThreadStart(Worker);
+            var workers = new Thread[Environment.ProcessorCount];
+            for (int i = 0; i < workers.Length; i++)
             {
-               index++;
-               if (index == NewLine.Length)
-               {
-                  if (lineLength == 0)
-                     yield return new byte[0];
-                  var result = new byte[lineLength];
-                  Buffer.BlockCopy(dynamic, 0, result, 0, lineLength);
-                  yield return result;
-                  lineLength = 0;
-                  index = 0;
-               }
+                workers[i] = new Thread(worker);
+                workers[i].Start();
             }
-            else
+            for (int i = 0; i < workers.Length; i++)
             {
-               // Otherwise append what we had of the newline.
-               for (var j = 0; j < index; j++)
-               {
-                  Append(ref dynamic, ref lineLength, NewLine[j]);
-               }
-
-               // And the data.
-               index = 0;
-               Append(ref dynamic, ref lineLength, b);
+                workers[i].Join();
             }
-         }
-      }
-   }
+        }
 
-   private static void Append(ref byte[] dynamic, ref int lineLength, byte b)
-   {
-      var newLength = lineLength + 1;
-      if (dynamic.Length < newLength)
-      {
-         // Allocate into an new array but use a DMA function
-         // instead of a silly O(n) Array.Copy/Resize.
-         var newArr = new byte[dynamic.Length + 85];
-         Buffer.BlockCopy(dynamic, 0, newArr, 0, dynamic.Length);
-         dynamic = newArr;
-      }
-      dynamic[lineLength] = b;
-      lineLength = newLength;
-   }
+        static void Main(string[] args)
+        {
+            ReadInput();
+            RunWorkers();
+            var f1 = WriteFrequencies(dics[0].Item2, 1);
+            Console.WriteLine(f1);
+            var f2 = WriteFrequencies(dics[1].Item2, 2);
+            Console.WriteLine(f2);
+            Console.WriteLine(WriteCount(dics[2].Item2, "GGT"));
+            Console.WriteLine(WriteCount(dics[3].Item2, "GGTA"));
+            Console.WriteLine(WriteCount(dics[4].Item2, "GGTATT"));
+            Console.WriteLine(WriteCount(dics[5].Item2, "GGTATTTTAATT"));
+            Console.WriteLine(WriteCount(dics[6].Item2, "GGTATTTTAATTTATAGT"));
+        }
 
-   public static byte[] Concat(this IList<byte[]> bytes, int totalCount)
-   {
-      // Once again we use DMA.
-      var buffer = new byte[totalCount];
-      var pos = 0;
-      for (var i = 0; i < bytes.Count; i++)
-      {
-         var arr = bytes[i];
-         Buffer.BlockCopy(arr, 0, buffer, pos, arr.Length);
-         pos += arr.Length;
-      }
-      return buffer;
-   }
-}
+        private class VtComparer : IComparer<(int, long)>
+        {
+            public int Compare((int, long) x, (int, long) y)
+            {
+                var a = y.Item1 - x.Item1;
+                if (a == 0) return (int) (x.Item2 - y.Item2);
+                return a;
+            }
+        }
 
-public static class Program
-{
-   public static int TaskCount;
-   public static int Current = -1;
-   public static KNucleotide[] kna;
+        private static string WriteFrequencies(Dictionary<long, Wrapper> freq, int fragmentLength)
+        {
+            var sb = new StringBuilder();
+            var res = new (int, long)[freq.Count];
+            var total = 0.0d;
+            var i = 0;
+            foreach (var kv in freq)
+            {
+                total += kv.Value.V;
+                res[i++] = (kv.Value.V, kv.Key);
+            }
+            double percent = 100.0 / total;
+            Array.Sort(res, vt);
 
-   public static void Main(string[] args)
-   {
-      // The help page asks to deal with command-line args.
-      var source = Console.OpenStandardInput();
-      var input = new List<byte[]>();
-      var totalCount = 0;
+            foreach (var vk in res)
+            {
+                var key = vk.Item2;
+                if (fragmentLength == 2)
+                {
+                    var b = ToChar((int) (key & 0x3));
+                    key >>= 2;
+                    var a = ToChar((int) (key & 0x3));
+                    sb.Append(a);
+                    sb.Append(b);
+                }
+                else
+                {
+                    sb.Append(ToChar((int) (key & 0x3)));
+                }
+                sb.Append(' ');
+                sb.AppendLine((vk.Item1 * percent).ToString("F3"));
+            }
+            return sb.ToString();
+        }
 
-      var hasSeenThree = false;
-      foreach (var line in source.ReadByteLines())
-      {
-         if (!hasSeenThree)
-         {
-            hasSeenThree = line.Contains(new[] { (byte)'>', (byte)'T', (byte)'H', (byte)'R', (byte)'E', (byte)'E' });
-            continue;
-         }
-         if (line[0] == (byte)'>') break;
-         if (line[0] != (byte)';')
-         {
-            totalCount += line.Length;
-            input.Add(line);
-         }
-      }
+        private static string WriteCount(Dictionary<long, Wrapper> dictionary, string fragment)
+        {
+            long key = 0;
+            for (int i = 0; i < fragment.Length; ++i)
+                key = (key << 2) | ToNum((byte) fragment[i]);
+            Wrapper w;
+            var n = dictionary.TryGetValue(key, out w) ? w.V : 0;
+            return string.Concat(n.ToString(), "\t", fragment);
+        }
 
-      var lengths = new[] { 1, 2, 3, 4, 6, 12, 18 };
-      TaskCount = lengths.Aggregate(0, (cnt, len) => cnt + len); // Wasteful but likely not an issue.
-      kna = new KNucleotide[TaskCount];
+        private class Wrapper
+        {
+            public int V;
 
-      var bytes = input.Concat(totalCount);
-      lengths.Aggregate(0, (cnt, len) =>
-      {
-         for (int i = 0; i < len; i++)
-            kna[cnt + i] = new KNucleotide(bytes, len, i);
-         return cnt + len;
-      });
+            public Wrapper(int v)
+            {
+                V = v;
+            }
+        }
 
-      // This technically should be faster, but my profiler is broken.
-      var events = new AutoResetEvent[Environment.ProcessorCount];
-      for (int i = 0; i < events.Length; i++)
-      {
-         events[i] = new AutoResetEvent(false);
-         new Thread(CountFrequencies).Start(events[i]);
-      }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static byte ToNum(byte b)
+        {
+            switch (b)
+            {
+                case a:
+                case A:
+                    return 0;
+                case c:
+                case C:
+                    return 1;
+                case g:
+                case G:
+                    return 2;
+                default:
+                    return 3;
+            }
+        }
 
-      WaitHandle.WaitAll(events);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static char ToChar(int i)
+        {
+            switch (i)
+            {
+                case 0:
+                    return 'A';
+                case 1:
+                    return 'C';
+                case 2:
+                    return 'G';
+                default:
+                    return 'T';
+            }
+        }
 
-      // Converting these to byte arrays at compile time is slightly wasteful but likely premature.
-      var seqs = new[] { null, null,
-            "GGT", "GGTA", "GGTATT", "GGTATTTTAATT",
-            "GGTATTTTAATTTATAGT"};
+        private static void CountFrequency(int fragmentLength, Dictionary<long, Wrapper> dictionary)
+        {
+            long rollingKey = 0;
+            long mask = 0;
+            int cursor;
+            for (cursor = 0; cursor < fragmentLength - 1; cursor++)
+            {
+                rollingKey <<= 2;
+                rollingKey |= ToNum(memory[0][start + cursor]);
+                mask = (mask << 2) + 3;
+            }
+            mask = (mask << 2) + 3;
+            Wrapper w;
+            byte cursorByte;
+            for (int i = 0; i < memory.Count; i++)
+            {
+                var buffer = memory[i];
+                for (int j = i == 0 ? start + 1 : 0; j < buffer.Length; j++)
+                {
+                    if (i == memory.Count - 1 && j == end - 1) break;
+                    if ((cursorByte = buffer[j]) == newLine) continue;
+                    rollingKey = ((rollingKey << 2) & mask) | ToNum(cursorByte);
+                    if (dictionary.TryGetValue(rollingKey, out w))
+                        w.V++;
+                    else
+                        dictionary.Add(rollingKey, new Wrapper(1));
+                }
+            }
+        }
 
-      int index = 0;
-      lengths.Aggregate(0, (cnt, len) =>
-      {
-         if (len < 3)
-         {
-            for (int i = 1; i < len; i++)
-               kna[cnt].AddFrequencies(kna[cnt + i]);
-            kna[cnt].WriteFrequencies();
-         }
-         else
-         {
-            var fragment = seqs[index];
-            int freq = 0;
-            for (int i = 0; i < len; i++)
-               freq += kna[cnt + i].GetCount(fragment);
-            Console.WriteLine("{0}\t{1}", freq, fragment);
-         }
-         index++;
-         return cnt + len;
-      });
-   }
-
-   static void CountFrequencies(object state)
-   {
-      int index;
-      while ((index = Interlocked.Increment(ref Current)) < TaskCount)
-         kna[index].KFrequency();
-      ((AutoResetEvent)state).Set();
-   }
-
-}
-
-public sealed class KNucleotide
-{
-
-   private sealed class Count
-   {
-      public int V;
-      public Count(int v) { V = v; }
-   }
-
-   private Dictionary<ByteString, Count> frequencies
-      = new Dictionary<ByteString, Count>();
-
-   private byte[] sequence;
-   int length;
-   int frame;
-
-   public KNucleotide(byte[] s, int l, int f)
-   {
-      sequence = s; length = l; frame = f;
-   }
-
-   public void AddFrequencies(KNucleotide other)
-   {
-      foreach (var kvp in other.frequencies)
-      {
-         Count count;
-         if (frequencies.TryGetValue(kvp.Key, out count))
-            count.V += kvp.Value.V;
-         else
-            frequencies[kvp.Key] = kvp.Value;
-      }
-   }
-
-   public void WriteFrequencies()
-   {
-      var items = frequencies.ToArray();
-      Array.Sort(items, SortByFrequencyAndCode); // Apparantly faster, who knows?
-      double percent = 100.0 / (sequence.Length - length + 1);
-      foreach (var item in items)
-         Console.WriteLine("{0} {1:f3}",
-                  item.Key.ToString(), item.Value.V * percent);
-      Console.WriteLine();
-   }
-
-   public int GetCount(string fragment)
-   {
-      Count count;
-      if (!frequencies.TryGetValue(new ByteString(fragment), out count))
-         count = new Count(0);
-      return count.V;
-   }
-
-   public void KFrequency()
-   {
-      int n = sequence.Length - length + 1;
-      for (int i = frame; i < n; i += length)
-      {
-         var key = new ByteString(sequence, i, length);
-         Count count;
-         if (frequencies.TryGetValue(key, out count))
-            count.V++;
-         else
-            frequencies[key] = new Count(1);
-      }
-   }
-
-   int SortByFrequencyAndCode(
-         KeyValuePair<ByteString, Count> i0,
-         KeyValuePair<ByteString, Count> i1)
-   {
-      int order = i1.Value.V.CompareTo(i0.Value.V);
-      if (order != 0) return order;
-      return i0.Key.CompareTo(i1.Key);
-   }
+        private static void ReadInput()
+        {
+            var bufferSize = 32 * 1024 * 8;
+            var buffer = new byte[bufferSize];
+            var stdin = Console.OpenStandardInput();
+            var gti = -1;
+            var gt = (byte) '>';
+            var T = (byte) 'T';
+            var H = (byte) 'H';
+            var R = (byte) 'R';
+            var E = (byte) 'E';
+            int readen;
+            bool headerFound = false;
+            byte[] helpMe = null;
+            int z = 0;
+            // I need refactor this mess
+            while ((readen = stdin.Read(buffer, 0, bufferSize)) > 0)
+            {
+                // looking for '>'
+                while (!headerFound && (gti = Array.IndexOf(buffer, gt, gti + 1, readen - (gti + 1))) != -1)
+                {
+                    // if '>THREE' fits buffer with no overlap (very likely)
+                    if (gti < readen - 6)
+                    {
+                        if (buffer[gti + 1] == T &&
+                            buffer[gti + 2] == H &&
+                            buffer[gti + 3] == R &&
+                            buffer[gti + 4] == E &&
+                            buffer[gti + 5] == E)
+                        {
+                            headerFound = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        helpMe = new byte[5];
+                        Buffer.BlockCopy(buffer, gti, helpMe, 0, readen - gti);
+                        stdin.Read(helpMe, readen - gti, helpMe.Length - (readen - gti));
+                        if (helpMe[0] == T &&
+                            helpMe[1] == H &&
+                            helpMe[2] == R &&
+                            helpMe[3] == E &&
+                            helpMe[4] == E)
+                        {
+                            headerFound = true;
+                            break;
+                        }
+                    }
+                }
+                if (headerFound)
+                {
+                    // if new line after header also in this buff (very likely)
+                    if ((start = Array.IndexOf(buffer, newLine, gti + 6, readen - (gti + 6))) != -1)
+                    {
+                        memory.Add(buffer);
+                        end = Array.IndexOf(buffer, gt, start, readen - start);
+                        if (readen < bufferSize)
+                        {
+                            end = readen;
+                        }
+                        else
+                        {
+                            buffer = new byte[bufferSize];
+                            goto second_loop;
+                        }
+                    }
+                }
+            }
+            second_loop:
+            while (end == -1 && ((readen = stdin.Read(buffer, 0, bufferSize)) > 0))
+            {
+                end = Array.IndexOf(buffer, gt, start, readen - start);
+                memory.Add(buffer);
+                buffer = new byte[bufferSize];
+            }
+            if (end == -1) end = readen;
+            stdin.Dispose();
+            GC.Collect();
+        }
+    }
 }
