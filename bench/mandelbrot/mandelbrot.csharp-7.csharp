@@ -1,0 +1,143 @@
+/* The Computer Language Benchmarks Game
+   http://benchmarksgame.alioth.debian.org/
+
+   started with Java #2 program (Krause/Whipkey/Bennet/AhnTran/Enotus/Stalcup)
+   adapted for C# by Jan de Vaan
+   simplified and optimised to use TPL by Anthony Lloyd
+   simplified to compute Cib alongside Crb by Tanner Gooding
+   optimized to use Vector<double> by Tanner Gooding
+*/
+
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+
+public class MandelBrot
+{
+    // Vector<double>.Count is treated as a constant by the JIT, don't bother
+    // storing it in a temporary variable anywhere below.
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe byte GetByte(double* pCrb, double Ciby, int x, int y)
+    {
+        var res = 0;
+
+        for (var i = 0; i < 8; i += 2)
+        {
+            var Crbx = Unsafe.Read<Vector<double>>(pCrb + x + i);
+            var Zr = Crbx;
+            var vCiby = new Vector<double>(Ciby);
+            var Zi = vCiby;
+
+            var b = 0;
+            var j = 49;
+
+            do
+            {
+                var nZr = Zr * Zr - Zi * Zi + Crbx;
+                Zi = Zr * Zi + Zr * Zi + vCiby;
+                Zr = nZr;
+
+                var t = Zr * Zr + Zi * Zi;
+
+                if (t[0] > 4)
+                {
+                    b |= 2;
+
+                    if (b == 3)
+                    {
+                        break;
+                    }
+                }
+
+                if (t[1] > 4)
+                {
+                    b |= 1;
+
+                    if (b == 3)
+                    {
+                        break;
+                    }
+                }
+
+            } while (--j > 0);
+
+            res = (res << 2) + b;
+        }
+
+        return (byte)(res ^ -1);
+    }
+
+    public static unsafe void Main(string[] args)
+    {
+        var size = (args.Length > 0) ? int.Parse(args[0]) : 200;
+
+        var adjustedSize = size + (Vector<double>.Count * 8);
+        adjustedSize &= ~(Vector<double>.Count * 8);
+
+        var Crb = new double[adjustedSize];
+        var Cib = new double[adjustedSize];
+
+        fixed (double* pCrb = &Crb[0])
+        fixed (double* pCib = &Cib[0])
+        {
+            var invN = new Vector<double>(2.0 / size);
+
+            var onePtFive = new Vector<double>(1.5);
+            var step = new Vector<double>(Vector<double>.Count);
+
+            Vector<double> value;
+
+            if (Vector<double>.Count == 2)
+            {
+                value = new Vector<double>(new double[] {
+                    0, 1
+                });
+            }
+            else if (Vector<double>.Count == 4)
+            {
+                value = new Vector<double>(new double[] {
+                    0, 1, 2, 3
+                });
+            }
+            else
+            {
+                value = new Vector<double>(new double[] {
+                    0, 1, 2, 3, 4, 5, 6, 7
+                });
+            }
+
+            for (var i = 0; i < size; i += Vector<double>.Count)
+            {
+                var t = value * invN;
+
+                Unsafe.Write(pCrb + i, t - onePtFive);
+                Unsafe.Write(pCib + i, t - Vector<double>.One);
+
+                value += step;
+            }
+        }
+
+        var lineLength = size >> 3;
+        var data = new byte[adjustedSize * lineLength];
+
+        fixed (double* pCrb = &Crb[0])
+        {
+            var _Crb = pCrb;
+
+            Parallel.For(0, size, y => {
+                var offset = y * lineLength;
+
+                for (var x = 0; x < lineLength; x++)
+                {
+                    data[offset + x] = GetByte(_Crb, Cib[y], x * 8, y);
+                }
+            });
+        }
+
+        // generate the bitmap header
+        Console.Out.Write("P4\n{0} {0}\n", size);
+        Console.OpenStandardOutput().Write(data, 0, size * lineLength);
+    }
+}
