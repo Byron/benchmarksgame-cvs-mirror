@@ -1,7 +1,8 @@
 # The Computer Language Benchmarks Game
-# $Id: README,v 1.8 2016/12/12 21:21:06 igouy-guest Exp $
+# $Id: README,v 1.9 2017/10/25 17:17:11 igouy-guest Exp $
 
-	bencher - June 2011, April 2013, December 2016
+	bencher - June 2011, April 2013, December 2016,
+                  October 2017
 
 
 
@@ -68,24 +69,52 @@
 
  ndiff (to check program output more selectively)
     see http://www.math.utah.edu/~beebe/software/ndiff/
+    available from anonymous ftp
 
  highlight 3+: code & syntax highlighting
    see http://www.andre-simon.de/doku/highlight/en/highlight.html
+    available from apt-get
 
 
 
  2.1) LINUX SPECIFIC RECOMMENDED SOFTWARE
  
- libgtop2 dev files and python-gtop Python bindings
+ libgtop2-7 & libgtop2-dev and python-gtop Python bindings
     (for cpu load and resident memory measurement)
 
- python-gtop has been removed from recent distros, so I use: 
+ libgtop2-7 & libgtop2-dev can be installed, with apt-get, from
+ the old "trusty" repo:
+
+ Create a text file:
+
+    /etc/apt/sources.list.d/oldrepo.list
+
+ :and add the line:
+
+    deb http://mirrors.kernel.org/ubuntu trusty main
+
+ :save and:
+
+    sudo apt-get update
+    sudo apt-cache showpkg libgtop2-7
+
+    sudo apt-get install libgtop2-7
+    sudo apt-get install libgtop2-dev
  
-    http://packages.ubuntu.com/precise/python-gtop
+ Similarly it may be possible to install python-gtop
+ from the old "quantal" repo, add the line:
+
+    deb http://mirrors.kernel.org/ubuntu quantal main
+
+ :or download the package directly:
+
+    https://launchpad.net/ubuntu/quantal/amd64/python-gtop/2.32.0+dfsg-1
 
  :and install with:
 
-    dpkg -i python-gtop_2.32.0+dfsg-1_amd64.deb 
+    sudo dpkg -i python-gtop_2.32.0+dfsg-1_amd64.deb
+
+
 
  GNU make (to compile programs for compiled languages)
  GNU diff & cmp (to check program output is as expected)
