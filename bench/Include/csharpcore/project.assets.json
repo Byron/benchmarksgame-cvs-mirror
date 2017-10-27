@@ -701,11 +701,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/dunham/Documents/testzone/tmp/tmp.csproj",
+      "projectUniqueName": "/opt/tmp/tmp/tmp.csproj",
       "projectName": "tmp",
-      "projectPath": "/home/dunham/Documents/testzone/tmp/tmp.csproj",
+      "projectPath": "/opt/tmp/tmp/tmp.csproj",
       "packagesPath": "/home/dunham/.nuget/packages/",
-      "outputPath": "/home/dunham/Documents/testzone/tmp/obj/",
+      "outputPath": "/opt/tmp/tmp/obj/",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "/usr/share/dotnet/sdk/NuGetFallbackFolder"
@@ -717,7 +717,6 @@
         "netcoreapp2.0"
       ],
       "sources": {
-        "/home/dunham/.dotnet/NuGetFallbackFolder": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
