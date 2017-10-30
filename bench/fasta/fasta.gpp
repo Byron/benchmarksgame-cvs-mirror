@@ -13,6 +13,7 @@ modified by Branimir Maksimovic
 #include <cstring>
 #include <algorithm>
 #include <vector>
+#include <numeric>
 
 static int const IM = 139968, IA = 3877, IC = 29573;
 static int last = 42;

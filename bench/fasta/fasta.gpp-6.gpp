@@ -20,6 +20,7 @@ compiles with gcc fasta.cpp -std=c++11 -O2
 #include <mutex>
 #include <iostream>
 #include <numeric>
+#include <functional>
 
 struct IUB
 {
