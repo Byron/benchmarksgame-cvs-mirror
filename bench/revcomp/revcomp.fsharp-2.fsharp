@@ -1,0 +1,147 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by Jimmy Tang
+// multithreaded by Anthony Lloyd
+
+open System
+open System.Threading.Tasks
+
+let pageSize = 1024 * 1024
+let pages = Array.zeroCreate 256
+let scans = Array.zeroCreate<Task<int>> 256
+
+type Message =
+    | NotFound of scanNext:int
+    | Found of (int * int)
+    | ReadEnd of ((int * int) * AsyncReplyChannel<unit>)
+    | Reversed of ((int*int) * (int*int))
+    | Written of (int*int)
+
+let mb() = MailboxProcessor.Start (fun mb ->
+    
+    let scan (startPage,startIndex) =
+        let rec find page =
+            let pageBytes = pages.[page]
+            if isNull pageBytes then NotFound page |> mb.Post
+            else
+                let startPos = if page=startPage then startIndex+1 else 0
+                let i = if startPos=0 then scans.[page].Result
+                        else Array.IndexOf(pageBytes,'>'B, startPos)
+                if i>=0 then Found (page,i) |> mb.Post
+                else find (page+1)
+        find startPage
+
+    let map = Array.init 256 byte
+    Array.iter2 (fun i v -> map.[int i] <- v)
+        "ABCDGHKMRTVYabcdghkmrtvy"B
+        "TVGHCDMKYABRTVGHCDMKYABR"B    
+
+    let reverse (startPage,startIndex) (endPage,endExclusive) =
+        let rec skipHeader page =
+            let startPos = if page=startPage then startIndex+1 else 0
+            let endPos = if page=endPage then endExclusive else pageSize
+            let i = Array.IndexOf(pages.[page],'\n'B,startPos,endPos-startPos)
+            if -1<>i then page,i+1 else skipHeader (page+1)        
+        let mutable loPageId,lo = skipHeader startPage
+        let mutable hiPageId,hi = endPage,endExclusive-1
+        let mutable loPage,hiPage = pages.[loPageId],pages.[hiPageId]
+        let inline checkhilo() =
+            if pageSize=lo then
+                loPageId <- loPageId+1
+                loPage <- pages.[loPageId]
+                lo <- 0        
+            if -1=hi then
+                hiPageId <- hiPageId-1
+                hiPage <- pages.[hiPageId]
+                hi <- pageSize-1
+            loPageId<hiPageId || (loPageId=hiPageId && lo<=hi)                
+        while checkhilo() do
+            let iValue = loPage.[lo]
+            let jValue = hiPage.[hi]
+            if iValue='\n'B || jValue='\n'B then
+                if iValue='\n'B then lo <- lo+1
+                if jValue='\n'B then hi <- hi-1
+            else
+                loPage.[lo] <- map.[int jValue]
+                hiPage.[hi] <- map.[int iValue]
+                lo <- lo+1
+                hi <- hi-1
+        Reversed ((startPage,startIndex),(endPage,endExclusive)) |> mb.Post
+
+    let out = Console.OpenStandardOutput()
+    let write ((startPage,startIndex),(endPage,endExclusive)) =
+        let rec write page =
+            let startPos = if page=startPage then startIndex else 0
+            let endPos = if page=endPage then endExclusive else pageSize
+            out.Write(pages.[page], startPos, endPos-startPos)
+            if page<>endPage then write (page+1)
+        write startPage
+        Written (endPage,endExclusive) |> mb.Post
+
+    let rec loop readEnd scanNext lastFound writeNext writeList = async {
+        let! msg = mb.Receive()
+        let inline run (a:unit->unit) = Task.Run a |> ignore
+        match msg with
+        | NotFound scanNext ->
+            match readEnd with
+            | Some ((page,_) as theEnd,_) when page+1 = scanNext ->
+                run (fun () -> reverse lastFound theEnd)
+                return! loop readEnd scanNext lastFound writeNext writeList
+            | _ ->
+                run (fun () -> scan (scanNext,0))
+                return! loop readEnd -1 lastFound writeNext writeList
+        | Found scanFound ->
+            run (fun () -> reverse lastFound scanFound)
+            run (fun () -> scan scanFound)
+            return! loop readEnd -1 scanFound writeNext writeList
+        | ReadEnd readEnd ->
+            return! loop (Some readEnd) scanNext lastFound writeNext writeList
+        | Reversed ((start,_) as section) ->
+            if start=writeNext then
+                run (fun () -> write section)
+                return! loop readEnd scanNext lastFound (-1,-1) writeList
+            else
+                let writeList = section::writeList
+                return! loop readEnd scanNext lastFound writeNext writeList
+        | Written writtenTo ->
+            match List.partition (fst>>(=)writtenTo) writeList with
+            | [section],restList ->
+                run (fun () -> write section)
+                return! loop readEnd scanNext lastFound (-1,-1) restList
+            | _ ->
+                match readEnd with
+                | Some(theEnd,r) when writtenTo=theEnd -> r.Reply()
+                | _ -> ()
+                return! loop readEnd scanNext lastFound writtenTo writeList
+    }
+    loop None 0 (0,0) (0,0) []
+)
+
+[<EntryPoint>]
+let main _ =
+    let stream = Console.OpenStandardInput()
+
+    let mb = Task.Run mb
+    
+    let rec loop i =
+        
+        let buffer = Array.zeroCreate pageSize
+
+        let rec read offset count =
+            let bytesRead = stream.Read(buffer, offset, count)
+            if bytesRead=count then offset+count
+            elif bytesRead=0 then offset
+            else read (offset+bytesRead) (count-bytesRead)
+
+        let bytesRead = read 0 pageSize
+        if i<>0 then
+            scans.[i] <- Task.Run(fun () -> Array.IndexOf(buffer,'>'B))
+        pages.[i] <- buffer
+        if i=0 then NotFound 0 |> mb.Result.Post
+        if bytesRead=pageSize then loop (i+1)
+        else
+            mb.Result.PostAndAsyncReply(fun r -> ReadEnd ((i,bytesRead), r))
+
+    loop 0 |> Async.RunSynchronously
+    0
