@@ -1,6 +1,6 @@
 #!/usr/bin/python -OO
 # The Computer Language Benchmarks Game
-# $Id: nanobench,v 1.4 2017/05/02 13:35:32 igouy-guest Exp $
+# $Id: nanobench,v 1.5 2017/11/13 21:08:31 igouy-guest Exp $
 
 """
 Description: nanobench records a program's cpu
@@ -591,7 +591,7 @@ def cleanTmpdirFor(p,allowed):
 
 
 def callHighlightSourceCodeMarkup(p):
-   hidir = join( dirs['nano'], 'highlight')
+#   hidir = join( dirs['nano'], 'highlight')
    cmd = ['highlight'
          ,'--fragment'
          ,'--style=edit-eclipse'
