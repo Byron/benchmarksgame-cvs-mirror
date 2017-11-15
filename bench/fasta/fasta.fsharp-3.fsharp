@@ -2,7 +2,7 @@
 // http://benchmarksgame.alioth.debian.org/
 //
 // Contributed by Valentin Kraevskiy
-// multithreaded by Anthony Lloyd
+// Multithreaded by Anthony Lloyd
 
 [<Literal>]
 let Width = 60
@@ -41,9 +41,9 @@ let main args =
                 a
             let inline bytes l d (rnds:int[]) =
                 let a = bytePool.Rent (l+(l+d)/Width)
-                let inline lookup probabilty =
+                let inline lookup probability =
                     let rec search i =
-                        if ps.[i]>=probabilty then i
+                        if ps.[i]>=probability then i
                         else search (i+1)
                     vs.[search 0]
                 for i = 0 to l-1 do
@@ -110,5 +110,5 @@ let main args =
            if l>200 then bytePool.Return bs
            i+1) |> write
     write 0
-
+    out.WriteByte '\n'B
     0
