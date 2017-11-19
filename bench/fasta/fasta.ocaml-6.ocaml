@@ -4,6 +4,7 @@
  * contributed by Troestler Christophe
  * modified by Mauricio Fernandez
  * modified by Fabrice Le Fessant
+ * modified by Roman Kashitsyn: use Bytes instead of String
  *)
 
 (* Random number generator *)
@@ -30,7 +31,7 @@ let rand_char last ps line j chars =
     while p >= ps.(!i) do incr i done;
     !i
   in
-  line.[j] <- chars.(i);
+  Bytes.set line j chars.(i);
   n
 
 let make_random_fasta last id desc table n =
@@ -38,8 +39,8 @@ let make_random_fasta last id desc table n =
   print_char ' '; print_string desc;
   print_char '\n';
   let len_table = Array.length table in
-  let ps = Array.create len_table 0. in
-  let chars = Array.create len_table '\000' in
+  let ps = Array.make len_table 0. in
+  let chars = Array.make len_table '\000' in
   let p = ref 0.0 in
   for i = 0 to len_table -1 do
     let (c, px) = table.(i) in
@@ -49,7 +50,7 @@ let make_random_fasta last id desc table n =
   done;
   let nlines = (n + width - 1) / width in
   let nchars = n + nlines in
-  let line = String.create nchars in
+  let line = Bytes.create nchars in
   let last_n = ref last in
   let pos = ref 0 in
   for i = 1 to nlines-1 do
@@ -59,19 +60,19 @@ let make_random_fasta last id desc table n =
       last_n := rand_char !last_n ps line j chars;
     done;
     pos := final_pos + 2;
-    line.[final_pos+1] <- '\n';
+    Bytes.set line (final_pos + 1) '\n';
   done;
   for j = !pos to nchars - 2 do
     last_n := rand_char !last_n ps line j chars;
   done;
-  line.[nchars-1] <- '\n';
-  output_string stdout line;
+  Bytes.set line (nchars - 1) '\n';
+  output_bytes stdout line;
   !last_n
 
 (* [write s i0 l w] outputs [w] chars of [s.[0 .. l]], followed by a
    newline, starting with [s.[i0]] and considering the substring [s.[0
    .. l]] as a "circle".
-   One assumes [0 <= i0 <= l <= String.length s].
+   One assumes [0 <= i0 <= l <= Bytes.length s].
    @return [i0] needed for subsequent writes.  *)
 let rec write s i0 l w =
   let len = l - i0 in
@@ -84,7 +85,7 @@ let make_repeat_fasta id desc src n =
   print_char ' ';
   print_string desc;
   print_char '\n';
-  let l = String.length src
+  let l = Bytes.length src
   and i0 = ref 0 in
   for i = 1 to n / width do
     i0 := write src !i0 l width;
@@ -111,7 +112,7 @@ let homosapiens = [| ('a', 0.3029549426680);    ('c', 0.1979883004921);
 
 let () =
   let n = try int_of_string(Array.get Sys.argv 1) with _ -> 1000 in
-  make_repeat_fasta "ONE" "Homo sapiens alu" alu (n*2);
+  make_repeat_fasta "ONE" "Homo sapiens alu" (Bytes.of_string alu) (n*2);
   let last = 42 in
   let last = make_random_fasta last "TWO" "IUB ambiguity codes" iub (n*3) in
   let _last =
