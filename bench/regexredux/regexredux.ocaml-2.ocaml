@@ -3,6 +3,8 @@
  *
  * regex-dna program contributed by Christophe TROESTLER
  * converted from regex-dna program
+ *
+ * updated by Roman Kashitsyn: use Bytes instead of String
  *)
 
 open Printf
@@ -22,11 +24,14 @@ let subst = ["tHa[Nt]", "<4>"; "aND\\|caN\\|Ha[DS]\\|WaS", "<3>";
 
 (* Read all of a redirected FASTA format file from stdin. *)
 let file_data, file_length =
-  let b = Buffer.create 0xFFFF and s = String.create 0xFFF and r = ref 1 in
+  let b = Buffer.create 0xFFFF in
+  let s = Bytes.create 0xFFF in
+  let r = ref 1 in
   while !r > 0 do
-    r := input stdin s 0 0xFFF;   Buffer.add_substring b s 0 !r
+    r := input stdin s 0 0xFFF;
+    Buffer.add_substring b (Bytes.unsafe_to_string s) 0 !r
   done;
-  Buffer.contents b, Buffer.length b
+  (Buffer.contents b, Buffer.length b)
 
 (* Remove FASTA sequence descriptions and all linefeed characters.  *)
 let dna = Str.global_replace (Str.regexp "^>.*$\\|\n") "" file_data
@@ -34,9 +39,15 @@ let code_length = String.length dna
 
 (* Count matches of [re]. *)
 let count re s =
-  let re = Str.regexp_case_fold re and i = ref 0 and n = ref 0 in
+  let re = Str.regexp_case_fold re in
+  let i = ref 0 in
+  let n = ref 0 in
   try
-    while true do i := 1 + Str.search_forward re s !i; incr n done; assert false
+    while true do
+      i := 1 + Str.search_forward re s !i;
+      incr n
+    done;
+    assert false
   with Not_found -> !n
 
 
