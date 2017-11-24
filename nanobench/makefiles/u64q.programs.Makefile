@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.54 2017/11/14 23:54:15 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.55 2017/11/24 19:47:21 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -706,5 +706,15 @@ SBCL_TRACE :=
 %.vw_run: %.vw $(VWIM)
 	-cp $(VWIM) $@.im
 	-$(VWOE) $@.im -nogui -pcl MatriX -filein $< -doit 'ObjectMemory snapshotThenQuit'
+
+
+########################################
+# Kotlin
+########################################
+
+%.kotlin_run: %.kotlin $(KOTLINC)
+	-mv $< $(TEST).kt
+	-$(KOTLINC) $(TEST).kt -d $(TEST).jar
+
 
 
