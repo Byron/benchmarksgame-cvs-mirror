@@ -1,5 +1,5 @@
 # The Computer Language Benchmarks Game
-# $Id: u64q.programs.Makefile,v 1.55 2017/11/24 19:47:21 igouy-guest Exp $
+# $Id: u64q.programs.Makefile,v 1.56 2017/12/08 23:45:39 igouy-guest Exp $
 
 # ASSUME each program will build in a clean empty tmpdir
 # ASSUME there's a symlink to the program source in tmpdir
@@ -390,6 +390,7 @@ SBCL_TRACE :=
 	cp $< . ; MAIN=$< ; MAIN=$${MAIN##*/} ; \
 	(echo "(handler-bind ((sb-ext:defconstant-uneql " \
               "    (lambda (c) (abort c)))) " \
+              "    (require :sb-concurrency) " \
               "    (load (compile-file \"$$MAIN\" $(SBCL_TRACE))))" \
               "(save-lisp-and-die \"sbcl.core\" :purify t)") >> $$COMPILE ; \
 	echo "SBCL built with: $(SBCL) --userinit /dev/null --batch --eval '(load \"$$COMPILE\")'" ; \
