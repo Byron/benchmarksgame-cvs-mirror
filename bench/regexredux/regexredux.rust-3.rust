@@ -1,0 +1,51 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by Francois Green
+
+extern crate rayon;
+extern crate regex;
+
+use rayon::prelude::*;
+use std::io::{self, Read};
+use std::thread;
+
+macro_rules! regex { ($re:expr) => { ::regex::bytes::Regex::new($re).unwrap() } }
+
+fn main() {
+    let mut input = Vec::with_capacity(51 * (1 << 20));
+
+    io::stdin().read_to_end(&mut input).unwrap();
+
+    let sequence = regex!(">[^\n]*\n|\n").replace_all(&input, &b""[..]).into_owned();
+
+    let seq_copy = sequence.clone();
+
+    let result = thread::spawn(move || {
+        vec![
+            ("tHa[Nt]", &b"<4>"[..]),
+            ("aND|caN|Ha[DS]|WaS", &b"<3>"[..]),
+            ("a[NSt]|BY", &b"<2>"[..]),
+            ("<[^>]*>", &b"|"[..]),
+            ("\\|[^|][^|]*\\|", &b"-"[..]),
+        ].iter()
+         .fold(seq_copy, |mut buf, &(re, replacement)| {
+             regex!(re).replace_all(&mut buf, replacement).into_owned()
+         })
+    });
+
+    vec![
+        "agggtaaa|tttaccct",
+        "[cgt]gggtaaa|tttaccc[acg]",
+        "a[act]ggtaaa|tttacc[agt]t",
+        "ag[act]gtaaa|tttac[agt]ct",
+        "agg[act]taaa|ttta[agt]cct",
+        "aggg[acg]aaa|ttt[cgt]ccct",
+        "agggt[cgt]aa|tt[acg]accct",
+        "agggta[cgt]a|t[acg]taccct",
+        "agggtaa[cgt]|[acg]ttaccct",
+    ].par_iter()
+     .for_each(|v| println!("{} {}", v.to_string(), regex!(v).find_iter(&sequence).count()));
+
+    println!("\n{} \n{} \n{:?}", input.len(), sequence.len(), result.join().unwrap().len());
+}
