@@ -1,0 +1,64 @@
+// The Computer Language Benchmarks Game
+// http://benchmarksgame.alioth.debian.org/
+//
+// contributed by The Suffocated
+
+#include "Eigen/Core"
+#include <cstdio>
+#include <cmath>
+
+double a(int i, int j) {
+  return 1.0 / ((i+j)*(i+j+1)/2 + i+1);
+}
+
+void multiplyAv(const Eigen::MatrixXd & A, const Eigen::VectorXd & input,
+                Eigen::VectorXd & output) {
+  output = A * input;
+}
+
+void multiplyAtv(const Eigen::MatrixXd & A, const Eigen::VectorXd & input,
+                 Eigen::VectorXd & output) {
+  output = A.transpose() * input;
+}
+
+void multiplyAtAv(const Eigen::MatrixXd & A, const Eigen::VectorXd & input,
+                  Eigen::VectorXd & output, Eigen::VectorXd & buffer) {
+  multiplyAv(A, input, buffer);
+  multiplyAtv(A, buffer, output);
+}
+
+double approximate(int n) {
+  /* EQUIVALENT MATLAB IMPLEMENTATION:
+  A = zeros(n,n);
+  for i=1:n
+    for j=1:n
+      A(i,j) = 1/((i+j)*(i+j+1)/2 + i+1);
+    end
+  end
+  u = ones(n,1);
+  v = zeros(n,1);
+  for i=1:10
+    v = A'*(A*u);
+    u = A'*(A*v);
+  end
+  sqrt((u'*v)/(v'*v))
+  */
+  Eigen::MatrixXd A(n,n);
+  for (int i=0; i<n; ++i)
+    for (int j=0; j<n; ++j)
+      A(i,j) = a(i,j);
+
+  Eigen::VectorXd u=Eigen::VectorXd::Ones(n), v=Eigen::VectorXd::Zero(n), w(n);
+
+  for (int i=0; i<10; ++i) {
+    multiplyAtAv(A, u, v, w);
+    multiplyAtAv(A, v, u, w);
+  }
+  return std::sqrt(u.dot(v)/v.dot(v));
+}
+
+int main(int argc, char *argv[]) {
+    int n = ((argc >= 2) ? atoi(argv[1]) : 100);
+    printf("%.9f\n", approximate(n));
+    return 0;
+}
