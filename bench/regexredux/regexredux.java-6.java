@@ -8,6 +8,7 @@
 import java.io.*;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.*;
@@ -27,7 +28,7 @@ public class regexredux {
     final var input = baos.toString("US-ASCII");
 
     final var sequence = Pattern.compile(">.*\n|\n")
-                            .matcher(input).replaceAll("");
+                                   .matcher(input).replaceAll("");
 
     final var replacements = CompletableFuture.supplyAsync(() ->
         Stream.of(
@@ -38,10 +39,10 @@ public class regexredux {
             Map.entry("\\|[^|][^|]*\\|", "-")
         ).reduce(sequence,
             (buffer, e) -> Pattern.compile(e.getKey())
-               .matcher(buffer).replaceAll(e.getValue()),
+                                     .matcher(buffer).replaceAll(e.getValue()),
             (a, __) -> a));
 
-    Stream.of(
+    final var variants = List.of(
         "agggtaaa|tttaccct",
         "[cgt]gggtaaa|tttaccc[acg]",
         "a[act]ggtaaa|tttacc[agt]t",
@@ -51,10 +52,13 @@ public class regexredux {
         "agggt[cgt]aa|tt[acg]accct",
         "agggta[cgt]a|t[acg]taccct",
         "agggtaa[cgt]|[acg]ttaccct"
-    ).parallel()
-        .collect(Collectors.toMap(v -> v, v -> 
-           Pattern.compile(v).matcher(sequence).results().count()))
-        .forEach((k, v) -> System.out.println(k + " " + v));
+    );
+
+    final var results = variants.parallelStream()
+        .collect(Collectors.toMap(v -> v, v -> Pattern
+           .compile(v).matcher(sequence).results().count()));
+
+    variants.forEach(v -> System.out.println(v + " " + results.get(v)));
 
     System.out.println();
     System.out.println(input.length());
